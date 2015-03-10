@@ -1,0 +1,296 @@
+@CHARSET "UTF-8";
+body {
+	background-color: #ffffff;
+	font-family: Arial, helvetica, sans-serif;
+	font-size: small;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table tr {
+	vertical-align: top;
+}
+
+table tr th {
+	background-color: #808080;
+	color: #ffffff;
+	text-align: center;
+	font-weight: bold;
+	padding: 3px;
+	white-space: nowrap;
+	border-right: #ffffff solid 1px;
+}
+
+table tr td {
+	font-weight: normal;
+	padding: 3px;
+	white-space: nowrap;
+}
+
+a {
+	color: #ff0000;
+	text-decoration: underline dashed #cc0000;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+ul {
+    float: left;
+    width: 100%;
+    padding: 5px 0px;
+    margin: 0;
+    list-style-type: none;
+    font-size: large;
+}
+
+li {
+	padding: 5px;
+    display: inline;
+    text-decoration: none;
+    background-color: #d0d0d0;
+    border: #000000 solid 1px; 
+}
+li:hover {
+    text-decoration: underline;
+}
+
+.tradeBuy {
+	color: red;
+	border: #000000 solid 1px;
+}
+
+th.tradeBuy {
+	border-right: #ffffff solid 1px;
+	border-bottom: #ffffff solid 1px;
+}
+
+.tradeBuyShow {
+	color: red;
+	cursor: pointer;
+	border-right: #ffffff solid 1px;
+	border-bottom: #ffffff solid 1px;
+}
+
+.tradeSell {
+	color: blue;
+	border: #000000 solid 1px;
+}
+
+th.tradeSell {
+	border-right: #ffffff solid 1px;
+	border-bottom: #ffffff solid 1px;
+}
+
+.tradeSellShow {
+	color: blue;
+	cursor: pointer;
+	border-right: #ffffff solid 1px;
+	border-bottom: #ffffff solid 1px;
+}
+
+.tradeProfit {
+	background-color: yellow;
+	color: black;
+	border: #000000 solid 1px;
+}
+
+th.tradeProfit {
+	background-color: #808080;
+	color: black;
+	border-right: #ffffff solid 1px;
+	border-bottom: #ffffff solid 1px;
+}
+
+.tradeDividends {
+	background-color: lightblue;
+	color: black;
+	border: #000000 solid 1px;
+}
+
+th.tradeDividends {
+	background-color: #808080;
+	color: black;
+	border-right: #ffffff solid 1px;
+	border-bottom: #ffffff solid 1px;
+}
+
+.tradeDividendsShow {
+	background-color: lightblue;
+	cursor: pointer;
+	color: black;
+	border-right: #ffffff solid 1px;
+	border-bottom: #ffffff solid 1px;
+}
+
+.message {
+	padding: 2px;
+	background-color: green;
+	font-size: normal;
+	color: white;
+}
+
+.warning {
+	color: red;
+	font-style: italic;
+}
+
+.listType {
+	border: #808080 solid 2px;
+	width: 100%;
+	overflow: scroll;
+}
+
+.listType table tr:nth-child(odd) {
+	background-color: #e0e0e0;
+}
+
+.listType table tr th {
+	background-color: #808080;
+	color: #ffffff;
+	text-align: center;
+	font-weight: bold;
+	padding: 3px;
+	white-space: normal;
+	border-right: #ffffff solid 1px;
+}
+
+.listType table tr th:first-child {
+	border-left: #808080 solid 1px;
+}
+
+.listType table tr th:last-child {
+	border-right: #808080 solid 1px;
+}
+
+.listType table tr td {
+	font-weight: normal;
+	padding: 3px;
+	white-space: no-wrap;
+	border-right: #808080 solid 1px;
+	border-bottom: #808080 dotted 1px;
+}
+
+.listType table tr:hover {
+	background-color: orange;
+}
+
+.listType table tr:hover td {
+	background-color: orange;
+}
+
+.listType table tr td:first-child {
+	border-left: #808080 solid 1px;
+}
+
+.innerType table {
+	width: 100%;
+}
+
+.innerType table tr:hover {
+	background-color: blue;
+}
+
+.innerType table tr:hover td {
+	background-color: blue;
+}
+
+.lightgreenbg {
+	background-color: #ccffcc;
+}
+
+.taxcentrebg {
+	background-color: #c4bd97;
+}
+
+tr.summary {
+	background-color: green;
+	font-size: normal;
+}
+
+tr.summary td {
+	background-color: green;
+	font-size: normal;
+	color: #000000;
+}
+
+.dividendDiv {
+	width: 100%;
+	align: left;
+	border: none;
+	padding: 0;
+	margin: 0;
+}
+
+.dividendDiv table {
+	border: none;
+}
+
+.dividendDiv table tr {
+	height: auto;
+	padding: 3px;
+}
+
+.dividendDiv table tr th {
+	height: auto;
+	padding: 3px;
+}
+
+.updatedRecently {
+	background-color: #00d080;
+}
+
+.updatedLong {
+	background-color: #d00020;
+	color: #ffffff;
+}
+
+div.fixedhead {
+	width: 85%;
+	overflow-x: scroll;
+	overflow-y: visible;
+	margin-left: 12em;
+}
+
+.fixedhead table {
+	border-collapse: collapse;
+	float: left;
+}
+
+.fixedhead table th {
+	height: 140px;
+}
+
+.headcol {
+	position: absolute;
+	width: 12em;
+	left: 0;
+	top: auto;
+	margin-top: -1;
+}
+
+td.headcol {
+	position: absolute;
+	width: 12em;
+	background-color: #c0c0c0;
+	color: #000000;
+	text-align: left;
+	font-weight: bold;
+	padding: 3px;
+}
+
+.headcol:before {
+	content: '';
+}
+
+.notes {
+	background-color: #88ffff;
+	padding: 3px;
+	margin: none;
+	font-size: small;
+	font-weight: bold;
+	color: #8800ff;
+}

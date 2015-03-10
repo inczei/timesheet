@@ -1,0 +1,135 @@
+{% extends 'InvestShareBundle:Default:base.html.twig' %}
+{% block content %}
+<br>
+{% if message is defined and message|length %}<br><span class="message">Message : <b>{{ message|raw }}</b></span><br>{% endif %}
+{% if selectForm is defined and selectForm|length %}
+<br>
+{{ form_start(selectForm) }}
+<table>
+	<tr>
+		<td>{{ form_row(selectForm.company) }}</td>
+		<td>{{ form_row(selectForm.search) }}</td>
+	</tr>
+</table>
+{{ form_end(selectForm) }}
+<br>
+{% endif %}
+{% if data is defined and data|length %}
+Click here to <span style="cursor: pointer; text-decoration: underline; color: #ff0000;" name="showhide" column="stockData">Show</span>  data<br>
+<span class="stockData" style="display: none">
+{% for k,v in data %}
+<h2>{{ k }}</h2>
+<table border="1">
+	<tr>
+	{% for d in v %}
+		<th>{{ d.Date|format('d/m/Y H:i') }}</th>
+	{% endfor %}
+	</tr>
+	<tr>
+	{% for d in v %}
+		<td align="right"{% if d.New is defined and d.New %} title="Calculated value"{% endif %}>{{ d.Price|number_format(2) }}{% if d.New is defined and d.New %}<span class="warning">!!!</span>{% endif %}</td>
+	{% endfor %}
+	</tr>
+	<tr>
+	{% for d in v %}
+		<td align="right"{% if d.New is defined and d.New %} title="Calculated value"{% endif %}>
+		<span style="color:
+		{% if (d.Changes != '') and (d.Changes != 0) %}
+			 	{% if d.Changes > 0 %}
+			 		blue
+			 	{% else %}
+			 		red
+			 	{% endif %}
+		{% else %}green
+		{% endif %}">{{ d.Changes|number_format(2) }}</span>{% if d.New is defined and d.New %}<span class="warning">!!!</span>{% endif %}
+		</td>
+	{% endfor %}
+	</tr>
+</table>
+{% endfor %}
+<br>
+</span><br>
+<div id="container" style="height: 600px"></div>
+<br>
+{% else %}
+No data...
+	{% if debug_message is defined and debug_message|length %}
+<pre>{{ debug_message|raw }}</pre>
+	{% endif %}
+{% endif %}
+{% endblock %}
+{% block additional_js %}
+<script>
+$(document).ready(function(){
+	$(function () {
+	    $('#container').highcharts({
+	        chart: {
+	            type: 'line'
+	        },
+	        title: {
+	            text: 'Stock Prices'
+	        },
+	        yAxis: {
+	            title: {
+	                text: 'Price'
+	            }
+	        },
+	        xAxis: {
+		        categories: [{% spaceless %}
+		        {% set start1 = 0 %}
+	        	{% for k,v in data %}		        	
+		        	{% if start1 == 0 %}
+		        		{% set start = 0 %}
+		        		{% for d in v %}{% spaceless %}
+		        			{% if start == 0 %}{% else %},{% endif %}
+		        			{% set start=start+1 %}
+		        			{% endspaceless %}'{{ d.Date }}'{% spaceless %}
+		        			{% endspaceless %}{% endfor %}
+		        	{% endif %}
+		        	{% set start1 = start1+1 %}
+		        {% endfor %}
+		        {% endspaceless %}],
+				labels: {
+					rotation: 90,
+					staggerLines: 1
+				}
+			},
+			plotOptions: {
+				column: {
+					grouping: false,
+					shadow: false
+				},
+				series: {
+					animation: false
+				}
+			},
+	        series: [
+	        	{% set start1 = 0 %}
+	        	{% for k,v in data %}
+	        		{% if start1 == 0 %}{% else %},{% endif %}
+	        		{% set start1=start1+1 %}
+	            { name: '{{ k }}',
+	            data: [{% spaceless %}
+	            	{% set start = 0 %}
+	        		{% for d in v %}
+	        			{% if start == 0 %}{% else %},{% endif %}
+	        			{% set start=start+1 %}
+	        		{{ d.Price }}
+	        		{% endfor %}
+	        	{% endspaceless %}]}
+	        {% endfor %}
+	        ],
+	        exporting: {
+		        width: 1200
+	        }
+	    });
+		$('button.export').click(function () {
+			$('#container').highcharts()
+				.exportChart({
+					scale: $(this).data().scale
+				});
+		});
+	});
+});
+</script>
+{% endblock %}

@@ -1,0 +1,14 @@
+invest_share:
+    resource: "@InvestShareBundle/Resources/config/routing.yml"
+    prefix:   /
+#login:
+#    pattern: /login
+#    defaults: { _controller: InvestShareBundle:Security:login }
+#login_check:
+#    pattern: login_check
+#logout:
+#    path: /logout
+#test_security:
+#    pattern: /secure_area
+#    defaults: { _controller: InvestShareBundle:Security:dumpString }
+

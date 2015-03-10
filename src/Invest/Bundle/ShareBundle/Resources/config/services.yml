@@ -1,0 +1,7 @@
+parameters:
+#    invest_share.example.class: Invest\Bundle\ShareBundle\Example
+
+services:
+#    invest_share.example:
+#        class: %invest_share.example.class%
+#        arguments: [@service_id, "plain_value", %parameter%]

@@ -1,0 +1,214 @@
+<!DOCTYPE pdf SYSTEM "%resources%/dtd/doctype.dtd">
+<pdf>
+	<page page-size="a4-landscape" font-size="5pt">
+		<h1>{{ name }}</h1>
+{% set page = 0 %}
+{% set line = 0 %}
+{% if trades is defined and trades|length %}
+		<table>
+			<stylesheet>
+				<complex-attribute name="border" color="gray" />
+			</stylesheet>
+{% spaceless %}
+{% set summaryBuyPrice=0 %}
+	{% set summaryBuyCost=0 %}
+	{% set summarySellPrice=0 %}
+	{% set summarySellCost=0 %}
+	{% set summaryDividends=0 %}
+	{% set summaryDividendsPaidGBP=0 %}
+	{% set summaryDividendsPaidEUR=0 %}
+	{% set summaryDividendsPaidUSD=0 %}
+	{% set summaryProfit=0 %}
+	{% set summaryIncomeGBP=0 %}
+	{% set summaryIncomeEUR=0 %}
+	{% set summaryIncomeUSD=0 %}
+	{% set summaryIncomeCurrency=0 %}
+	{% set summaryCurrentUnsoldValue=0 %}
+	{% set summaryUnsoldValue=0 %}
+	
+{% endspaceless %}{% for c in trades %}{% spaceless %}
+		{% if c.Currency == 'GBP' %}
+			{% set currency='' %}
+		{% endif %}
+		{% if c.Currency == 'USD' %}
+			{% set currency='$ ' %}
+		{% endif %}
+		{% if c.Currency == 'EUR' %}
+			{% set currency='€ ' %}
+		{% endif %}
+	
+		{% set buyTotal=c.quantity1*c.unitPrice1/100+c.cost1 %}
+		{% set sellTotal=c.quantity2*c.unitPrice2/100-c.cost2 %}
+		{% if c.noOfDaysInvested == 0 %}
+			{% set profit=0 %}
+		{% else %}
+			{% set profit=sellTotal-buyTotal %}
+		{% endif %}
+
+		{% set summaryBuyPrice=summaryBuyPrice+buyTotal %}
+		{% set summaryBuyCost=summaryBuyCost+c.cost1 %}
+		{% set summarySellPrice=summarySellPrice+sellTotal %}
+		{% set summarySellCost=summarySellCost+c.cost2 %}
+		{% set summaryProfit=summaryProfit+profit %}
+		{% set totalIncomeGBP=0 %}
+		{% set totalIncomeEUR=0 %}
+		{% set totalIncomeUSD=0 %}
+		{% set totalIncomeCurrency=0 %}
+		{% set totalDividends=0 %}
+		{% set totalDividendsPaidGBP=0 %}
+		{% set totalDividendsPaidEUR=0 %}
+		{% set totalDividendsPaidUSD=0 %}
+
+		{% if dividends[c.companyId] is defined and dividends[c.companyId]|length %}
+			{% for d in dividends[c.companyId] %}
+				{% if d.exDivDate|date('Y-m-d') <= "now"|date('Y-m-d') and d.exDivDate|date('Y-m-d') > c.tradeDate1|date('Y-m-d') and (c.tradeDate2 == null or d.exDivDate|date('Y-m-d') < c.tradeDate2|date('Y-m-d')) %}
+					{% set totalDividends=totalDividends+d.amount %}
+					{% if c.Currency == 'EUR' %}
+						{% if d.PaymentRate is defined and d.PaymentRate != 0 %}
+							{% set totalIncomeCurrency=totalIncomeCurrency+(c.quantity1*d.amount)/d.PaymentRate %}
+						{% else %}
+							{% set totalIncomeCurrency=totalIncomeCurrency+(c.quantity1*d.amount)/currencyRates.EUR %}
+						{% endif %}
+					{% endif %}
+					{% if c.Currency == 'USD' %}
+						{% if d.PaymentRate is defined and d.PaymentRate != 0 %}
+							{% set totalIncomeCurrency=totalIncomeCurrency+(c.quantity1*d.amount)/d.PaymentRate %}
+						{% else %}
+							{% set totalIncomeCurrency=totalIncomeCurrency+(c.quantity1*d.amount)/currencyRates.USD %}
+						{% endif %}
+					{% endif %}
+					{% if d.paymentDate|date('Y-m-d') <= "now"|date('Y-m-d') %}
+						{% if c.Currency == 'GBP' %}
+							{% set totalDividendsPaidGBP=totalDividendsPaidGBP+d.amount %}
+						{% endif %}
+						{% if c.Currency == 'EUR' %}
+							{% set totalDividendsPaidEUR=totalDividendsPaidEUR+d.amount %}
+						{% endif %}
+						{% if c.Currency == 'USD' %}
+							{% set totalDividendsPaidUSD=totalDividendsPaidUSD+d.amount %}
+						{% endif %}
+					{% endif %}
+				{% endif %}
+			{% endfor %}
+		{% endif %}
+		{% set divs = 0 %}
+		{% if c.Currency == 'GBP' %}
+			{% set divs = totalDividends*c.quantity1/100 %}
+			{% set totalIncomeGBP=divs %}
+		{% endif %}
+		{% if c.Currency == 'EUR' %}
+			{% set divs = totalDividends*c.quantity1 %}
+			{% set totalIncomeEUR=divs %}
+		{% endif %}
+		{% if c.Currency == 'USD' %}
+			{% set divs = totalDividends*c.quantity1 %}
+			{% set totalIncomeUSD=divs %}
+		{% endif %}
+		
+		{% set summaryDividends=summaryDividends+divs %}
+		{% set summaryDividendsPaidGBP=summaryDividendsPaidGBP+totalDividendsPaidGBP %}
+		{% set summaryDividendsPaidEUR=summaryDividendsPaidEUR+totalDividendsPaidEUR %}
+		{% set summaryDividendsPaidUSD=summaryDividendsPaidUSD+totalDividendsPaidUSD %}
+		{% set summaryIncomeGBP=summaryIncomeGBP+totalIncomeGBP %}
+		{% set summaryIncomeEUR=summaryIncomeEUR+totalIncomeEUR %}
+		{% set summaryIncomeUSD=summaryIncomeUSD+totalIncomeUSD %}
+		{% set summaryIncomeCurrency=summaryIncomeCurrency+totalIncomeCurrency %}
+		
+		{% if c.noOfDaysInvested == 0 %}
+			{% set roi=((profit-divs)/buyTotal)*365/30*100 %}
+			{% set summaryCurrentUnsoldValue=summaryCurrentUnsoldValue+(c.quantity1*c.lastPrice) %}
+			{% set summaryUnsoldValue=summaryUnsoldValue+buyTotal %}
+		{% else %}
+			{% set roi=((profit-divs)/buyTotal)*365/c.noOfDaysInvested*100 %}
+		{% endif %}
+{% endspaceless %}
+{% if line == 0 %}
+{% if page > 0 %}
+	</table>
+	</page>
+	<page page-size="a4-landscape" font-size="5pt">
+		<table>
+{% endif %}
+{% set page = page + 1 %}		
+			<tr>
+				<td text-align="center" background.color="gray" color="white">Portfolio</td>
+				<td text-align="center" background.color="gray" color="white">EPIC</td>
+				<td text-align="center" background.color="gray" color="white">Sector</td>
+				<td text-align="center" background.color="gray" color="white">Company</td>
+				<td text-align="center" background.color="gray" color="white">Trade Date</td>
+				<td text-align="center" background.color="gray" color="white">Reference</td>
+				<td text-align="center" background.color="gray" color="white">Quantity</td>
+				<td text-align="center" background.color="gray" color="white">Unit Price (p)</td>
+				<td text-align="center" background.color="gray" color="white">Total Price (£)</td>
+				<td text-align="center" background.color="gray" color="white">Cost (£)</td>
+				<td text-align="center" background.color="gray" color="white">Trade Date</td>
+				<td text-align="center" background.color="gray" color="white">Reference</td>
+				<td text-align="center" background.color="gray" color="white">Quantity</td>
+				<td text-align="center" background.color="gray" color="white">Unit Price (p)</td>
+				<td text-align="center" background.color="gray" color="white">Total Price (£)</td>
+				<td text-align="center" background.color="gray" color="white">Cost (£)</td>
+				<td text-align="center" background.color="gray" color="white">Profit / Loss (£)</td>
+				<td text-align="center" background.color="gray" color="white">No of days invested</td>
+				<td text-align="center" background.color="gray" color="white">ROI (%)</td>
+				<td text-align="center" background.color="gray" color="white">Total Dividend Payments (p)</td>
+				<td text-align="center" background.color="gray" color="white">Yield (%)</td>
+				<td text-align="center" background.color="gray" color="white">Total Income (£)</td>
+				<td text-align="center" background.color="gray" color="white">P/E Ratio</td>
+				<td text-align="center" background.color="gray" color="white">Current Stock (p)</td>
+				<td text-align="center" background.color="gray" color="white">Changes (p)</td>
+				<td text-align="center" background.color="gray" color="white">Changes (%)</td>
+			</tr>
+{% endif %}
+	{% set line = line + 1 %}
+	{% if line > 16 %}{% set line = 0 %}{% endif %}
+			<tr>
+				<td>{{ c.portfolioName }} / {{ c.clientNumber }}</td>
+				<td text-align="center">{{ c.companyCode }}</td>
+				<td>{{ c.sector }}</td>
+				<td>{{ c.companyName }}</td>
+				{% if c.reference1 != '' %}
+				<td text-align="center">{{ c.tradeDate1|date('d/m/Y') }}</td>
+				<td text-align="center">{{ c.reference1 }}</td>
+				<td text-align="right">{{ c.quantity1|number_format(0) }}</td>
+				<td text-align="right">{{ c.unitPrice1|number_format(2) }}</td>
+				<td text-align="right">{{ buyTotal|number_format(2) }}</td>
+				<td text-align="right">{{ c.cost1|number_format(2) }}</td>
+				{% else %}
+				<td>-</td>
+				<td>-</td>
+				<td>-</td>
+				<td>-</td>
+				<td>-</td>
+				<td>-</td>
+				{% endif %}
+				{% if c.reference2 != '' %}
+				<td text-align="center">{{ c.tradeDate2|date('d/m/Y') }}</td>
+				<td text-align="center">{{ c.reference2 }}</td>
+				<td text-align="right">{{ c.quantity2|number_format(0) }}</td>
+				<td text-align="right">{{ c.unitPrice2|number_format(2) }}</td>
+				<td text-align="right">{{ sellTotal|number_format(2) }}</td>
+				<td text-align="right">{{ c.cost2|number_format(2) }}</td>
+				{% else %}
+				<td>-</td>
+				<td>-</td>
+				<td>-</td>
+				<td>-</td>
+				<td>-</td>
+				<td>-</td>
+				{% endif %}
+				<td text-align="right">{% if profit != 0 %}{{ profit|number_format(2) }}{% else %}-{% endif %}</td>
+				<td text-align="right">{% if c.noOfDaysInvested != 0 %}{{ c.noOfDaysInvested|number_format(0) }}{% else %}-{% endif %}</td>
+				<td text-align="right">{% if roi != 0 %}{{ roi|number_format(1) }}{% else %}-{% endif %}</td>
+				<td text-align="right">{% if totalDividendsPaidGBP != 0 %}{{ totalDividendsPaidGBP|number_format(2) }}{% endif %}{% if totalDividendsPaidEUR != 0 %}€ {{ totalDividendsPaidEUR|number_format(2) }}{% endif %}{% if totalDividendsPaidUSD != 0 %}$ {{ totalDividendsPaidUSD|number_format(2) }}{% endif %}</td>
+				<td text-align="right">{% if totalDividends != 0 %}{{ (totalDividends/c.unitPrice1*100)|number_format(1) }} %{% else %}-{% endif %}</td>
+				<td text-align="right">{% if totalIncomeGBP != 0 %}{{ totalIncomeGBP|number_format(2) }}{% endif %}{% if totalIncomeEUR != 0 %}€ {{ totalIncomeEUR|number_format(2) }}{% endif %}{% if totalIncomeUSD != 0 %}$ {{ totalIncomeUSD|number_format(2) }}{% endif %}</td>
+				<td text-align="right">{{ c.PeRatio }}</td>
+				<td text-align="right">{{ c.lastPrice|number_format(2) }}</td>
+				<td text-align="right">{% if c.lastPrice != 0 %}{{ (c.lastPrice-c.unitPrice1)|number_format(2) }} p{% endif %}</td>
+				<td text-align="right">{% if c.lastPrice != 0 %}{% if ((1-c.unitPrice1/c.lastPrice) > 0) %}+{% else %}-{% endif %} {{ ((1-c.unitPrice1/c.lastPrice)*100)|abs|number_format(1) }} %{% endif %}</td>
+			</tr>
+{% endfor %}
+		</table>
+{% endif %}
+	</page>
+</pdf>

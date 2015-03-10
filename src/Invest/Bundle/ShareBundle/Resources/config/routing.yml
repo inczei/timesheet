@@ -1,0 +1,62 @@
+invest_share_homepage:
+    path:     /
+    defaults: { _controller: InvestShareBundle:Default:index }
+invest_share_menu:
+    path:     /menu
+    defaults: { _controller: InvestShareBundle:Default:menu }
+invest_share_company:
+    path:     /company/{action}/{id}/{additional}
+    defaults: { _controller: InvestShareBundle:Default:company, action: '', id: '', additional: '' }
+invest_share_dividend:
+    path:     /dividend
+    defaults: { _controller: InvestShareBundle:Default:dividend }
+invest_share_ddeals:
+    path:     /ddeals
+    defaults: { _controller: InvestShareBundle:Default:ddeals }
+invest_share_diary:
+    path:     /diary
+    defaults: { _controller: InvestShareBundle:Default:diary }
+invest_share_trade:
+    path:     /trade.{_format}/{action}/{id}/{additional}/{extra}
+    defaults: { _controller: InvestShareBundle:Default:trade, action: '', id: '', additional: '', extra: '', _format: 'html' }
+invest_share_portfolio:
+    path:     /portfolio/{action}/{id}/{additional}
+    defaults: { _controller: InvestShareBundle:Default:portfolio, action: '', id: '', additional: '' }
+invest_share_pricelist:
+    path:     /priceslist/{date}/{export}
+    defaults: { _controller: InvestShareBundle:Default:pricelist, date: '', export: '' }
+invest_share_prices:
+    path:     /prices/{company}
+    defaults: { _controller: InvestShareBundle:Default:prices, company: '' }
+invest_share_currency:
+    path:     /currency/{currency}
+    defaults: { _controller: InvestShareBundle:Default:currency, currency: '' }
+invest_share_tradeupload:
+    path:     /tradeupload
+    defaults: { _controller: InvestShareBundle:Default:tradeupload }
+invest_share_update:
+    path:     /update
+    defaults: { _controller: InvestShareBundle:Default:update }
+invest_share_updateprices:
+    path:     /updateprices/{freq}/{part}
+    defaults: { _controller: InvestShareBundle:Default:updateprices, freq: '', part: '' }
+invest_share_updatedividend:
+    path:     /updatedividend
+    defaults: { _controller: InvestShareBundle:Default:updatedividend }
+invest_share_updatecurrency:
+    path:     /updatecurrency
+    defaults: { _controller: InvestShareBundle:Default:updatecurrency }
+invest_share_updatedeals:
+    path:     /updatedeals/{page}
+    defaults: { _controller: InvestShareBundle:Default:updatedeals, page: '' }
+invest_share_updatediary:
+    path:     /updatediary/{date}
+    defaults: { _controller: InvestShareBundle:Default:updatediary, date: '' }
+invest_share_notes:
+    path:     /notes/{action}/{id}/{additional}
+    defaults: { _controller: InvestShareBundle:Default:notes, action: '', id: '', additional: '' }
+invest_share_hello:
+    path:     /hello/{name}.{_format}
+    defaults: { _controller: InvestShareBundle:Default:hello, name: '', format: 'html' }
+    requirements:
+      _format: html|pdf    

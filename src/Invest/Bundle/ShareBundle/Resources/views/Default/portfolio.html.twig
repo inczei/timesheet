@@ -1,0 +1,231 @@
+{% extends 'InvestShareBundle:Default:base.html.twig' %}
+{% block content %}
+<br><br><hr>
+{% for flashMessage in app.session.flashbag.get('notice') %}
+    <span class="message">Message : <b>{{ flashMessage }}</b></span>
+{% endfor %}
+{% if message is defined and message|length %}
+<span class="message">Message : <b>{{ message }}</b></span>
+{% endif %}
+{% if errors is defined and errors|length %}
+<ul>
+	{% for error in errors %}
+	<li>{{ error.message }}</li>
+	{% endfor %}
+</ul>
+{% endif %}
+{% if (form is defined and form|length) or (form2 is defined and form2|length) %}
+	{% if formTitle is defined and formTitle|length %}
+<h2>{{ formTitle }}</h2>
+	{% endif %}
+{% endif %}
+<p>
+{% if form is defined and form|length %}
+{{ form_start(form) }}
+{{ form_widget(form.id) }}
+<table>
+	<tr>
+		<td colspan="2">{{ form_errors(form) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.name) }}</td><td>{{ form_widget(form.name) }}{{ form_errors(form.name) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.clientNumber) }}</td><td>{{ form_widget(form.clientNumber) }}{{ form_errors(form.clientNumber) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.family) }}</td><td>{{ form_widget(form.family) }}{{ form_errors(form.family) }}</td>
+	</tr>
+	<tr>
+		<td></td><td>{{ form_widget(form.save) }}</td>
+	</tr>
+</table>
+{{ form_end(form) }}
+{% endif %}
+{% if form2 is defined and form2|length %}
+{{ form_start(form2) }}
+{{ form_widget(form2.id) }}
+{{ form_widget(form2.portfolioid) }}
+<table>
+	<tr>
+		<td colspan="2">{{ form_errors(form2) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form2.date) }}</td><td>{{ form_widget(form2.date) }}{{ form_errors(form2.date) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form2.amount) }}</td><td>{{ form_widget(form2.amount) }}{{ form_errors(form2.amount) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form2.reference) }}</td><td>{{ form_widget(form2.reference) }}{{ form_errors(form2.reference) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form2.description) }}</td><td>{{ form_widget(form2.description) }}{{ form_errors(form2.description) }}</td>
+	</tr>
+	<tr>
+		<td></td><td>{{ form_widget(form2.save) }}</td>
+	</tr>
+</table>
+{{ form_end(form2) }}
+{% endif %}
+</p>
+<a href="{{ path('invest_share_portfolio', {'action':'add'}) }}">Add new portfolio</a>
+
+{% if portfolios is defined and portfolios|length %}
+<hr>
+<h2>Portfolios</h2>
+<div class="listType">
+	<table>
+		<tr>
+			<th>Name / Client Number</th>
+			<th>Credit / Debit</th>
+			<th>Current Cash (£)</th>
+			<th>Stock value (£)</th>
+			<th>Dividend Paid (£)</th>
+			<th>Dividend (£)</th>
+			<th>Investment (£)</th>
+			<th>Cost (£)</th>
+			<th>Profit (£)</th>
+			<th>Action</th>
+		</tr>
+	{% set summaryCash = 0 %}
+	{% set summaryCurrentCash = 0 %}
+	{% set summaryInvestment = 0 %}
+	{% set summaryCost = 0 %}
+	{% set summaryDividend = 0 %}
+	{% set summaryProfit = 0 %}
+	{% set summaryStockValue = 0 %}
+	{% set summaryDividendPaid = 0 %}
+	{% set summaryVFR = 0 %}
+	{% set summaryISA = 0 %}
+	{% for p in portfolios %}
+		<tr>
+			<td><a href="{{ path('invest_share_trade', {'action': 'list', 'id': p.id}) }}">{{ p.name }} / {{ p.clientNumber }}</a></td>
+			<td align="center">
+				{% set ptTotal = 0 %}
+				{% set opening = '' %}
+				{% set vfr = 0 %}
+				{% set isa = 0 %}
+				{% if transactions[p.id] is defined and transactions[p.id]|length %}
+				<div class="innerType">
+				<table>
+					<tr>
+						<th>Date</th>
+						<th>Amount (£)</th>
+						<th>Description</th>
+						<th> </th>
+					</tr>
+					{% for t in transactions[p.id] %}
+					{% if opening == '' %}
+						{% set opening=t.date|date("d/m/Y") %}
+					{% endif %}
+					{% if t.reference == 'chaps' %}
+						{% set vfr=vfr+t.amount %}
+					{% endif %}
+					{% if ((t.reference == 'transfer') and ('to hl vantage' in t.description)) %}
+						{% set isa=isa-t.amount %}
+					{% endif %}
+					{% set ptTotal=ptTotal+t.amount %}
+					<tr>
+						<td>{{ t.date|date("d/m/Y") }}</td>
+						<td align="right">{{ t.amount|number_format(2) }}</td>
+						<td title="Reference : {{ t.reference }}">{{ t.description }}</td>
+						<td align="center">
+							<a href="{{ path('invest_share_portfolio') }}/editdebit/{{ p.id }}/{{ t.id }}" title="Edit debit/credit">E</a>
+							|
+							<a href="{{ path('invest_share_portfolio') }}/deletedebit/{{ p.id }}/{{ t.id }}" title="Delete debit/credit" question="Would you like to delete?">X</a>
+						</td>
+					</tr>
+					{% endfor %}
+					<tr>
+						<td><b>Total</b></td>
+						<td align="right"><b>{{ ptTotal|number_format(2) }}</b></td>
+						<td> </td>
+						<td> </td>
+					</tr>
+					<tr>
+						<td colspan="4"><hr></td>
+					</tr>
+					<tr>
+						<td colspan="2"><b>Vantage Fund Receipt</b></td>
+						<td colspan="2" align="right"><b>{{ vfr|number_format(2) }}</b></td>
+					</tr>
+					<tr>
+						<td colspan="2"><b>To HL Vantage S&amp;S ISA</b></td>
+						<td colspan="2" align="right"><b>{{ isa|number_format(2) }}</b></td>
+					</tr>
+					<tr>
+						<td colspan="2"><b>Opening Subscription</b></td>
+						<td colspan="2" align="right"><b>{{ opening }}</b></td>
+					</tr>
+				</table>
+				</div>
+				<hr>
+				{% endif %}
+			<a href="{{ path('invest_share_portfolio') }}/adddebit/0/{{ p.id }}" title="Add debit/credit">A</a>
+			</td>
+			<td align="right">{{ (ptTotal+p.startAmount-p.Investment)|number_format(2) }}</td>
+			<td align="right">{{ p.StockValue|number_format(2) }}</td>
+			<td align="right">{{ p.DividendPaid|number_format(2) }}</td>
+			<td align="right">{{ p.Dividend|number_format(2) }}</td>
+			<td align="right">{{ p.Investment|number_format(2) }}</td>
+			<td align="right">{{ p.Cost|number_format(2) }}</td>
+			<td align="right">{{ p.Profit|number_format(2) }}</td>
+			<td align="center">
+				<a href="{{ path('invest_share_portfolio') }}/edit/{{ p.id }}" title="Edit portfolio">E</a>
+				|
+				<a href="{{ path('invest_share_portfolio') }}/delete/{{ p.id }}" title="Delete portfolio" question="Would you like to delete?">X</a>
+			</td>
+			{% set summaryCash = summaryCash + ptTotal %}
+			{% set summaryCurrentCash = summaryCurrentCash + (ptTotal+p.startAmount-p.Investment) %}
+			{% set summaryInvestment = summaryInvestment + p.Investment %}
+			{% set summaryCost = summaryCost + p.Cost %}
+			{% set summaryDividend = summaryDividend + p.Dividend %}
+			{% set summaryProfit = summaryProfit + p.Profit %}
+			{% set summaryStockValue = summaryStockValue + p.StockValue %}
+			{% set summaryDividendPaid = summaryDividendPaid + p.DividendPaid %}
+			{% set summaryVFR = summaryVFR + vfr %}
+			{% set summaryISA = summaryISA + isa %}
+		</tr>
+	{% endfor %}
+		<tr>
+			<th></th>
+			<th></th>
+			<th>Current Cash (£)</th>
+			<th>Stock value (£)</th>
+			<th>Dividend Paid (£)</th>
+			<th>Dividend (£)</th>
+			<th>Investment (£)</th>
+			<th>Cost (£)</th>
+			<th>Profit (£)</th>
+			<th></th>
+		</tr>
+		<tr class="summary">
+			<td><b>Summary</b></td>
+			<td>
+				<div class="innerType">
+				<table>
+					<tr>
+						<td><b>Vantage Fund Receipt</b></td>
+						<td align="right"><b>{{ summaryVFR|number_format(2) }}</b></td>
+					</tr>
+					<tr>
+						<td><b>To HL Vantage S&amp;S ISA</b></td>
+						<td align="right"><b>{{ summaryISA|number_format(2) }}</b></td>
+					</tr>
+				</table>
+				</div>
+			</td>
+			<td align="right"><b>{{ summaryCurrentCash|number_format(2) }}</b></td>
+			<td align="right"><b>{{ summaryStockValue|number_format(2) }}</b></td>
+			<td align="right"><b>{{ summaryDividendPaid|number_format(2) }}</b></td>
+			<td align="right"><b>{{ summaryDividend|number_format(2) }}</b></td>
+			<td align="right"><b>{{ summaryInvestment|number_format(2) }}</b></td>
+			<td align="right"><b>{{ summaryCost|number_format(2) }}</b></td>
+			<td align="right"><b>{{ summaryProfit|number_format(2) }}</b></td>
+			<td></td>
+		</tr>
+	</table>
+</div>
+{% endif %}
+{% endblock %}

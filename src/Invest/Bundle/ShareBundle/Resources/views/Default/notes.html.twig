@@ -1,0 +1,30 @@
+{% extends 'InvestShareBundle:Default:base.html.twig' %}
+{% block content %}
+<br><br><hr>
+{% for flashMessage in app.session.flashbag.get('notice') %}
+    <span class="message">Message : <b>{{ flashMessage }}</b></span>
+{% endfor %}
+{% if message is defined and message|length %}
+<p>{{ message|raw }}</p>
+<hr>
+{% endif %}
+{% if notes is defined and notes|length %}
+{{ form_start(form) }}
+{{ form_errors(form) }}
+<table>
+	{% for k,n in notes %}
+	<tr>
+		<th>{{ k|upper }}</th>
+	</tr>
+	<tr>
+		<td><textarea name="page_{{ k }}" cols="80" rows="10">{{ n }}</textarea></td>
+	</tr>
+	{% endfor %}
+	<tr>
+		<td align="center">{{ form_widget(form.save) }}</td>
+	</tr>
+</table>
+{{ form_widget(form._token) }}
+{{ form_end(form) }}
+{% endif %}
+{% endblock %}

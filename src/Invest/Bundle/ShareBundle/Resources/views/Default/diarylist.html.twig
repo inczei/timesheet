@@ -1,0 +1,46 @@
+{% extends 'InvestShareBundle:Default:base.html.twig' %}
+{% block content %}
+<br><br><hr>
+{% if message is defined and message|length %}<span class="message">Message : <b>{{ message }}</b></span><br>{% endif %}
+{% if errors is defined and errors|length %}
+<ul>
+	{% for error in errors %}
+	<li>{{ error.message }}</li>
+	{% endfor %}
+</ul>
+{% endif %}
+<br>
+{% if links is defined and links|length %}
+{% for k,l in links %}
+{% if l.selected %}{{ l.date }}{% else %}<a href="{{ path('invest_share_updatediary') }}/{{ k }}">{{ l.date }}</a>{% endif %} | 
+{% endfor %}
+<br>
+{% endif %}
+{% if diary is defined and diary|length %}
+{% set lastType = '' %}
+<div class="listType">
+<table>
+	<tr>
+		<th>EPIC</th>
+		<th>Name</th>
+		<th>Date</th>
+	</tr>
+	{% for d in diary %}
+	{% if lastType != d.Type %}
+		{% set lastType = d.Type %}
+	<tr>
+		<td colspan="3" align="center"><b>{{ lastType }}</b></td>
+	</tr>
+	{% endif %}
+	<tr>
+		<td align="center"><a href="{{ path('invest_share_prices') }}/{{ d.Code }}">{{ d.Code }}</a></td>
+		<td>{{ d.Name }}</td>
+		<td align="center">{{ d.Date|date('d/m/Y') }}</td>
+	</tr>
+	{% endfor %}
+</table>
+</div>
+{% else %}
+No new diary event
+{% endif %}
+{% endblock %}

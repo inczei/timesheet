@@ -1,0 +1,79 @@
+{% extends 'InvestShareBundle:Default:base.html.twig' %}
+{% if refresh is defined %}
+	{% set pageRefresh=refresh %}
+{% else %}
+{% endif %}
+{% block content %}
+<br><br><hr>
+{% if message is defined and message|length %}<span class="message">Message : <b>{{ message|raw }}</b></span><br>{% endif %}
+<br>
+{% if datesForm is defined and datesForm|length %}
+<br>
+{{ form_start(datesForm) }}
+<table>
+	<tr>
+		<td>{{ form_row(datesForm.date) }}</td>
+		<td>{{ form_row(datesForm.startDate) }}</td>
+		<td>{{ form_row(datesForm.endDate) }}</td>
+		<td>{{ form_row(datesForm.sector) }}</td>
+		<td>{{ form_row(datesForm.list) }}</td>
+		<td>{{ form_row(datesForm.search) }}</td>
+	</tr>
+</table>
+<br>
+{% endif %}
+{% if data is defined and data|length %}
+<div class="listType">
+<table>
+	<tr>
+		<th>EPIC</th>
+		<th>Company</th>
+		<th>Sector</th>
+		<th>List</th>
+		<th>Price</th>
+		<th colspan="2">Change</th>
+		<th>Updated (UTC)</th>
+{% if datesForm is defined and datesForm|length %}
+		<th></th>
+{% endif %}	
+	</tr>
+	{% for d in data %}
+		{% if (d.Changes != '') and (d.Changes != 0) %}
+			 {% if d.Changes > 0 %}
+			 	{% set colour='blue' %}
+			 {% else %}
+			 	{% set colour='red' %}
+			 {% endif %}
+		{% else %}
+			{% set colour='green' %}
+		{% endif %}
+	<tr>
+		<td align="center"><a href="{{ path('invest_share_prices') }}/{{ d.Code }}">{{ d.Code }}</a></td>
+		<td>{{ d.Name }}</td>
+		<td>{{ d.Sector }}</td>
+		<td>{{ d.List }}</td>
+		<td align="right"{% if d.newPrice is defined and d.newPrice>0 %} style="background: #88ff88"{% endif %}>{{ d.Price|number_format(2) }}</td>
+		<td align="right"><span style="color: {{ colour }}">{{ d.Changes|number_format(2) }}</span></td>
+		<td align="right"><span style="color: {{ colour }}">{% if d.Price==0 %}0{% else %}{{ (d.Changes/d.Price*100)|number_format(2) }}{% endif %} %</span></td>
+		<td{% if d.Class is defined and d.Class|length %} class="{{ d.Class }}"{% endif %}>{{ d.Date }}</td>
+{% if datesForm is defined and datesForm|length %}
+		<td><input type="checkbox" name="sel_{{ d.Code }}" value="{{ d.Code }}"></td>
+{% endif %}
+	</tr>
+	{% endfor %}
+</table>
+</div>
+{% endif %}
+{% if datesForm is defined and datesForm|length %}
+{{ form_end(datesForm) }}
+{% endif %}
+{% if refresh is defined and refresh > 0 %}
+<br>automatic update start in {{ refresh }} seconds
+{% else %}
+<br><a target="_blank" href="{{ path('invest_share_pricelist') }}/0/1">Export</a>
+{% endif %}
+{% if notes is defined and notes|length %}
+<hr>
+<div class="notes">{{ notes|nl2br }}<div>
+{% endif %}
+{% endblock %}

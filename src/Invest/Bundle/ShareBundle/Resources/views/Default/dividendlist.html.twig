@@ -1,0 +1,37 @@
+{% extends 'InvestShareBundle:Default:base.html.twig' %}
+{% block content %}
+<br><br><hr>
+{% if message is defined and message|length %}<span class="message">Message : <b>{{ message }}</b></span><br>{% endif %}
+{% if errors is defined and errors|length %}
+<ul>
+	{% for error in errors %}
+	<li>{{ error.message }}</li>
+	{% endfor %}
+</ul>
+{% endif %}
+<br>
+{% if data is defined and data|length %}
+<div class="listType">
+<table>
+	<tr>
+		<th>EPIC</th>
+		<th>Name</th>
+		<th>Dividend</th>
+		<th>Declaration Date</th>
+		<th>Ex Dividend Date</th>
+		<th>Payment Date</th>
+	</tr>
+	{% for d in data %}
+	<tr>
+		<td>{{ d.Code }}</td>
+		<td>{{ d.Name }}</td>
+		<td align="right">{% if d.Currency != 'GBP' %}{% if d.Currency == 'USD' %}$ {% endif %}{% if d.Currency == 'EUR' %}€ {% endif %}{% endif %}{{ d.Price|number_format(3) }}</td>
+		<td align="center">{{ d.DeclarationDate|date('d/m/Y') }}</td>
+		<td align="center">{{ d.ExDivDate|date('d/m/Y') }}</td>
+		<td align="center">{{ d.PaymentDate|date('d/m/Y') }}</td>
+	</tr>
+	{% endfor %}
+</table>
+</div>
+{% endif %}
+{% endblock %}

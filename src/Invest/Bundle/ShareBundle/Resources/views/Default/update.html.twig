@@ -1,0 +1,25 @@
+{% extends 'InvestShareBundle:Default:base.html.twig' %}
+{% block content %}
+<br><br><hr>
+{% for flashMessage in app.session.flashbag.get('notice') %}
+    <span class="message">Message : <b>{{ flashMessage }}</b></span><br><br>
+{% endfor %}
+{% if message is defined and message|length %}
+<p>{{ message|raw }}</p>
+<br>
+{% endif %}
+<ul>
+	<li><a href="{{ path('invest_share_updateprices') }}">Update Prices</a></li>
+	<li><a href="{{ path('invest_share_updatedividend') }}">Update Dividends</a></li>
+	<li><a href="{{ path('invest_share_updatedeals') }}">Update Directors' Deals</a></li>
+	<li><a href="{{ path('invest_share_updatediary') }}">Update Financial Diary</a></li>
+	<li><a href="{{ path('invest_share_updatecurrency') }}">Update Currency</a></li>
+	<li><a href="{{ path('invest_share_notes') }}">Update notes</a></li>
+	<li><a href="{{ path('invest_share_tradeupload') }}">Upload portfolio .csv file</a></li>
+</ul>
+<br><br>
+{% if notes is defined and notes|length %}
+<hr>
+<div class="notes">{{ notes|nl2br }}<div>
+{% endif %}
+{% endblock %}
