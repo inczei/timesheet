@@ -6,7 +6,7 @@
 	"autoload" : {
 		"psr-0" : {
 			"" : "src/",
-			"Ghunti\\HighchartsPHP\\": "src/"
+			"Ghunti\\HighchartsPHP\\" : "src/"
 		}
 	},
 	"require" : {

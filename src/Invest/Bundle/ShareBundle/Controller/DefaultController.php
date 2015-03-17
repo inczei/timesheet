@@ -4676,55 +4676,69 @@ class DefaultController extends Controller
     
     public function currencyAction($currency) {
 
+    	$limit=100;
     	$message='';
     	$data=array();
     	$dates=array();
     	$currencies=array();
     	$search=array();
+    	$updated=array();
     	
     	$this->currencyNeeded=$this->getCurrencyList();
     	
     	if ($currency && in_array($currency, $this->currencyNeeded)) {
     		$search=array('currency'=>$currency);
     	}
+    	
+    	if (!$currency) {
 
-    	$results=$this->getDoctrine()
-    		->getRepository('InvestShareBundle:Currency')
-    		->findBy($search, array('updated'=>'ASC'));
+	    	$results=$this->getDoctrine()
+	    		->getRepository('InvestShareBundle:Currency')
+	    		->findBy($search, array('updated'=>'DESC', 'currency'=>'ASC'), $limit*count($this->currencyNeeded));
+	    	
+	    	if ($results && count($results)) {
+	    		foreach ($results as $result) {
+	    			if (in_array($result->getCurrency(), $this->currencyNeeded)) {
+	    				if (!in_array($result->getCurrency(), $currencies)) {
+	    					$currencies[]=$result->getCurrency();
+	    				}
+	    				$updated=explode('-', $result->getUpdated()->format('Y-m-d-H-i-s'));
+	    				$data[$result->getCurrency()][$result->getUpdated()->format('Y-m-d-H-i-s')]=array(
+	    					'Rate'=>$result->getRate(),
+	    					'Date'=>$updated
+	    					);
+	    				$dates[$result->getUpdated()->format('Y-m-d-H-i-s')]=$result->getUpdated()->format('d/m/Y H:i');
+	    			}
+	    		}
+	    		if (count($dates)) {
+	    			foreach ($currencies as $cur) {
+	    				foreach (array_keys($dates) as $date) {    				
+	    					if (!isset($data[$cur][$date])) {
+	    						$updated=explode('-', $date);
+	    						$data[$cur][$date]=array('Rate'=>null, 'Date'=>array($updated[3], $updated[4], $updated[5], $updated[1], $updated[2], $updated[0]));
+	    					}
+	    				}
+	    				ksort($data[$cur]);
+	    			}
+	    		}
+	    	}
+
+	    	return $this->render('InvestShareBundle:Default:currencylist.html.twig', array(
+	    		'data'		=> $data,
+	    		'dates'		=> $dates,
+	    		'currency'	=> $currency,
+	   			'message'	=> $message,
+	    		'notes'		=> $this->getConfig('page_currency')
+	    	));
     	
-    	if ($results && count($results)) {
-    		foreach ($results as $result) {
-    			if (in_array($result->getCurrency(), $this->currencyNeeded)) {
-    				if (!in_array($result->getCurrency(), $currencies)) {
-    					$currencies[]=$result->getCurrency();
-    				}
-    				$updated=explode('-', $result->getUpdated()->format('Y-m-d-H-i-s'));
-    				$data[$result->getCurrency()][$result->getUpdated()->format('Y-m-d-H-i-s')]=array(
-    					'Rate'=>$result->getRate(),
-    					'Date'=>$updated
-    					);
-    				$dates[$result->getUpdated()->format('Y-m-d-H-i-s')]=$result->getUpdated()->format('d/m/Y H:i');
-    			}
-    		}
-    		if (count($dates)) {
-    			foreach ($currencies as $cur) {
-    				foreach (array_keys($dates) as $date) {    				
-    					if (!isset($data[$cur][$date])) {
-    						$updated=explode('-', $date);
-    						$data[$cur][$date]=array('Rate'=>null, 'Date'=>array($updated[3], $updated[4], $updated[5], $updated[1], $updated[2], $updated[0]));
-    					}
-    				}
-    				ksort($data[$cur]);
-    			}
-    		}
+    	} else {
+    	
+	    	return $this->render('InvestShareBundle:Default:currencygraph.html.twig', array(
+	    		'currency'	=> $currency,
+	   			'message'	=> $message,
+	    		'notes'		=> $this->getConfig('page_currency')
+	    	));
     	}
-    	
-    	return $this->render('InvestShareBundle:Default:currencylist.html.twig', array(
-   			'data'		=> $data,
-    		'dates'		=> $dates,
-   			'message'	=> $message,
-    		'notes'		=> $this->getConfig('page_currency')
-    	));
     }
     
     

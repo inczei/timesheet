@@ -3,34 +3,10 @@
 <br><br><hr>
 {% if message is defined and message|length %}<span class="message">Message : <b>{{ message|raw }}</b></span><br>{% endif %}
 <br>
-{% if data is defined and data|length %}
-{% if data|length > 1 %}
-<div class="listType">
-<table>
-	<tr>
-		<th>Currency</th>
-	{% for d in dates %}
-		<th>{{ d }}</th>
-	{% endfor %}
-	</tr>
-	{% for cur,v in data %}
-	<tr>
-		<th><a href="{{ path('invest_share_currency', {'currency': cur}) }}">{{ cur }}</a></th>
-		{% for date,d in v %}
-		<td align="right">{% if d.Rate != null %}{{ d.Rate|number_format(4) }}{% else %} - {% endif %}</td>
-		{% endfor %}
-	</tr>
-	{% endfor %}
-</table>
-</div>
-{% else %}<hr>Data:{{ dump(data) }}<hr>
 <div id="container" style="height: 600px"></div>
-{% endif %}
 <br>
-{% endif %}
 {% endblock %}
 {% block additional_js %}
-{% if data|length == 1 %}
 <script>
 $(function() {
 	$.getJSON('{{ path('ajax_share_currency', {'currency': currency}) }}', function (data) {
@@ -57,7 +33,6 @@ $(function() {
 	});
 });
 </script>
-{% endif %}
 {% if notes is defined and notes|length %}
 <hr>
 <div class="notes">{{ notes|nl2br }}<div>

@@ -59,4 +59,7 @@ invest_share_hello:
     path:     /hello/{name}.{_format}
     defaults: { _controller: InvestShareBundle:Default:hello, name: '', format: 'html' }
     requirements:
-      _format: html|pdf    
+      _format: html|pdf
+ajax_share_currency:
+    path:     /ajax/{currency}
+    defaults: { _controller: InvestShareBundle:Ajax:currency, currency: '' }
