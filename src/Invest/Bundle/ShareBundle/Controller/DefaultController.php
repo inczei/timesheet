@@ -189,8 +189,10 @@ class DefaultController extends Controller
     }
 
     
-    public function dividendAction(Request $request) {
+    public function dividendAction() {
 
+    	$request=$this->getRequest();
+    	
     	$message='';
     	if (date('m-d') >= $this->startTaxYear) {
 /*
@@ -4239,46 +4241,43 @@ class DefaultController extends Controller
 
     	$request=$this->getRequest();
     	$prices=array();
-    	$companies=array();
+//    	$companies=array();
+    	$codes=array();
 		$message='';
     	$em=$this->getDoctrine()->getManager();
-
+    	$connection=$em->getConnection();
+    	 
 /*
  * if form posted, use the selected timestamp to show the updated prices on that time
  */
 		$date=((isset($_POST['form']['date']))?($_POST['form']['date']):($date));
-		$startDate=((isset($_POST['form']['startDate']))?($_POST['form']['startDate']):(date('Y-m-d H:i:s', strtotime('-1 day'))));
-		$endDate=((isset($_POST['form']['endDate']))?($_POST['form']['endDate']):(date('Y-m-d H:i:s')));
+		if (isset($_POST['form']['startDate'])) {
+			$startDate=\DateTime::createFromFormat('d/m/Y', $_POST['form']['startDate']);
+		} else {
+			$startDate=new \DateTime('-1 day');
+		}
+		$startDate->setTime(0, 0, 0);
+		
+    	if (isset($_POST['form']['endDate'])) {
+			$endDate=\DateTime::createFromFormat('d/m/Y', $_POST['form']['endDate']);
+		} else {
+			$endDate=new \DateTime('now');
+		}
+		$endDate->setTime(0, 0, 0);
+		
 		$list=((isset($_POST['form']['list']))?($_POST['form']['list']):(0));
 		$sector=((isset($_POST['form']['sector']))?($_POST['form']['sector']):(0));
 		
-		$selected=array();
-		if (isset($_POST)) {
-/*
- * Collect all the selected checkboxes to show graph
- */
-			foreach ($_POST as $k=>$v) {
-				$x=explode('_', $k);
-				if ($x[0] == 'sel' && $x[1]==$v) {
-					$selected[]=$x[1];
-				}		
-			} 
-/*
- * show graph with the selected companys' prices, if any company selected
- */
-			if (count($selected)) {
 
-				return $this->forward('InvestShareBundle:Default:Graph',
-					array(
-						'selected'=>$selected,
-						'startDate'=>$startDate,
-						'endDate'=>$endDate
-					)
-				);
-
-			}    	 
-		}
-
+		$ftseList=array(
+				'0'=>'All',
+				'\'FTSE100\',\'FTSE250\''=>'FTSE 100 & 250',
+				'\'FTSE100\''=>'FTSE 100',
+				'\'FTSE250\''=>'FTSE 250',
+				'\'FTSESmallCap\''=>'FTSE Small Cap'
+		);
+		
+		
 		$sectorList=array();
 		$query=$em->createQuery('SELECT c.sector FROM InvestShareBundle:Company c WHERE LENGTH(c.sector)>0 GROUP BY c.sector ORDER BY c.sector');
 		$results=$query->getResult();
@@ -4289,40 +4288,30 @@ class DefaultController extends Controller
 			}
 		}
 		
-    	$results=$this->getDoctrine()
-	    	->getRepository('InvestShareBundle:Company')
-	    	->findBy(
-	    		array(),
-	    		array(
-	    			'name'=>'ASC'
-    			)
-    		);
-
-    	if (count($results)) {
-    		foreach ($results as $result) {
-    			$companies[$result->getCode()]=$result->getName();
-    		}
-    	}
 
     	if ($date) {
 /*
  * if date(timestamp) selected, show that
  */
-    		$prices1=$this->getDoctrine()
-	    		->getRepository('InvestShareBundle:StockPrices')
-	    		->findBy(
-	   				array(
-						'date'=>new \DateTime(date('Y-m-d H:i:s', $date)),
-	   				)
-	   		);
+    		$query='SELECT `c`.`Code`, `c`.`Name`, `c`.`Sector`, `c`.`List`, `p`.`Price`, `p`.`Changes`, `p`.`Date` FROM `Company` `c` JOIN `StockPrices` `p` ON `c`.`Code`=`p`.`Code` AND `p`.`Date`=:pDate';
+    		 
+    		$stmt=$connection->prepare($query);
+    		$stmt->bindValue('pDate', date('Y-m-d H:i:s', $date));
+    		$stmt->execute();
+    		$prices1=$stmt->fetchAll();
+    		
+    		
     		if (count($prices1)) {
     			foreach ($prices1 as $pr1) {
+    				$codes[$pr1['Code']]=$pr1['Code'];
     				$prices[]=array(
-   						'Code'=>$pr1->getCode(),
-   						'Name'=>$companies[$pr1->getCode()],
-   						'Price'=>$pr1->getPrice(),
-   						'Changes'=>$pr1->getChanges(),
-   						'Date'=>$pr1->getDate()->format('d/m/Y H:i:s')
+   						'Code'=>$pr1['Code'],
+   						'Name'=>$pr1['Name'],
+	    				'Sector'=>$pr1['Sector'],
+	    				'List'=>$pr1['List'],
+    					'Price'=>$pr1['Price'],
+   						'Changes'=>$pr1['Changes'],
+   						'Date'=>date('d/m/Y H:i:s', strtotime($pr1['Date']))
     				);
     			}
     		}
@@ -4331,13 +4320,6 @@ class DefaultController extends Controller
 /*
  * else show the latest data
  */
-    		$ftseList=array(
-    			'0'=>'All',
-    			'\'FTSE100\',\'FTSE250\''=>'FTSE 100 & 250',
-    			'\'FTSE100\''=>'FTSE 100',
-    			'\'FTSE250\''=>'FTSE 250',
-    			'\'FTSESmallCap\''=>'FTSE Small Cap'
-    		);
     		
     		$dql='SELECT'.
     			' c.code,'.
@@ -4365,9 +4347,10 @@ class DefaultController extends Controller
 	    			if ($pr1['date'] != null && $pr1['date']->format('Y-m-d H:i:s') < date('Y-m-d H:i:s', time()-8*60*60)) {
 	    				$class='updatedLong';
 	    			}
+	    			$codes[$pr1['code']]=$pr1['code'];
 	    			$prices[]=array(
 	    				'Code'=>$pr1['code'],
-	    				'Name'=>$companies[$pr1['code']],
+	    				'Name'=>$pr1['name'], // companies[$pr1['code']],
 	    				'Sector'=>$pr1['sector'],
 	    				'List'=>$pr1['list'],
 	    				'Price'=>$pr1['price'],
@@ -4379,18 +4362,85 @@ class DefaultController extends Controller
 	    	}
     	}
 
+// create a form to select multiple companies to compare
+// and show them in a chart
+
+    	$fb=$this->createFormBuilder()
+    		->add('submit', 'submit', array(
+    				'label'=>'Compare'
+    		));
+    	
+    	if (count($prices)) {
+   			foreach ($codes as $result) {
+   				$c=str_replace('.', '_', $result);
+   				$fb->add($c, 'checkbox', array(
+					'label'=>$result,
+					'required'=>false
+   				));
+    		}
+    		
+    	} else {
+
+    		$allCompanies=$this->getDoctrine()
+    			->getRepository('InvestShareBundle:Company')
+    			->findBy(
+    				array(),
+    				array(
+   						'name'=>'ASC'
+    				)
+    			);
+    		 
+    		
+    		if (count($allCompanies)) {
+    			foreach ($allCompanies as $result) {
+    				$c=str_replace('.', '_', $result->getCode());
+    				$fb->add($c, 'checkbox', array(
+   						'label'=>$result->getCode(),
+    					'value'=>1,
+   						'required'=>false
+    				));
+    			}
+    		}
+    		
+    	}
+    	
+    	$form=$fb->getForm();
+    	 
+    	$form->handleRequest($request);
+    	 
+    	if ($form->isSubmitted()) {
+    		$formData=$form->getData();
+
+    		$selectedData=array();
+    		foreach ($formData as $k=>$v) {
+    			if ($v) {
+    				$selectedData[]=str_replace('.', '_', $k);
+    			}
+    		}
+    	
+    		if (count($selectedData)) {
+    			return $this->redirect($this->generateUrl('invest_share_prices', array('company'=>implode(',', $selectedData))));
+    		}
+    	}
+    	 
 /*
  * create a list from the updates time and timestamps for a dropdown list
  */
     	
     	$availableDates=array();
-		$query=$em->createQuery('SELECT sp.date FROM InvestShareBundle:StockPrices sp GROUP BY sp.date ORDER BY sp.date DESC');
-		$results=$query->getResult();
-		if (count($results)) {
-			$availableDates[0]='Show latest prices';
-			foreach ($results as $result) {
-				$availableDates[$result['date']->getTimestamp()]=$result['date']->format('d/m/Y H:i:s');
-			}
+
+    	$query='SELECT `date`'.
+    		' FROM `StockPrices`'.
+    		' WHERE 1'.
+    		(($startDate)?(' AND `date`>="'.$startDate->format('Y-m-d H:i:s').'"'):('')).
+    		(($endDate)?(' AND `date`<="'.$endDate->format('Y-m-d H:i:s').'"'):('')).
+    		' GROUP BY `date`'.
+    		' ORDER BY `date` DESC';
+
+		$stmt=$connection->query($query);
+		$availableDates[0]='Show latest prices';
+		while ($result = $stmt->fetch()) {
+			$availableDates[strtotime($result['date'])]=date('d/m/Y H:i:s', strtotime($result['date']));
 		}
 		
 		$datesForm=$this->createFormBuilder()
@@ -4404,7 +4454,7 @@ class DefaultController extends Controller
 			))
 	    	->add('startDate', 'datetime', array(
 	    		'label'=>'Updated : ',
-			    'data'=>new \Datetime('-1 day'),
+			    'data'=>$startDate,
 		    	'widget'=>'single_text',
    				'format'=>'dd/MM/yyyy',
 		    		'attr'=>array(
@@ -4414,7 +4464,7 @@ class DefaultController extends Controller
 	    	))
 	    	->add('endDate', 'datetime', array(
 	    		'label'=>' - ',
-			    'data'=>new \Datetime('now'),
+			    'data'=>$endDate,
 		    	'widget'=>'single_text',
 		    	'format'=>'dd/MM/yyyy',
 		    	'attr'=>array(
@@ -4459,6 +4509,7 @@ class DefaultController extends Controller
 			
 			return $this->render('InvestShareBundle:Default:pricelist.html.twig', array(
 	   			'datesForm' => $datesForm->createView(),
+				'form'		=> $form->createView(),
 	   			'data'		=> $prices,
 	   			'message'	=> $message,
 	    		'notes'		=> $this->getConfig('page_pricelist')
@@ -4473,177 +4524,31 @@ class DefaultController extends Controller
  * prices for 1 or more company with graph
  */
     	$request=$this->getRequest();
+    	$em=$this->getDoctrine()->getManager();
+    	$connection=$em->getConnection();
 
+    	$company=str_replace('_', '.', $company);
+    	
 		$company2=((isset($_POST['form']['company']))?($_POST['form']['company']):($company));
-// error_log('company:'.$company.', company2:'.$company2);		
+		
 		if ($company != $company2) {
+// error_log('redirect');
 			return $this->redirect($this->generateUrl('invest_share_prices', array('company'=>$company2)));
+
 		}
     	 
     	$message='';
-    	$prices=array();
     	$companies=array();
-    	$dividendData=array();
-    	$dealData=array();
-    	$diaryData=array();
-    	$min_date=null;
-    	$max_date=null;
-    	 
-/*
- * fetch data if company selected
- */
-    	if ($company) {
-    		$prices1=$this->getDoctrine()
-	    		->getRepository('InvestShareBundle:StockPrices')
-	    		->findBy(
-	   				array(
-						'code'=>$company,
-	   				)
-	   			);
 
-   	    	if (count($prices1)) {
-   	    		
-/*
- * create timescale list
- */
-	    		foreach ($prices1 as $pr1) {
-	    			$prices[]=array(
-	    				'Price'=>$pr1->getPrice(),
-	    				'Changes'=>$pr1->getChanges(),
-	    				'Date'=>$pr1->getDate()->format('d/m/Y H:i'),
-	    				'DateFields'=>array(
-    						'Y'=>$pr1->getDate()->format('Y'),
-    						'm'=>$pr1->getDate()->format('m'),
-    						'd'=>$pr1->getDate()->format('d'),
-    						'H'=>$pr1->getDate()->format('H'),
-    						'i'=>$pr1->getDate()->format('i'),
-    						's'=>$pr1->getDate()->format('s')
-	    				)
-	    			);
-	    			if ($min_date == null || $min_date > $pr1->getDate()->format('Y-m-d H:i:s')) {
-	    				$min_date=$pr1->getDate()->format('Y-m-d H:i:s');
-	    			}
-	    			if ($max_date == null || $max_date < $pr1->getDate()->format('Y-m-d H:i:s')) {
-	    				$max_date=$pr1->getDate()->format('Y-m-d H:i:s');
-	    			}
-	    		}
+        $query='SELECT `code`, `name`, `list`'.
+    		' FROM `Company`'.
+    		' ORDER BY `name`';
 
-/*
- * Create dividends points into the graph
-*/
-	    		$divs=$this->getDividendsForCompany($company, true);
-	    		if (count($divs)) {
-	    			foreach ($divs as $div) {
-	    				$amount='Amount : '.(($div['Special'])?('Special '):('')).(($div['Currency']=='USD')?('$ '):('')).(($div['Currency']=='EUR')?('€ '):('')).$div['Amount'].(($div['Currency']=='GBP')?('p'):(''));
-	    		
-//	    				if (strtotime($div['DeclDate']) < time() && strtotime($div['DeclDate']) > 0) {
-	    				if (date('Y-m-d H:i:s', strtotime($div['DeclDate'])) < $max_date && strtotime($div['DeclDate']) > 0 && date('Y-m-d H:i:s', strtotime($div['DeclDate'])) > $min_date) {
-	    					$dividendData['DeclDate'][date('Ymd', strtotime($div['DeclDate']))]=array(
-	    							'Title'=>$amount,
-	    							'DateFields'=>array(
-	    									'Y'=>date('Y', strtotime($div['DeclDate'])),
-	    									'm'=>date('m', strtotime($div['DeclDate'])),
-	    									'd'=>date('d', strtotime($div['DeclDate']))
-	    							)
-	    					);
-	    				}
-	    		
-//	    				if (strtotime($div['ExDivDate']) < time() && strtotime($div['ExDivDate']) > 0) {
-	    				if (date('Y-m-d H:i:s', strtotime($div['ExDivDate'])) < $max_date && strtotime($div['ExDivDate']) > 0 && date('Y-m-d H:i:s', strtotime($div['ExDivDate'])) > $min_date) {
-	    					$dividendData['ExDivDate'][date('Ymd', strtotime($div['ExDivDate']))]=array(
-	    							'Title'=>$amount,
-	    							'DateFields'=>array(
-	    									'Y'=>date('Y', strtotime($div['ExDivDate'])),
-	    									'm'=>date('m', strtotime($div['ExDivDate'])),
-	    									'd'=>date('d', strtotime($div['ExDivDate']))
-	    							)
-	    					);
-	    				}
-	    		
-//	    				if (strtotime($div['PaymentDate']) < time() && strtotime($div['PaymentDate']) > 0) {
-	    				if (date('Y-m-d H:i:s', strtotime($div['PaymentDate'])) < $max_date && strtotime($div['PaymentDate']) > 0 && date('Y-m-d H:i:s', strtotime($div['PaymentDate'])) > $min_date) {
-	    					$dividendData['PaymentDate'][date('Ymd', strtotime($div['PaymentDate']))]=array(
-	    							'Title'=>$amount,
-	    							'DateFields'=>array(
-	    									'Y'=>date('Y', strtotime($div['PaymentDate'])),
-	    									'm'=>date('m', strtotime($div['PaymentDate'])),
-	    									'd'=>date('d', strtotime($div['PaymentDate']))
-	    							)
-	    					);
-	    				}
-	    			}
-	    		}
-	    		
-	    		$ddeals=$this->getDirectorsDealsForCompany($company);
-	    		if (count($ddeals)) {
-	    			foreach ($ddeals as $d) {
-	    				
-//	    				$text=$d['Name'].' ('.$d['Position'].') - '.$d['Type'].' '.sprintf('%.2f', $d['Price']).'p (total:'.sprintf('%.2f', $d['Value']).')';
-	    				$dd='Directors Deal';
-	    		
-	    				if (date('Y-m-d H:i:s', strtotime($d['DealDate'])) < $max_date && date('Y-m-d H:i:s', strtotime($d['DealDate'])) > $min_date) {
-	    					if (!isset($dealData[$dd][date('Ymd', strtotime($d['DealDate']))])) {
-	    						$dealData[$dd][date('Ymd', strtotime($d['DealDate']))]=array(
-	    								'Title'=>'DD',
-	    								'Text'=>array(),
-	    								'DateFields'=>array(
-	    										'Y'=>date('Y', strtotime($d['DealDate'])),
-	    										'm'=>date('m', strtotime($d['DealDate'])),
-	    										'd'=>date('d', strtotime($d['DealDate']))
-	    								)
-	    						);
-	    					}
-//	    					if (strlen($dealData[$dd][date('Ymd', strtotime($d['DealDate']))]['Text'])) {
-//	    						$dealData[$dd][date('Ymd', strtotime($d['DealDate']))]['Text'].='<br>';
-//	    					}
-	    					$dealData[$dd][date('Ymd', strtotime($d['DealDate']))]['Text'][]=array('Name'=>$d['Name'], 'Position'=>$d['Position'], 'Type'=>$d['Type'], 'Price'=>$d['Price'], 'Value'=>$d['Value']);
-	    				}
-	    			}
-	    		}
-	    		 
-   	    		$diary=$this->getFinancialDiaryForCompany($company, true);
-	    		if (count($diary)) {
-	    			foreach ($diary as $d) {
-	    				
-	    				$fd='Financial Diary';
-	    		
-	    				if (date('Y-m-d H:i:s', strtotime($d['Date'])) < $max_date && date('Y-m-d H:i:s', strtotime($d['Date'])) > $min_date) {
-	    					if (!isset($dealData[$fd][date('Ymd', strtotime($d['Date']))])) {
-	    						$diaryData[$fd][date('Ymd', strtotime($d['Date']))]=array(
-    								'Title'=>'FD',
-	    							'Text'=>'',
-    								'DateFields'=>array(
-   										'Y'=>date('Y', strtotime($d['Date'])),
-   										'm'=>date('m', strtotime($d['Date'])),
-   										'd'=>date('d', strtotime($d['Date']))
-    								)
-	    						);
-	    					}
-	    					if (strlen($diaryData[$fd][date('Ymd', strtotime($d['Date']))]['Text'])) {
-	    						$diaryData[$fd][date('Ymd', strtotime($d['Date']))]['Text'].='<br>';
-	    					}
-	    					$diaryData[$fd][date('Ymd', strtotime($d['Date']))]['Text'].=$d['Type'];
-	    				}
-	    			}
-	    		}
-   	    	
-   	    	}
-    	}
-
-    	$results=$this->getDoctrine()
-	    	->getRepository('InvestShareBundle:Company')
-	    	->findBy(
-	    		array(),
-	    		array('name'=>'ASC'
-    		)
-    	);
+		$stmt=$connection->query($query);
+		while ($result = $stmt->fetch()) {
+    		$companies[$result['code']]=$result['name'].' ('.$result['list'].')';
+		}
     	
-    	if (count($results)) {
-    		foreach ($results as $result) {
-    			$companies[$result->getCode()]=$result->getName().' ('.$result->getList().')';
-    		}
-    	}
-    	 
 		$selectForm=$this->createFormBuilder()
 	    	->add('company', 'choice', array(
 	    		'choices'=>$companies,
@@ -4658,17 +4563,12 @@ class DefaultController extends Controller
 			))
 		    ->getForm();
 			    	
+
 		$selectForm->handleRequest($request);
 
-		
-    	return $this->render('InvestShareBundle:Default:prices.html.twig', array(
+		return $this->render('InvestShareBundle:Default:pricesgraph.html.twig', array(
     		'selectForm'	=> $selectForm->createView(),
-    		'companyEPIC'	=> $company,
-    		'data'			=> array($company=>$prices),
-    		'showData'		=> false,
-    		'dividendData'	=> $dividendData,
-    		'dealsData'		=> $dealData,
-    		'diaryData'		=> $diaryData,
+    		'company'		=> $company,
     		'message'		=> $message
     	));
     }
@@ -4722,9 +4622,46 @@ class DefaultController extends Controller
 	    			}
 	    		}
 	    	}
+	    	
+	    	$fb=$this->createFormBuilder()
+	    		->setAction($this->generateUrl('invest_share_currency'))
+	    		->add('submit', 'submit', array(
+	    			'label'=>'Compare'
+	    		));
+	    		
+	    	foreach (array_keys($data) as $cur) {
+	    		$fb->add($cur, 'checkbox', array(
+	    			'label'=>$cur,
+	    			'required'=>false
+	    		));
+	    	}
+	    		
+	    	$form=$fb->getForm();
 
+	    	$form->handleRequest($this->getRequest());
+	    	
+	    	if ($form->isSubmitted()) {
+	    		$formData=$form->getData();
+	    		
+	    		$message.='Submitted data:'.print_r($formData, true);
+	    		
+	    		if (count($formData)) {
+	    			$selectedCurrencies=array();
+	    			foreach ($formData as $k=>$v) {
+	    				if ($v) {
+	    					$selectedCurrencies[]=$k;
+	    				}
+	    			}
+	    			
+	    			if (count($selectedCurrencies)) {
+	    				return $this->redirect($this->generateUrl('invest_share_currency', array('currency'=>implode(',', $selectedCurrencies))));
+	    			}
+	    		}
+	    	}
+	    	
 	    	return $this->render('InvestShareBundle:Default:currencylist.html.twig', array(
 	    		'data'		=> $data,
+	    		'form'		=> $form->createView(),
 	    		'dates'		=> $dates,
 	    		'currency'	=> $currency,
 	   			'message'	=> $message,
@@ -6071,6 +6008,7 @@ class DefaultController extends Controller
 
     }
 
+
     private function getCurrencyRates() {
     	
     	$em=$this->getDoctrine()->getManager();
@@ -6267,8 +6205,9 @@ class DefaultController extends Controller
     	$em=$this->getDoctrine()->getManager();
     	$connection=$em->getConnection();
     	
-    	$query='SELECT `id` FROM `Company` WHERE `Code`="'.$code.'"';
+    	$query='SELECT `id` FROM `Company` WHERE `Code`=:cId';
     	$stmt=$connection->prepare($query);
+    	$stmt->bindValue('cId', $code);
     	$stmt->execute();
     	$results=$stmt->fetchAll();
     	
@@ -6284,7 +6223,6 @@ class DefaultController extends Controller
     	$companies=array();
     	
     	if ($current) {
-// error_log('current');
     		$trades=$this->getTradesData(null, null, null, null);
     	 
 	    	if (count($trades)) {
@@ -6295,14 +6233,11 @@ class DefaultController extends Controller
     			}
 	    	}
     	} else {
-// error_log('all');
     		$em=$this->getDoctrine()->getManager();
     		$connection=$em->getConnection();
     		
     		$query='SELECT `Code`, `Name` FROM `Company` ORDER BY `Code`';
-    		$stmt=$connection->prepare($query);
-    		$stmt->execute();
-    		$results=$stmt->fetchAll();
+    		$results=$connection->fetchAll($query);
     		
     		if (count($results)) {
     			foreach ($results as $result) {
@@ -6319,16 +6254,15 @@ class DefaultController extends Controller
     private function getCurrencyList() {
     	
     	$ret=array();
-    	$query='SELECT `Currency`'.
-    			' FROM `Currency`'.
-    			' GROUP BY `Currency`';
     	
     	$em=$this->getDoctrine()->getManager();
     	$connection=$em->getConnection();
     	
-    	$stmt=$connection->prepare($query);
-    	$stmt->execute();
-    	$results=$stmt->fetchAll();
+    	$query='SELECT `Currency`'.
+    			' FROM `Currency`'.
+    			' GROUP BY `Currency`';
+    	
+    	$results=$connection->fetchAll($query);
     	
     	if ($results) {
     		foreach ($results as $result) {

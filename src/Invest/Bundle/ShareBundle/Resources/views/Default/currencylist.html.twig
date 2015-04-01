@@ -4,10 +4,11 @@
 {% if message is defined and message|length %}<span class="message">Message : <b>{{ message|raw }}</b></span><br>{% endif %}
 <br>
 {% if data is defined and data|length %}
-{% if data|length > 1 %}
+{% if form is defined and form|length %}{{ form_start(form) }}{% endif %}
 <div class="listType">
 <table>
 	<tr>
+		{% if form is defined and form|length %}<th> </th>{% endif %}
 		<th>Currency</th>
 	{% for d in dates %}
 		<th>{{ d }}</th>
@@ -15,6 +16,7 @@
 	</tr>
 	{% for cur,v in data %}
 	<tr>
+		{% if form is defined and form|length %}<th>{{ form_widget(form[cur	]) }}</th>{% endif %}
 		<th><a href="{{ path('invest_share_currency', {'currency': cur}) }}">{{ cur }}</a></th>
 		{% for date,d in v %}
 		<td align="right">{% if d.Rate != null %}{{ d.Rate|number_format(4) }}{% else %} - {% endif %}</td>
@@ -22,41 +24,9 @@
 	</tr>
 	{% endfor %}
 </table>
+{% if form is defined and form|length %}{{ form_widget(form.submit) }}{% endif %}
 </div>
-{% else %}<hr>Data:{{ dump(data) }}<hr>
-<div id="container" style="height: 600px"></div>
-{% endif %}
-<br>
-{% endif %}
-{% endblock %}
-{% block additional_js %}
-{% if data|length == 1 %}
-<script>
-$(function() {
-	$.getJSON('{{ path('ajax_share_currency', {'currency': currency}) }}', function (data) {
-		$('#container').highcharts('StockChart', {
-			title: {
-				text: 'Currency Prices'
-			},
-			chart: {
-				width: 800	
-			},
-	            	
-			rangeSelector: {
-				selected: 1
-			},
-	
-			legend: {
-				enabled: true,
-				align: 'center',
-				verticalAlign: 'bottom'
-			},
-	
-	        series: data,
-		});
-	});
-});
-</script>
+{% if form is defined and form|length %}{{ form_end(form) }}{% endif %}
 {% endif %}
 {% if notes is defined and notes|length %}
 <hr>

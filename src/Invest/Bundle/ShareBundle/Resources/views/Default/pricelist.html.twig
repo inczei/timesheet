@@ -21,9 +21,12 @@
 	</tr>
 </table>
 <br>
+{{ form_end(datesForm) }}
 {% endif %}
 {% if data is defined and data|length %}
 <div class="listType">
+{% if form is defined and form|length %}{% set f=1 %}{% else %}{% set f=0 %}{% endif %}
+{% if f==1 %}{{ form_start(form) }}{% endif %}
 <table>
 	<tr>
 		<th>EPIC</th>
@@ -33,9 +36,7 @@
 		<th>Price</th>
 		<th colspan="2">Change</th>
 		<th>Updated (UTC)</th>
-{% if datesForm is defined and datesForm|length %}
-		<th></th>
-{% endif %}	
+		{% if f==1 %}<th></th>{% endif %}	
 	</tr>
 	{% for d in data %}
 		{% if (d.Changes != '') and (d.Changes != 0) %}
@@ -48,24 +49,23 @@
 			{% set colour='green' %}
 		{% endif %}
 	<tr>
-		<td align="center"><a href="{{ path('invest_share_prices') }}/{{ d.Code }}">{{ d.Code }}</a></td>
+		<td align="center"><a href="{{ path('invest_share_prices', {'company': d.Code}) }}">{{ d.Code }}</a></td>
 		<td>{{ d.Name }}</td>
-		<td>{{ d.Sector }}</td>
-		<td>{{ d.List }}</td>
-		<td align="right"{% if d.newPrice is defined and d.newPrice>0 %} style="background: #88ff88"{% endif %}>{{ d.Price|number_format(2) }}</td>
+		<td>{% if d.Sector is defined %}{{ d.Sector }}{% endif %}</td>
+		<td>{% if d.List is defined %}{{ d.List }}{% endif %}</td>
+		<td align="right"{% if d.newPrice is defined and d.newPrice>0 %} class="updatedPrice"{% endif %}>{{ d.Price|number_format(2) }}</td>
 		<td align="right"><span style="color: {{ colour }}">{{ d.Changes|number_format(2) }}</span></td>
 		<td align="right"><span style="color: {{ colour }}">{% if d.Price==0 %}0{% else %}{{ (d.Changes/d.Price*100)|number_format(2) }}{% endif %} %</span></td>
 		<td{% if d.Class is defined and d.Class|length %} class="{{ d.Class }}"{% endif %}>{{ d.Date }}</td>
-{% if datesForm is defined and datesForm|length %}
-		<td><input type="checkbox" name="sel_{{ d.Code }}" value="{{ d.Code }}"></td>
-{% endif %}
+		{% if f==1 %}<td>{{ form_widget(form[d.Code|replace({'.': '_'})]) }}</td>{% endif %}
 	</tr>
 	{% endfor %}
+	{% if f==1 %}<tr>
+		<td align="right" colspan="9">{{ form_widget(form.submit) }}</td>
+	</tr>{% endif %}
 </table>
 </div>
-{% endif %}
-{% if datesForm is defined and datesForm|length %}
-{{ form_end(datesForm) }}
+{% if f==1 %}{{ form_end(form) }}{% endif %}
 {% endif %}
 {% if refresh is defined and refresh > 0 %}
 <br>automatic update start in {{ refresh }} seconds

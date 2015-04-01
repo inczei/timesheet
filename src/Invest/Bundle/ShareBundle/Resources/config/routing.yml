@@ -61,5 +61,9 @@ invest_share_hello:
     requirements:
       _format: html|pdf
 ajax_share_currency:
-    path:     /ajax/{currency}
+    path:     /ajax/currency/{currency}
     defaults: { _controller: InvestShareBundle:Ajax:currency, currency: '' }
+ajax_share_prices:
+    path:     /ajax/prices/{company}/{min}/{max}
+    defaults: { _controller: InvestShareBundle:Ajax:prices, company: '', min: 0, max: 0 }
+    
