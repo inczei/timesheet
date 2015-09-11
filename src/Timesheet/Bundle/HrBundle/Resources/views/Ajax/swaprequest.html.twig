@@ -1,0 +1,36 @@
+{% if swaprequestform is defined and swaprequestform|length %}
+{{ form_start(swaprequestform) }}
+{{ form_errors(swaprequestform) }}
+<table>
+	<tr>
+		<td width="15%"> </td>
+		<td width="40%">User 1</td>
+		<td width="5%"> </td>
+		<td width="40%">User 2</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(swaprequestform.userId1) }}</td>
+		<td>{{ form_errors(swaprequestform.userId1) }}{{ form_widget(swaprequestform.userId1) }}</td>
+		<td> </td>
+		<td>{{ form_errors(swaprequestform.userId2) }}{{ form_widget(swaprequestform.userId2) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(swaprequestform.shiftId1) }}</td>
+		<td>{{ form_errors(swaprequestform.shiftId1) }}{{ form_widget(swaprequestform.shiftId1) }}</td>
+		<td> </td>
+		<td>{{ form_errors(swaprequestform.shiftId2) }}{{ form_widget(swaprequestform.shiftId2) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(swaprequestform.comment) }}</td>
+		<td colspan="3">{{ form_errors(swaprequestform.comment) }}{{ form_widget(swaprequestform.comment) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_widget(swaprequestform.cancel) }}</td>
+		<td> </td>
+		<td> </td>
+		<td>{{ form_widget(swaprequestform.submit) }}</td>
+	</tr>
+</table>
+{{ form_widget(swaprequestform._token) }}
+{{ form_end(swaprequestform) }}
+{% endif %}

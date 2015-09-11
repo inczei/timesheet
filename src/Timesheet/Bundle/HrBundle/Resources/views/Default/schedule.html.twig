@@ -1,0 +1,15 @@
+{% extends 'TimesheetHrBundle:Default:base.html.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<div class="message">{% spaceless %}
+	{% if message is defined and message|length %}
+	<div class="loginMessage">{{ message }}</div>
+	{% endif %}
+{% endspaceless %}</div>
+<div class="statusList">
+<div class="timesheet" id="scheduleDiv" data-url="{{ path('timesheet_ajax_schedulelist') }}" data-userid="" data-locationid="{{ locationId }}" data-timestamp="{{ timestamp }}">
+{{ render(controller('TimesheetHrBundle:Ajax:scheduleList', { 'locationId': locationId, 'timestamp': timestamp, 'usersearch': usersearch, 'groupsearch': groupsearch, 'qualificationsearch': qualificationsearch, 'base': base })) }}
+</div>
+</div>
+{% endblock %}

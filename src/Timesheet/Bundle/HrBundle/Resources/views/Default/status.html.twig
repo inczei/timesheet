@@ -1,0 +1,9 @@
+{% extends 'TimesheetHrBundle:Default:base.html.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<br>
+<span class="message">{% if message is defined and message|length %}<b>{{ message|raw }}</b>{% else %} {% endif %}
+</span>
+{{ render(controller('TimesheetHrBundle:Default:usersummary')) }}
+{% endblock %}

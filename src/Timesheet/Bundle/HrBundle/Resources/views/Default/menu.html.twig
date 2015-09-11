@@ -1,0 +1,22 @@
+{% if links is defined %}
+<div class="menu">
+<ul>
+{% for l in links %}
+	<li{% if l.active == true %} class="active"{% endif %}>
+		<a href="{{ l.url }}"{% if l.target is defined %} target="{{ l.target }}"{% endif %} title="{{ l.name }}"><em class="lft"> </em><b>{{ l.name }}</b><em class="rgt"> </em></a>
+		{% if l.sub is defined and l.sub|length %}
+		<ul>
+			{% for s in l.sub %}
+				<li><a href="{{ s.url }}"{% if s.target is defined %} target="{{ s.target }}"{% endif %}>{{ s.name }}</a></li>
+			{% endfor %}
+		</ul>
+		{% endif %}
+	</li>
+{% endfor %}
+{% if app.user.username is defined and app.user.username|length %}
+	<li class="loggedIn">Logged in as <b>{{ app.user.username }}</b></li>
+{% endif %}
+</ul>
+</div>
+{% endif %}
+<div class="clock"><br></div>

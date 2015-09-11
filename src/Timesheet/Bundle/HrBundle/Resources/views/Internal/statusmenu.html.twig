@@ -1,0 +1,25 @@
+<h2>Status</h2>
+<a href="{{ path(base, {'action': 'editstatus', 'param1': '0' }) }}">New status</a>
+{% if statuses is defined and statuses|length %}
+<table>
+	<tr>
+		<th>Start</th>
+		<th>Finish</th>
+		<th>Level</th>
+		<th>Multi</th>
+		<th>Color</th>
+		<th>Active</th>
+	</tr>
+	{% for s in statuses %}
+	<tr>
+		<td><a href="{{ path(base, {'action': 'editstatus', 'param1': s.id }) }}" title="Click here to edit">{{ s.nameStart }}</a></td>
+		<td>{{ s.nameFinish }}</td>
+		<td>{{ s.levelName }}</td>
+		<td>{% if s.multi %}Multi{% else %}Single{% endif %}</td>
+		<td style="color: #{{ s.color }}">{{ s.colorName }}</td>
+		<td>{{ s.activeName }}</td>
+	</tr>
+	{% endfor %}
+</table>
+<hr>
+{% endif %}

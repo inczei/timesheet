@@ -1,0 +1,77 @@
+<pdf>
+{% set shiftsArray={} %}
+{% if shifts is defined and shifts|length %}
+{% set i=1 %}
+{% for sId,s in shifts %}
+{% set shiftsArray=shiftsArray|merge({('_'~sId):(i)}) %}
+{% set i=i+1 %}
+{% endfor %}
+{% endif %}
+	<page page-size="A4-landscape">
+		<span font-size="14">Location: {{ name }}</span>
+		<br/>
+		<br/>
+		<span font-size="14">Week: {{ week }} ({{ date1|date('d/m/Y') }} - {{ date2|date('d/m/Y') }})</span>
+		<br/>
+		<br/>
+		{% if report is defined and report|length %}
+		<div font-size="10">
+		<table width="800">
+			<tr>
+				<td width="170" text-align="center" background-color="#eeeeee"> </td>
+				{% for d,rep in report %}
+					{% if rep.shifts is defined and rep.shifts|length %}
+					<td width="90" colspan="{{ rep.shifts|length }}" text-align="center" background-color="#eeeeee"><b>{{ rep.day }}</b></td>
+					{% else %}
+					<td width="90" text-align="center" background-color="#eeeeee"><b>{{ rep.day }}</b></td>
+					{% endif %}
+				{% endfor %}
+			</tr>
+			<tr>
+				<td width="170" background-color="#eeeeee"><b>Employees</b></td>
+				{% for d,rep in report %}
+					{% if rep.shifts is defined and rep.shifts|length %}
+						{% for rsId,rs in rep.shifts %}
+							<td width="{{ (90/(rep.shifts|length)) }}" text-align="center" background-color="#eeeeee"><div font-size="8">Shift {{ shiftsArray['_'~rsId] }}</div></td>
+						{% endfor %}
+					{% else %}
+					<td width="90" text-align="center" background-color="#eeeeee"> - </td>
+					{% endif %}
+				{% endfor %}
+			</tr>
+			{% if users is defined and users|length %}
+				{% set line=0 %}
+				{% for uId,u in users %}
+					<tr>
+						<td width="170"{% if line==1 %} background-color="#eeeeee"{% endif %} text-align="left" vertical-align="middle"><br/> {{ u }}</td>
+						{% for d,rep in report %}
+							{% if rep.shifts is defined and rep.shifts|length %}
+								{% for s in rep.shifts %}
+									<td width="{{ (90/(rep.shifts|length)) }}"{% if line==1 %} background-color="#eeeeee"{% endif %} text-align="center" vertical-align="middle">{% for tmp in s %}{% if tmp.userId == uId %}X{% endif %}{% endfor %}</td>
+								{% endfor %}
+							{% else %}
+							<td width="90"{% if line==1 %} background-color="#eeeeee"{% endif %} text-align="center" vertical-align="middle"> - </td>
+							{% endif %}
+						{% endfor %}
+						</tr>
+						{% if line == 1 %}
+						{% set line=0 %}
+						{% else %}
+						{% set line=1 %}
+						{% endif %}
+				{% endfor %}
+			{% endif %}
+		</table>
+		{% if shifts is defined and shifts|length %}
+		<br/><br/>Shifts*:<br/>
+		{% for sId,s in shifts %}
+			Shifts {{ shiftsArray['_'~sId] }} : {{ s.title }} ({{ s.times }})<br/>
+		{% endfor %}
+		{% endif %}
+		</div>
+		{% endif %}
+		<br/>
+		<br/>
+		<div text-align="right">{{ footer }}</div>
+	</page>
+</pdf>

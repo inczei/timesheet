@@ -1,0 +1,56 @@
+<pdf>
+	<page page-size="A4-landscape">
+		<span font-size="14">Location: {{ name }}</span>
+		<br/>
+		<br/>
+		<span font-size="14">Week: {{ week }} ({{ date1|date('d/m/Y') }} - {{ date2|date('d/m/Y') }})</span>
+		<br/>
+		<br/>
+		{% if report is defined and report|length %}
+		<div font-size="10">
+		<table width="800">
+			<tr>
+				<td width="65" text-align="center"><b>Shift</b></td>
+				{% for d,rep in report %}
+				<td width="100" text-align="center"><b>{{ rep.day }}</b><br/><b>{{ d|date('j M Y') }}</b></td>
+				{% endfor %}
+			</tr>
+			{% for shiftId,t in timings %}
+			<tr>
+				<td width="65" text-align="center"><div font-size="8"><br/><br/>{{ t.title }}<br/>{{ t.times }}</div></td>
+				{% for d,rep in report %}
+					{% if rep.timings is defined and rep.timings|length %}
+					<td width="100" text-align="center"><br/><br/>
+						{% for k,r in rep.timings %}
+							{% if r.shiftId == shiftId %}
+								{{ r.firstName }} {{ r.lastName }}<br/>
+							{% endif %}
+						{% endfor %}<br/><br/>
+						{% if rep.holidays is defined and rep.holidays|length %}
+							{% for h in rep.holidays %}
+								{{ h.name }}<br/>
+							{% endfor %}
+						{% endif %}
+					</td>
+					{% else %}
+						<td width="100" text-align="center"><br/><br/>
+							{% if rep.holidays is defined and rep.holidays|length %}
+								{% for h in rep.holidays %}
+									{{ h.name }}<br/>
+								{% endfor %}
+							{% else %}
+							{% endif %}
+							<br/><br/>
+						</td>
+					{% endif %}
+				{% endfor %}
+			</tr>
+			{% endfor %}
+		</table>
+		</div>
+		{% endif %}
+		<br/>
+		<br/>
+		{{ footer }}
+	</page>
+</pdf>

@@ -1,0 +1,40 @@
+parameters:
+
+services:
+    timesheet.hr.functions:
+        class: Timesheet\Bundle\HrBundle\Service\Functions
+        arguments: [@doctrine]
+        calls:
+          - [ setContainer, [ @service_container ] ]
+    request_injector:
+        class: RequestInjector
+        public: false
+        arguments: ['@service_container']
+    
+    timesheet_user.login:
+        class: Timesheet\Bundle\HrBundle\EventListener\LoginListener
+        argument: [@router]
+        tage:
+          - { name: kernel.event_subscriber }
+
+    timesheet_user.register:
+        class: Timesheet\Bundle\HrBundle\EventListener\RegisterListener
+        argument: [@router]
+        tage:
+          - { name: kernel.event_subscriber }          
+          
+    timesheet_user.password_resetting:
+        class: Timesheet\Bundle\HrBundle\EventListener\PasswordResettingListener
+        argument: [@router]
+        tage:
+          - { name: kernel.event_subscriber }          
+
+    timesheet.twig_extension:
+        class: Timesheet\Bundle\HrBundle\Twig\Extension\LocaleExtension
+        arguments: [@service_container]
+        tags:
+          - { name: twig.extension }
+          
+    userbundle_service:
+        class: FOS\UserBundle\Doctrine\UserManager
+        arguments: [@fos_user.user_manager]

@@ -1,0 +1,112 @@
+{% if locationId is defined and locationId > 0 %}
+<table>
+	<tr>
+		<th><span class="switchMonth" data-div="scheduleDiv" name="prev"> < < Prev.Week</span></th>
+		<th>
+			<b>{{ weekNo }}</b><br><i>{{ dateRange }}</i>
+			{% if isManager is defined and isManager == true %}
+			<div tabindex="0" class="onclick-menu">
+				<ul class="onclick-menu-content">
+					<li><button name="onclickmenu" question="Are you sure you want to delete all the allocations in this week?" data-url="{{ path('timesheet_ajax_schedule') }}" base-div="scheduleDiv" data-action="clean" data-location="{{ locationId }}" data-timestamp="{{ timestamp }}">Clean this week</button></li>
+					<li><button name="onclickmenu" question="Are you sure you want to copy all the allocations from last week? Will be deleted all existing allocations in this week!" data-url="{{ path('timesheet_ajax_schedule') }}" base-div="scheduleDiv" data-action="copy" data-location="{{ locationId }}" data-timestamp="{{ timestamp }}">Copy from previous week</button></li>
+					<li><button name="onclickmenu" question="Are you sure you want to fill this week with preferred timings? Will be added to all existing allocations in this week!" data-url="{{ path('timesheet_ajax_schedule') }}" base-div="scheduleDiv" data-action="fill" data-location="{{ locationId }}" data-timestamp="{{ timestamp }}">Fill with preferred timings</button></li>
+					<li><button name="onclickmenu" question="Are you sure you want to publish this week? Will not be able to change!" data-url="{{ path('timesheet_ajax_schedule') }}" base-div="scheduleDiv" data-action="publish" data-location="{{ locationId }}" data-timestamp="{{ timestamp }}">Publish</button></li>
+					<li><button name="onclickmenu" question="Are you sure you want to unpublish this week? Will be able to change!" data-url="{{ path('timesheet_ajax_schedule') }}" base-div="scheduleDiv" data-action="unpublish" data-location="{{ locationId }}" data-timestamp="{{ timestamp }}">Unpublish</button></li>
+					<li><button name="onclickmenu" question="Are you sure you want to see and download this week's schedule report?" data-url="{{ path('timesheet_ajax_schedule') }}" base-div="scheduleDiv" data-action="report1" data-location="{{ locationId }}" data-timestamp="{{ timestamp }}">Generate report</button></li>
+					<li><button name="onclickmenu" question="Are you sure you want to see and download this week's schedule report?" data-url="{{ path('timesheet_ajax_schedule') }}" base-div="scheduleDiv" data-action="report2" data-location="{{ locationId }}" data-timestamp="{{ timestamp }}">Generate report 2</button></li>
+				</ul>
+			</div>
+			{% endif %}
+		</th>
+		<th><span class="switchMonth" data-div="scheduleDiv" name="next">Next.Week > > </span></th>
+	</tr>
+</table>
+<table>
+	<tr>
+		<th rowspan="{{ (4+locations|length) }}">
+			User search : <input type="text" class="userSearch" name="userSearch" size="10" data-url="{{ path('timesheet_ajax_userlist') }}" base-url="{{ base }}" data-type="2" value="{{ usersearch }}">
+			<br>
+			Select group : <select name="groupSearch" class="userSearch" data-url="{{ path('timesheet_ajax_userlist') }}" base-url="{{ base }}" data-type="2" value="{{ groupsearch }}">
+				<option value=""> - All - </option>
+			{% for gk,gv in groups %}
+				<option value="{{ gk }}"{% if groupsearch == gk %} selected{% endif %}>{{ gv }}</option>
+			{% endfor %}
+			</select>
+			<br>
+			Qualification : <select name="qualificationSearch" class="userSearch" data-url="{{ path('timesheet_ajax_userlist') }}" base-url="{{ base }}" data-type="2" value="{{ qualificationsearch }}">
+				<option value=""> - All - </option>
+			{% for qk,qv in qualifications %}
+				<option value="{{ qk }}"{% if qualificationsearch == qk %} selected{% endif %}>{{ qv }}</option>
+			{% endfor %}
+			</select>
+			<div id="usersList">
+			{% include 'TimesheetHrBundle:Internal:usersListSchedule.html.twig' with {'users': users, 'base': base, 'found': found} %}
+			</div>
+		</th>
+		<th class="secondHeader">Location</th>
+		{% for v in week %}
+			<th class="secondHeader">{{ v.day }}<br>{{ v.date }}</th>
+		{% endfor %}
+	</tr>
+{% for k,l in locations %}
+	{% set shft=1 %}
+	{% if shifts[k] is defined %}{% set shft=shifts[k]|length %}{% endif %}
+	<tr>
+		<td class="locationCell" rowspan="{% if shifts[k] is defined %}{{ (1+shifts[k]|length) }}{% else %}2{% endif %}">{{ l }}
+			<div id="loc{{ k }}">
+			{% if locationDivs[-1] is defined and locationDivs[-1]|length %}
+			{{ locationDivs[-1]|raw }}
+			{% endif %}
+			{% if locationDivs[0] is defined and locationDivs[0]|length %}
+			{{ locationDivs[0]|raw }}
+			{% endif %}
+			{% if locationDivs[k] is defined and locationDivs[k]|length %}
+			{{ locationDivs[k]|raw }}
+			{% endif %}	
+			</div>
+		</td>
+		{% if shifts[k] is defined %}
+			{% for i,s in shifts[k] %}
+				{% for wd,v in week %}
+			<td class="cell">{% if s.days[v.dayOfWeek] is defined and s.days[v.dayOfWeek] %}
+				<div class="header" title="Timings: {{ s.timings }}">{{ s.title }}</div>
+				<div id="shft{{ wd }}_{{ k }}_{{ i }}" name="dropStyle" ondrop="drop(event)" ondragover="dragOver(event)" ondragleave="dragLeave(event)">
+					{% if allocationDivs[k][wd][i] is defined and allocationDivs[k][wd][i]|length %}
+						{% for a in allocationDivs[k][wd][i] %}
+							{{ a|raw }}
+						{% endfor %}<br><br>
+					{% endif %}	
+				</div>
+				{% endif %}
+			</td>
+				{% endfor %}
+		</tr>
+		<tr>
+			{% endfor %}
+		{% else %}
+			{% for wd,v in week %}
+			<td>
+				<div class="header">Full day</div>
+				<div id="shft{{ wd }}_{{ k }}_0" name="dropStyle">
+					{% if allocationDivs[k][wd][0] is defined and allocationDivs[k][wd][0]|length %}
+						{% for a in allocationDivs[k][wd][0] %}
+							{{ a|raw }}
+						{% endfor %}<br><br>
+					{% endif %}	
+				</div>
+			</td>
+			{% endfor %}
+		{% endif %}
+		</td>
+	</tr>
+{% endfor %}
+</table>
+{% else %}
+<h2>Please select a location:</h2>
+{% if locationsUrl is defined and locationsUrl|length %}
+{% for k,l in locationsUrl %}
+	<a href="{{ k }}">{{ l }}</a><br>
+{% endfor %}
+{% endif %}
+{% endif %}
+<input type="hidden" id="scheduleurl" value="{{ path('timesheet_ajax_schedule') }}">

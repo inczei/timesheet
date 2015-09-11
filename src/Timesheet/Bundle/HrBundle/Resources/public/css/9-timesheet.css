@@ -1,0 +1,955 @@
+@CHARSET "UTF-8";
+body {
+	background-color: #ffffff;
+	font-family: Arial, helvetica, sans-serif;
+	font-size: small;
+	width: 90%;
+	margin: 0 auto;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	background: #333;
+	background-image: -webkit-linear-gradient(left, #ccc, #333, #ccc);
+	background-image: -moz-linear-gradient(left, #ccc, #333, #ccc);
+	background-image: -ms-linear-gradient(left, #ccc, #333, #ccc);
+	background-image: -o-linear-gradient(left, #ccc, #333, #ccc);
+	margin: 10px 0;
+}
+
+table {
+	border-collapse: collapse;
+	width: 99%;
+}
+
+table tr {
+	vertical-align: top;
+}
+
+table tr th {
+	background-color: #808080;
+	color: #ffffff;
+	text-align: center;
+	font-weight: bold;
+	padding: 3px;
+	white-space: nowrap;
+	border-right: #ffffff solid 1px;
+}
+
+table tr td {
+	font-weight: normal;
+	padding: 3px;
+	white-space: nowrap;
+}
+
+a {
+	color: #ff0000;
+	text-decoration: underline dashed #cc0000;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+.required:after {
+	color: red;
+	content: '*';
+}
+
+.message {
+	padding: 2px;
+	font-size: normal;
+	color: blue;
+	line-height: 30px;
+	text-align: center;
+}
+
+.warning {
+	color: red;
+	font-style: italic;
+}
+
+.loginMessage {
+	padding: 2px;
+	font-size: normal;
+	color: blue;
+	line-height: 30px;
+	font-weight: bold;
+}
+
+.cell {
+	width: 120px;
+	text-align: center;
+}
+
+.locationCell {
+	width: 150px;
+	overflow: hidden;
+	text-align: center;
+}
+
+.listType {
+	border: #808080 solid 2px;
+	width: 100%;
+	overflow: scroll;
+}
+
+.listType table tr:nth-child(odd) {
+	background-color: #e0e0e0;
+}
+
+.listType table tr th {
+	background-color: #808080;
+	color: #ffffff;
+	text-align: center;
+	font-weight: bold;
+	padding: 3px;
+	white-space: normal;
+	border-right: #ffffff solid 1px;
+}
+
+.listType table tr th:first-child {
+	border-left: #808080 solid 1px;
+}
+
+.listType table tr th:last-child {
+	border-right: #808080 solid 1px;
+}
+
+.listType table tr td {
+	font-weight: normal;
+	padding: 3px;
+	white-space: no-wrap;
+	border-right: #808080 solid 1px;
+	border-bottom: #808080 dotted 1px;
+}
+
+.listType table tr:hover {
+	background-color: orange;
+}
+
+.listType table tr:hover td {
+	background-color: orange;
+}
+
+.listType table tr td:first-child {
+	border-left: #808080 solid 1px;
+}
+
+.innerType table {
+	width: 100%;
+}
+
+.innerType table tr:hover {
+	background-color: blue;
+}
+
+.innerType table tr:hover td {
+	background-color: blue;
+}
+
+.lightgreenbg {
+	background-color: #ccffcc;
+}
+
+.taxcentrebg {
+	background-color: #c4bd97;
+}
+
+.graphButton {
+	margin: 5px;
+	padding: 3px;
+	border: #808080 solid 1px;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+	border-radius: 10px;
+	-khtml-border-radius: 10px;
+	background-color: #f8f8f8;
+	color: #000000;
+	font-size: normal;
+	cursor: pointer;
+}
+
+.graphButton:hover {
+	background-color: #808080;
+	color: #ffffff;
+}
+
+.popupDiv {
+	display: none;
+	position: absolute;
+	left: 0;
+	top: 0;
+	background-color: #f0f0f0;
+	border: #808080 solid 1px;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+	border-radius: 10px;
+	-khtml-border-radius: 10px;
+	text-align: center;
+	padding: 10px;
+	overflow: auto;
+	z-index: 2000;
+}
+
+.closeButton {
+	position: absolute;
+	top: 1px;
+	right: 1px;
+	border: #808080 solid 2px;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+	border-radius: 10px;
+	-khtml-border-radius: 10px;
+	text-align: center;
+	width: 30px;
+	height: 30px;
+	cursor: pointer;
+	z-index: 3000;
+}
+
+.closeButton:hover {
+	background-color: #808080;
+	color: #ffffff;
+}
+
+.punch {
+	width: 500px;
+	margin: 0 auto;
+	text-align: center;
+}
+
+.punch table {
+	margin: 0 auto;
+	width: 70%;
+	border: none;
+}
+
+.statusList {
+	width: 98%;
+	margin: 0 auto;
+	text-align: center;
+}
+
+.statusList table {
+	margin: 0 auto;
+	width: 99%;
+	border: #888888 dotted 1px;
+}
+
+.statusList table tr:nth-child(odd) {
+	background-color: #e0e0e0;
+}
+
+.statusList table tr:nth-child(even) {
+	background-color: #f8f8f8;
+}
+/*
+.statusList table tr:hover {
+	background-color: #47c9af;
+}
+*/
+.statusList table tr td {
+	border: #888888 dotted 1px;
+}
+
+.clock {
+	width: 100%;
+	text-align: center;
+	border: none;
+	font-size: large;
+}
+
+.registrationList {
+	width: 90%;
+	margin: 0 auto;
+	text-align: center;
+}
+
+.registrationList table {
+	margin: 0 auto;
+	width: 400px;
+	border: none;
+}
+
+.registrationList table tr:last-child td:first-child {
+	text-align: center;
+}
+
+.registrationList table tr:last-child td:last-child {
+	text-align: center;
+}
+
+.registrationList table tr td:first-child {
+	text-align: center;
+}
+
+.registrationList table tr td:last-child {
+	text-align: center;
+}
+
+.registrationList input {
+	border: #888888 dotted 1px;
+}
+
+.registrationList input:focus {
+	border: #ff8800 dotted 1px;
+}
+
+.registrationList table tr td select {
+	border: #888888 dotted 1px;
+	width: 100%;
+}
+
+.registrationList table tr td select#shift_startTime_hour,
+.registrationList table tr td select#shift_startTime_minute,
+.registrationList table tr td select#shift_finishTime_hour,
+.registrationList table tr td select#shift_finishTime_minute {
+	border: #888888 dotted 1px;
+	width: 49%;
+}
+
+.registrationList table tr td select:focus {
+	border: #ff8800 dotted 1px;
+}
+
+.submitButton {
+	background-color: #72bedd;
+}
+
+.cancelButton {
+	background-color: #f84ebe;
+}
+
+div[name="showhide"] {
+	cursor: pointer;
+	color: blue;
+	font-size: small;
+	padding: 3px;
+	border: #888888 solid 1px;
+}
+
+span.showhideButton {
+	cursor: pointer;
+}
+
+div[name="hiddenTable"] {
+	display: none;
+	z-index: 100;
+	padding: 5px;
+	background-color: #8888cc;
+	position: absolute;
+	overflow: hidden;
+}
+
+.inactiveUser {
+	text-decoration: line-through;
+	color: #888888;
+}
+
+.infoButton {
+	cursor: pointer;
+	color: #ff8800;
+	font-weight: bold;
+	font-style: italic;
+	font-size: small;
+	padding: 3px 10px;
+	margin: 3px;
+	border: #ff8800 solid 1px;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+	border-radius: 10px;
+	-khtml-border-radius: 10px;
+}
+
+#container {
+	border: none;
+	width: 99%;
+	text-align: center;
+	margin: 0 auto;
+}
+
+#container table {
+	width: 99%;
+	border-collapse: collapse;
+	border: #888888 dotted 1px;
+}
+
+#container table tr:nth-child(odd) {
+	background: #f0f0f0;
+}
+
+#container table tr:nth-child(even) {
+	background: #dddddd;
+}
+
+#container table tr td {
+	border-right: #888888 dotted 1px;
+}
+
+#container table tr td:first-child {
+	border-left: #888888 dotted 1px;
+}
+
+div.scheduleUserSelected {
+	cursor: pointer;
+	color: #ffffff;
+	background-color: #8888cc;
+	border: #000000 dotted 1px;
+	padding: 3px;
+	height: 16px;
+}
+
+div.scheduleUser {
+	cursor: pointer;
+	color: #008888;
+	background-color: #cccccc;
+	border: #000000 dotted 1px;
+	padding: 3px;
+	height: 16px;
+}
+
+div.scheduleUser.over {
+  border: 2px dashed #000;
+}
+
+[draggable] {
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  user-select: none;
+  /* Required to make elements draggable in old WebKit */
+  -khtml-user-drag: element;
+  -webkit-user-drag: element;
+}
+
+[name="dropStyle"] {
+	min-height: 90px;
+	border: #000000 dotted 1px;
+	overflow: hidden;
+	width: 95%;
+	margin: 0 auto;
+}
+
+.over {
+	border: #ff0000 solid 1px;
+	background-color: #880088;
+}
+
+.searchBox {
+	width: 80%;
+	margin: 0 auto;
+	padding: 3px;
+	border: #000000 dotted 1px;
+	text-align: center;
+}
+
+.searchBox a {
+	font-size: large;
+}
+
+.searchBox table {
+	width: 100%;
+	border: none;
+}
+
+.searchBox table tr td {
+	background-color: #cccccc;
+}
+
+.searchBox table tr td {
+	width: 33%;
+}
+
+.searchBox table tr td:first-child {
+	text-align: left;
+}
+
+.searchBox table tr td:last-child {
+	text-align: right;
+}
+
+.allocation {
+	color: #008888;
+	width: 95%;
+	border: #000000 dotted 1px;
+	background-color: #cccccc;
+	margin: 1px;
+	padding: 1px;
+	oveflow: hidden;	
+}
+
+.allocation table {
+	width: 100%;
+	overflow: hidden;
+	border-collapse: collapse;
+	border: none;
+	padding: 0;
+	margin: 0;
+}
+
+.allocation table tr td {
+	text-align: left;
+	oveflow: hidden;
+	width: 100%;
+}
+
+.allocation table tr td:first-child {
+	width: 20%;
+}
+
+.allocation table tr td:last-child {
+	width: 80%;
+}
+
+.allocationNormal {
+	color: #008888;
+}
+
+.allocationLow {
+	color: #0000cc;
+}
+
+.allocationHigh {
+	color: #cc0000;
+}
+
+.allocationName {
+	width: 90%;
+	text-align: left;
+	overflow: hidden;
+}
+
+.nocontract {
+	color: #ff0000;
+}
+
+.allocationRemove {
+	width: 100%;
+	text-align: right;
+	padding: 0 3px;
+	color: #ff0000;
+	border: #ff0000 solid 1px;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+	border-radius: 10px;
+	-khtml-border-radius: 10px;
+	cursor: pointer;
+}
+
+.header {
+	background-color: #72bedd;
+	border: #000000 solid 1px;
+	-moz-border-radius: 10px 10px 0px 0px;
+	-webkit-border-radius: 10px 10px 0px 0px;
+	border-radius: 10px 10px 0px 0px;
+	-khtml-border-radius: 10px 10px 0px 0px;
+	padding: 0px 3px;
+	width: 90%;
+	margin: 0 auto;
+}
+
+.footer {
+	background-color: #72bedd;
+	border: #000000 solid 1px;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+	border-radius: 10px;
+	-khtml-border-radius: 10px;
+	padding: 10px 3px;
+	width: 90%;
+	margin: 0 auto;
+}
+
+
+th.secondHeader {
+	height: 30px;
+}
+
+.calendar table {
+	background-color: #ffffff;
+	border-collapse: separate;
+	border-spacing: 10px 0px;
+	border-width: 0px;
+	width: 100%;
+	table-layout: fixed;	
+}
+
+.calendar table tr td {
+	width: 95px;
+	height: 80px;
+	border-left: #000000 solid 1px;
+	border-right: #000000 solid 1px;
+	border-bottom: #000000 solid 1px;
+	overflow: hidden;
+	white-space: normal;
+	line-height: 28px;
+}
+
+.calendar table tr.header {
+	height: 20px;
+}
+
+.calendar table tr.header th {
+	width: 95px;
+	overflow: hidden;
+	white-space: normal;
+}
+
+.calendar table tr.footer {
+	height: 5px;
+}
+
+.calendar table tr.footer td {
+	background-color: #ffffff;
+	color: #000000;
+	border: none;
+	height: 5px;
+	line-height: 5px;
+	width: 95px;
+	overflow: hidden;
+}
+
+.calendar table tr th {
+	width: 95px;
+	overflow: hidden;
+	text-align: center;
+	background-color: #72bedd;
+	color: #ffffff;
+	font-weight: bold;
+	text-align: center; 	
+	border-top: #000000 solid 1px;
+	border-left: #000000 solid 1px;
+	border-right: #000000 solid 1px;
+	-moz-border-radius: 10px 10px 0px 0px;
+	-webkit-border-radius: 10px 10px 0px 0px;
+	border-radius: 10px 10px 0px 0px;
+	-khtml-border-radius: 10px 10px 0px 0px;
+	padding: 5px;
+}
+
+.calendar table tr td.calendarHeaderOther {
+	background-color: #888888;
+	color: #888888;
+	border: none;
+}
+
+.calendar table tr th.calendarHeader {
+	width: 95px;
+	text-align: center;
+}
+
+.otherMonth {
+	width: 95px;
+	background-color: #888888;
+}
+
+span.addRequest {
+	padding: 3px;
+	border: #880000 solid 2px;
+	background-color: #ffffff;
+	color: #ff0000;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+	border-radius: 10px;
+	-khtml-border-radius: 10px;
+	font-weight: bold;
+	cursor: pointer;
+	z-index: 0;
+}
+
+span.plusButton {
+	position: relative;
+	float: right;
+	margin-right: 0px;
+	margin-top: 0px;
+	padding: 0px 3px;
+}
+
+.buttonApprove {
+	border: #008800 solid 2px;
+	color: #008800;
+	background-color: #ffffff;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+	border-radius: 10px;
+	-khtml-border-radius: 10px;
+	font-weight: bold;
+	cursor: pointer;
+}
+
+.buttonDeny {
+	border: #000000 solid 2px;
+	color: #000000;
+	background-color: #ffffff;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+	border-radius: 10px;
+	-khtml-border-radius: 10px;
+	font-weight: bold;
+	cursor: pointer;
+}
+
+.accepted {
+	color: #008800;
+}
+
+.denied {
+	color: #000000;
+}
+
+.pending {
+	color: #cc0000;
+}
+
+span.switchMonth {
+	cursor: pointer;
+	color: #ff0000;
+	text-decoration: none;	
+}
+
+span.switchMonth:hover {
+	text-decoration: underline;	
+}
+
+.ui-dialog { z-index: 10000 !important ;}
+
+.loginDiv {
+	border: none;
+	margin: 0 auto;
+	text-align: center;
+}
+
+.loginDiv table {
+	width: 150px;
+	margin: 0 auto;
+}
+
+
+.PunchCorrect {
+	color: #000000;
+}
+
+.PunchIncorrect {
+	background-color: #cc2222;
+	color: #ffffff;
+}
+
+.PunchDayoff td {
+	background-color: #ccccff;
+	color: #448888;
+	text-decoration: line-through;
+}
+
+.timesheet {
+	font-size: x-small;
+}
+
+.holidayClass {
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+	border-radius: 10px;
+	-khtml-border-radius: 10px;
+	font-weight: bold;
+	cursor: pointer;
+}
+
+
+.onclick-menu {
+	position: relative;
+	left: 50px;
+	display: inline;
+	height: 20px;
+	line-height: 20px;
+	padding: 5px;
+	background-color: #8888cc;
+	color: #ffffff;
+	border: none;
+}
+
+.onclick-menu ul {
+	display: block;
+	padding: 0;
+	background: none;
+	border: none;
+	-webkit-box-shadow: none;
+	-moz-box-shadow: none;
+	box-shadow: none;
+}
+
+.onclick-menu ul li {
+	display: block;
+	padding: 0;
+	background: none;
+	border: none;
+	list-style: none;
+}
+
+.onclick-menu:before {
+	content: "Options";
+}
+.onclick-menu:focus {
+	pointer-events: none;
+}
+.onclick-menu:focus .onclick-menu-content {
+	opacity: 1;
+	filter: alpha(opacity=100);
+	-moz-opacity: 1;
+	background-color: #8888cc;
+	visibility: visible;
+	pointer-events: auto;
+	padding: 3px;
+}
+.onclick-menu-content {
+	position: absolute;
+	top: 10px;
+	left: 0px;
+	z-index: 1;
+	opacity: 0;
+	visibility: hidden;
+	transition: visibility 0.25s;
+	color: #000000;
+	border: none;
+	list-style: none;
+}
+
+.userSearch {
+	width: 80px;
+}
+
+.freezePaneOn {
+	position: absolute;
+	left: 0px;
+	top: 0px;
+	width: 100%;
+	height: 100%;
+	background-color: #dddddd;
+	opacity: 0.25;
+	filter: alpha(opacity=25);
+	-moz-opacity: 0.25;
+	display: block;
+	visibility: visible;
+	z-index: 20000;
+}
+.freezePaneOff {
+	position: absolute;
+	left: -100px;
+	top: -100px;
+	display: none;
+	visibility: hidden;
+	z-index: 20000;
+}
+
+.usersummary {
+	text-align: center;
+}
+
+.usersummary table {
+	text-aling: center;
+	margin: 0 auto;
+	width: 99%;
+	border: #888888 dotted 1px;
+}
+
+.usersummary table tr:nth-child(odd) {
+	background-color: #e0e0e0;
+}
+
+.usersummary table tr:nth-child(even) {
+	background-color: #f8f8f8;
+}
+
+#dialog table {
+	width: 100%;
+	margin: 0 auto;
+}
+
+select.swapUser1, select.swapUser2, select.swapShift1, select.swapShift2 {
+	width: 200px;
+}
+
+.messagePage {
+	width: 95%;
+	margin: 0 auto;
+}
+
+.messagePage table {
+	width: 99%;	
+}
+
+.messagePage table tr td:first-child {
+	width: 20%;
+}
+
+.messagePage table tr td:last-child {
+	width: 80%;
+}
+
+.message_folder {
+	font-weight: normal;
+	font-size: large;
+}
+
+.message_folder_active {
+	font-weight: bold;
+	font-size: large;
+}
+
+.message_new {
+	font-weight: bold;
+	font-size: normal;
+	cursor: pointer;	
+}
+
+.message_old {
+	font-weight: normal;
+	font-size: normal;
+	cursor: pointer;
+}
+
+.message_new:hover, .message_old:hover {
+	color: #ff0000;	
+}
+
+.message_content {
+	padding: 3px;
+	width: 98%;
+	margin: 0 auto;
+	text-align: left;
+}
+
+.admin_config {
+	cursor: pointer;
+}
+
+.admin_config table tr:hover {
+	color: #ff0000;
+}
+
+.currentMonth {
+	text-align: center;
+	font-size: large;
+	font-weight: bold;
+}
+
+.columnHide {
+	display: none;
+}
+.timesheetCheck {
+	cursor: pointer;
+	color: blue;
+	font-weight: bold;
+	border: #0000ff solid 1px;
+	padding: 3px;
+	line-height: 22px;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+	border-radius: 10px;
+	-khtml-border-radius: 10px;
+}
+
+.timesheetCheck:hover {
+	border-color: #000066;
+	color: #000066;
+}

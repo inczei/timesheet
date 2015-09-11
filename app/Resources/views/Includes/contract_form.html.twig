@@ -1,0 +1,67 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+<table>
+	<tr>
+		<td>{{ form_label(form.username) }}{{ form_errors(form.username) }}</td>
+		<td>{{ form_widget(form.username) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.payrolCode) }}{{ form_errors(form.payrolCode) }}</td>
+		<td>{{ form_widget(form.payrolCode) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.firstName) }}{{ form_errors(form.firstName) }}</td>
+		<td>{{ form_widget(form.firstName) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.lastName) }}{{ form_errors(form.lastName) }}</td>
+		<td>{{ form_widget(form.lastName) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.csd) }}{{ form_errors(form.csd) }}</td>
+		<td>{{ form_widget(form.csd) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.ced) }}{{ form_errors(form.ced) }}</td>
+		<td>{{ form_widget(form.ced) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.AHEonYS) }}{{ form_errors(form.AHEonYS) }}</td>
+		<td>{{ form_widget(form.AHEonYS) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.initHolidays) }}{{ form_errors(form.initHolidays) }}</td>
+		<td>{{ form_widget(form.initHolidays) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.probation) }}{{ form_errors(form.probation) }}</td>
+		<td>{{ form_widget(form.probation) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.hct) }}{{ form_errors(form.hct) }}</td>
+		<td>{{ form_widget(form.hct) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.awh) }}{{ form_errors(form.awh) }}</td>
+		<td>{{ form_widget(form.awh) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.wdpw) }}{{ form_errors(form.wdpw) }}</td>
+		<td>{{ form_widget(form.wdpw) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.ahe) }}{{ form_errors(form.ahe) }}</td>
+		<td>{{ form_widget(form.ahe) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.ahew) }}{{ form_errors(form.ahew) }}</td>
+		<td>{{ form_widget(form.ahew) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.lunchtime) }}{{ form_errors(form.lunchtime) }}</td>
+		<td>{{ form_widget(form.lunchtime) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.lunchtimeUnpaid) }}{{ form_errors(form.lunchtimeUnpaid) }}</td>
+		<td>{{ form_widget(form.lunchtimeUnpaid) }}</td>
+	</tr>
+	<tr>
+		<td colspan="2" align="left">{{ form_widget(form.cancel) }}</td>
+		<td> </td>
+		<td colspan="2" align="right">{{ form_widget(form.submit) }}</td>
+	</tr>
+</table>
+{{ form_widget(form._token) }}
+{{ form_end(form) }}

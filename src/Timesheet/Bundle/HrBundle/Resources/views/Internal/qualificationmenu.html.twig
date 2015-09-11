@@ -1,0 +1,19 @@
+<h2>Qualifications</h2>
+<a href="{{ path(base, {'action': 'editqualification', 'param1': '0' }) }}">New qualification</a>
+{% if qualifications is defined and qualifications|length %}
+<table>
+	<tr>
+		<th>Title</th>
+		<th>Comments</th>
+		{% if domainId is defined and domainId > 0 %}{% else %}<th>Domain</th>{% endif %}
+	</tr>
+	{% for q in qualifications %}
+	<tr>
+		<td><a href="{{ path(base, {'action': 'editqualification', 'param1': q.id }) }}" title="Click here to edit">{{ q.title }}</a></td>
+		<td>{{ q.comments }}</td>
+		{% if domainId is defined and domainId > 0 %}{% else %}<td>{% if domains[q.domainId] is defined and domains[q.domainId]|length %}{{ domains[q.domainId] }}{% else %}????{% endif %}</td>{% endif %}
+	</tr>
+	{% endfor %}
+</table>
+<hr>
+{% endif %}

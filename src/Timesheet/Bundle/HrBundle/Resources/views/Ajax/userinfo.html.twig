@@ -1,0 +1,82 @@
+{% if user is defined and user|length %}
+<div class="statusList">
+<table>
+	<tr>
+		<td>Title</td><td>{% if titles[user.title] is defined %}{{ titles[user.title] }}{% else %}{% endif %}</td>
+		<td> </td>
+		<td> </td><td> </td>
+	<tr>
+		<td>First Name</td><td>{{ user.firstName }}</td>
+		<td> </td>
+		<td>Last Name</td><td>{{ user.lastName }}</td>
+	</tr>
+	<tr>
+		<td>Date of Birth</td><td>{{ user.birthday|date('d/m/Y') }}</td>
+		<td> </td>
+		<td>Nationality</td><td>{% if countries[user.nationality] is defined %}{{ countries[user.nationality] }}{% else %}{{ user.nationality }}{% endif %}</td>
+	</tr>
+	<tr>
+		<td>E-mail</td><td>{{ user.email }}</td>
+		<td> </td>
+		<td>Send messages to e-mail</td><td>{% if user.exEmail %}Yes{% else %}No{% endif %}</td>
+	</tr>
+	<tr>
+		<td>Phone Landline</td><td>{{ user.phoneLandline }}</td>
+		<td> </tD>
+		<td>Phone Mobile</td><td>{{ user.phoneMobile }}</td>
+	</tr>
+	<tr>
+		<td>Address Line 1</td><td>{{ user.addressLine1 }}</td>
+		<td> </td>
+		<td>Address Line 2</td><td>{{ user.addressLine2 }}</td>
+	</tr>
+	<tr>
+		<td>City</td><td>{{ user.addressCity }}</td>
+		<td> </td>
+		<td>County</td><td>{{ user.addressCounty }}</td>
+	</tr>
+	<tr>
+		<td>Country</td><td>{% if countries[user.addressCountry] is defined %}{{ countries[user.addressCountry] }}{% endif %}</td>
+		<td> </td>
+		<td>Postcode</td><td>{{ user.addressPostcode }}</td>
+	</tr>
+	<tr>
+		<td>Next of kin</td><td>{{ user.nokName }}</td>
+		<td> </td>
+		<td>NoK Phone</td><td>{{ user.nokPhone }}</td>
+	</tr>
+	<tr>
+		<td>NoK Relation</td><td>{{ user.nokRelation }}</td>
+		<td> </td>
+		<td> </td>
+		<td> </td>		
+	</tr>
+	<tr>
+		<td>Username</td><td>{{ user.username }}</td>
+		<td> </td>
+		<td>Payrol Code</td><td>{{ user.payrolCode }}</td>
+	</tr>
+	<tr>
+		<td>Role</td><td>{% set shown=0 %}{% for role in user.roles %}{% if roles[role] is defined and shown == 0 %}{{ roles[role] }}{% set shown=shown+1 %}{% else %}{% endif %}{% endfor %}</td>
+		<td> </td>
+		<td>National Insurance</td><td>{{ user.ni }}</td>
+	</tr>
+	<tr>
+		<td>Group</td><td>{% if groups[user.groupId] is defined %}{{ groups[user.groupId] }}{% if user.groupAdmin == 1 %} [Admin]{% endif %}{% endif %}</td>
+		<td> </td>
+		<td>Location</td><td>{% if locations[user.locationId] is defined %}{{ locations[user.locationId] }}{% if user.locationAdmin == 1 %} [Admin]{% endif %}{% endif %}</td>
+	</tr>
+	<tr>
+		<td>Status</td><td>{% if user.isActive %}Active{% else %}Inactive{% endif %}</td>
+		<td></td>
+		<td></td>
+		<td></td>		
+	</tr>
+	<tr>
+		<td>Notes</td><td colspan="4">{{ user.notes }}</td>
+	</tr>
+</table>
+</div>
+{% else %}
+No information
+{% endif %}

@@ -1,0 +1,80 @@
+{% extends 'TimesheetHrBundle:Default:base.html.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<br>
+<span class="message">{% if message is defined and message|length %}<b>{{ message|raw }}</b>{% else %} {% endif %}
+</span>
+{% if form is defined and form|length %}
+<div class="messagePage">
+{{ include('Includes/message_form.html.twig', { 'form': form }) }}
+</div>
+{% else %}
+<div class="messagePage">
+<table>
+	<tr>
+		<td>
+			{% if folders is defined and folders|length %}
+			<div class="statusList">
+			<table>
+				<tr>
+					<td class="message_folder">
+						<a href="{{ path('timesheet_hr_messages', { 'action': 'New' }) }}">New message</a>
+					</td>
+				</tr>
+				{% for f in folders %}
+				<tr>
+					<td class="message_folder{% if f == folder %}_active{% endif %}">
+						<a href="{{ path('timesheet_hr_messages', { 'action': f }) }}">{{ f }}</a>
+					</td>
+				</tr>
+				{% endfor %}
+			</table>
+			</div>
+			{% endif %}
+		</td>
+		<td>
+			<div class="statusList">
+			{% if pages>1 %}<br>Page:
+				{% for i in 1..pages %}
+					{% if pages < 20 or (i>=current-5 and i<=current+5) %}
+					<a href="{{ path('timesheet_hr_messages', {'action': folder, 'page': (i-1)}) }}">{% if i==current %}<b>{{ i }}</b>{% else %}{{ i }}{% endif %}</a>
+					{% endif %}
+				{% endfor %}
+			{% endif %}
+			<table>
+				<tr>
+				{% if headers is defined and headers|length %}
+					{% for h in headers %}
+					<th>{{ h }}</th>
+					{% endfor %}
+				{% else %}
+					<th>From / To</th>
+					<th>Subject</th>
+					<th>Date/Time</th>
+				{% endif %}
+				</tr>
+			{% if messages is defined and messages|length %}
+				{% for m in messages %}
+				<tr name="message_header" data-id="{{ m.id }}" class="message_{% if m.readOn==null %}new{% else %}old{% endif %}">
+					<td title="{{ m.username }}">{% if m.readOn==null %}<b>{% endif %}{{ m.firstName }} {{ m.lastName }}{% if m.readOn==null %}</b>{% endif %}</td>
+					<td>{% if m.readOn==null %}<b>{% endif %}{% if m.subject|length>30 %}{{ m.subject|slice(0,30) }}...{% else %}{{ m.subject }}{% endif %}{% if m.readOn==null %}</b>{% endif %}</td>
+					<td>{% if m.readOn==null %}<b>{% endif %}{% if m.createdOn|date('d/m/Y') == 'now'|date('d/m/Y') %}{{ m.createdOn|date('H:i') }}{% else %}{{ m.createdOn|date('d/m/Y H:i') }}{% endif %}{% if m.readOn==null %}</b>{% endif %}</td>
+				</tr>
+				{% endfor %}
+			{% else %}
+				<tr class="message_new">
+					<td colspan="3"><hr>Empty<hr></td>
+				</tr>
+			{% endif %}
+			</table>
+			</div>
+			<br>
+			<div class="message_content" id="message_content"></div>
+		</td>
+	</tr>
+</table>
+</div>
+<input type="hidden" id="message-url" data-div="message_content" data-folder="{{ folder }}" data-action="{{ path('timesheet_ajax_getmessage') }}">
+{% endif %}
+{% endblock %}

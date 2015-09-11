@@ -1,0 +1,62 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+{% if list is defined and list|length %}
+<table>
+	<tr>
+		<th>Location</th>
+		<th>Day</th>
+		<th>Timings</th>
+		<th></th>
+	</tr>
+	{% for ld,lv in list %}
+		{% for l in lv %}
+	<tr>
+		<td>{{ l.location }}</td>
+		<td>{{ l.day }}</td>
+		<td>{{ l.start|date('H:i') }} - {{ l.finish|date('H:i') }}</td>
+		<td>{% if form.children['delete_'~l.id] is defined %}{{ form_widget(form.children['delete_'~l.id]) }}{% endif %}</td>
+	</tr>
+		{% endfor %}
+	{% endfor %}
+	{% if form.delete is defined %}
+	<tr>
+		<td></td>
+		<td></td>
+		<td colspan="2">{{ form_widget(form.delete) }}</td>
+	</tr>
+	{% endif %}
+	<tr>
+		<td colspan="3"><hr></td>
+	</tr>
+</table>
+{% endif %}
+<table>
+	<tr>
+		<td>{{ form_label(form.username) }}{{ form_errors(form.username) }}</td>
+		<td>{{ form_widget(form.username) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.payrolCode) }}{{ form_errors(form.payrolCode) }}</td>
+		<td>{{ form_widget(form.payrolCode) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.firstName) }}{{ form_errors(form.firstName) }}</td>
+		<td>{{ form_widget(form.firstName) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.lastName) }}{{ form_errors(form.lastName) }}</td>
+		<td>{{ form_widget(form.lastName) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.dayId) }}{{ form_errors(form.dayId) }}</td>
+		<td>{{ form_widget(form.dayId) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.shiftId) }}{{ form_errors(form.shiftId) }}</td>
+		<td>{{ form_widget(form.shiftId) }}</td>
+	</tr>
+	<tr>
+		<td colspan="2" align="left">{{ form_widget(form.cancel) }}</td>
+		<td> </td>
+		<td colspan="2" align="right">{{ form_widget(form.submit) }}</td>
+	</tr>
+</table>
+{{ form_widget(form._token) }}
+{{ form_end(form) }}

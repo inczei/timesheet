@@ -1,0 +1,161 @@
+{% if users is defined and users|length %}
+<table>
+	<tr>
+		<th>Username</th>
+		<th>Name</th>
+		<th>Group</th>
+		<th>Main Location</th>
+		<th>Current Status</th>
+		<th>Contract</th>
+		<th>Holidays</th>
+		<th>Timing Preference</th>
+		<th>Qualifications</th>
+	</tr>
+	{% for u in users %}
+	<tr>
+		<td{% if u.isActive == false %} class="inactiveUser" title="Inactive"{% endif %}><a href="{{ path(base, {'action': 'edituser', 'param1': u.id }) }}" title="Click here to edit">{{ u.username }}</a> <span class="infoButton" data-url="{{ path('timesheet_ajax_userinfo', { 'id': u.id }) }}" title="{% if domainId is defined and domainId>0 %}{% else %}Domain: {{ domains[u.domainId] }}, {% endif %}Click here to get full info">i</span></td>
+		<td{% if u.isActive == false %} class="inactiveUser" title="Inactive"{% endif %}>{{ u.title ~ ' ' ~ u.firstName ~ ' ' ~ u.lastName|trim }}</td>
+		<td{% if u.groupAdmin %} title="Admin"{% endif %}>{{ u.groupname }}{% if u.groupAdmin %}<br><i>Admin</i>{% endif %}</td>
+		<td{% if u.locationAdmin %} title="Admin"{% endif %}>{{ u.locationname }}{% if u.locationAdmin %}<br><i>Admin</i>{% endif %}</td>
+		<td{% if u.statusname != null %} style="color: #{{ u.color }}" title="Last changed:{{ u.lastTime|date('d/m/Y H:i') }}"{% endif %}>{% if u.statusname != null %}{{ u.statusname }}{% else %} - {% endif %}</td>
+		<td>
+			{% if u.contracts is defined and u.contracts|length %}
+			<div name="showhide" column="contractsTable{{ u.id }}">Show</div>
+			<div name="hiddenTable" class="contractsTable{{ u.id }}">
+			<table>
+				<tr>
+					<th title="Contract Start Date">CSD</th>
+					<th title="Contract End Date">CED</th>
+					<th title="Agreed Weekly Hours">AWH</th>
+					<th title="Working Days per Week">WDpW</th>
+					<th title="Annual Holiday Entitlement">AHE</th>
+					<th title="Annual Holiday Entitlement (weeks)">AHEW</th>
+					<th title="Paid / Unpaid (minutes)">Lunchtime</th>
+					<th>Type</th>
+					<th title="Holiday Calculation">HC</th>
+					<th> </th>
+				</tr>
+				{% for c in u.contracts %}
+				<tr>
+					<td>{{ c.CSD|date('d/m/Y') }}</td>
+					<td>{% if c.CED == null %} - {% else %}{{ c.CED|date('d/m/Y') }}{% endif %}</td>
+					<td>{{ c.AWH }}</td>
+					<td>{{ c.wdpw }}</td>
+					<td>{% if c.AHE is defined and c.AHE > 0 %}{{ c.AHE }}{% else %}<span title="Company Default">{{ AHE }}*</span>{% endif %}</td>
+					<td>{% if c.AHEW is defined and c.AHEW > 0 %}{{ c.AHEW }}{% else %}<span title="Company Default">{{ AHEW }}*</span>{% endif %}</td>
+					<td>
+						{% if c.lunchtime is defined and c.lunchtime != '' %}{{ c.lunchtime }}{% else %}<span title="Company Default">{{ lunchtime }}*</span>{% endif %}
+						/
+						{% if c.lunchtimeUnpaid is defined and c.lunchtimeUnpaid != '' %}{{ c.lunchtimeUnpaid }}{% else %}<span title="Company Default">{{ lunchtimeUnpaid }}*</span>{% endif %}
+					</td>
+					<td>{% if c.Probation != 0 %}Probation{% else %}Permanent{% endif %}</td>
+					<td>{% if holidaycalculations[c.hct] is defined %}{{ holidaycalculations[c.hct] }}{% else %}{{ holidaycalculations[hct] }}{% endif %}</td>
+					<td><a href="{{ path(base, {'action': 'editcontract', 'param1': u.id, 'param2': c.id }) }}">Edit</a></td>
+				</tr>
+				{% endfor %}
+			</table>
+			</div>
+			{% endif %}
+			<a href="{{ path(base, {'action': 'editcontract', 'param1': u.id, 'param2': '0' }) }}">Add Contract</a>
+		</td>
+		<td>
+			{% if u.holidays.list is defined and u.holidays.list|length %}
+			<div name="showhide" column="holidaysTable{{ u.id }}">Show</div>
+			<div name="hiddenTable" class="holidaysTable{{ u.id }}">
+			<table>
+				<tr>
+					<th title="Request Type">Request</th>
+					<th title="Start (and End) Date">Date</th>
+					<th title="Comments">Comments</th>
+				</tr>
+			{% for hl in u.holidays.list %}
+				<tr>
+					<td title="{{ hl.typeComment }}">{{ hl.name }}</td>
+					<td>{% if hl.start == null %} - {% else %}{{ hl.start|date('d/m/Y') }}{% endif %}{% if hl.finish != null and hl.start|date('Ymd') != hl.finish|date('Ymd') %} - {% if hl.finish == null %} - {% else %}{{ hl.finish|date('d/m/Y') }}{% endif %}{% endif %}</td>
+					<td>{{ hl.comment }}{% if hl.acceptedComment is defined and hl.acceptedComment|length %}<br><i>{{ hl.acceptedComment }}</i>{% endif %}</td>
+				</tr>
+			{% endfor %}
+			</table>
+			</div>
+			{% endif %}
+			<span>Annual Holiday Entitlement:{{ u.holidays.annualholidays|number_format(2) }} days{% if u.holidays is defined and u.holidays > 0 %}<br>Remaining Holidays:{{ u.holidays.untilToday|number_format(1) }}{% endif %}</span>
+		</td>
+		<td>
+			{% if u.timings is defined and u.timings|length %}
+			<div name="showhide" column="timingsTable{{ u.id }}">Show</div>
+			<div name="hiddenTable" class="timingsTable{{ u.id }}" style="display: none">
+			<table>
+				<tr>
+					<th>Mon</th>
+					<th>Tue</th>
+					<th>Wed</th>
+					<th>Thu</th>
+					<th>Fri</th>
+					<th>Sat</th>
+					<th>Sun</th>
+				</tr>
+				<tr>
+					{% for day in 1..7 %}
+					{% if day == 7 %}
+						{% set day0=0 %}
+					{% else %}
+						{% set day0 = day %}
+					{% endif %}
+					<td>
+						{% if u.timings[day0] is defined and u.timings[day0]|length %}
+						{% for t1 in u.timings[day0] %}
+						{% if t1['start'] is defined and t1['start'] != null %}{{ t1['start']|date('H:i') }}{% endif %}
+						 - 
+						{% if t1['finish'] is defined and t1['finish'] != null %}{{ t1['finish']|date('H:i') }}{% endif %}
+						{% if t1['hours'] is defined and t1['hours'] > 0 %} <i>({{ t1['hours'] }} hours)</i>{% endif %}
+						{% if t1['location'] is defined and t1['location']|length %}
+						<br><i>{{ t1['location'] }}</i>
+						{% endif %}
+						<br>
+						{% endfor %}
+						{% endif %}
+					</td>
+					{% endfor %}
+				</tr>
+			</table>
+			</div>
+			{% endif %}
+			<a href="{{ path(base, {'action': 'edittiming', 'param1': u.id, 'param2': '0' }) }}">Add / Edit</a>
+		</td>
+		<td>
+		{% if u.userqualifications is defined and u.userqualifications|length %}
+			<div name="showhide" column="qualificationsTable{{ u.id }}">Show</div>
+			<div name="hiddenTable" class="qualificationsTable{{ u.id }}" style="display: none">
+			<table>
+				<tr>
+					<th>Qualification</th>
+					<th>Achievement Date</th>
+					<th>Expiry Date</th>
+					<th>Comments</th>
+				</tr>
+			{% for uq in u.userqualifications %}
+				<tr>
+					<td>{{ uq.title }}</td>
+					<td>{{ uq.achievementDate|date('d/m/Y') }}</td>
+					<td>{{ uq.expiryDate|date('d/m/Y') }}</td>
+					<td>{{ uq.comments }}</td>
+				</tr>
+			{% endfor %}
+			</table>
+			</div>
+		{% endif %}
+		<a href="{{ path(base, {'action': 'edituserqualification', 'param1': u.id, 'param2': '0' }) }}">Add / Edit</a>
+		</td>
+	</tr>
+	{% endfor %}
+	{% if found is defined and found>30 %}
+	<tr>
+		<td colspan="19"><i>more available...totally {{ found }}</i></td>
+	</tr>
+	{% endif %}
+</table>
+<hr>
+{% else %}
+<br><b>No user selected</b>
+<hr>
+{% endif %}

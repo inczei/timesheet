@@ -1,0 +1,51 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+<table>
+	<tr>
+		<td>{{ form_label(form.title) }}{{ form_errors(form.title) }}</td>
+		<td>{{ form_widget(form.title) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.locationId) }}{{ form_errors(form.locationId) }}</td>
+		<td>{{ form_widget(form.locationId) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.startTime) }}{{ form_errors(form.startTime) }}</td>
+		<td>{{ form_widget(form.startTime) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.finishTime) }}{{ form_errors(form.finishTime) }}</td>
+		<td>{{ form_widget(form.finishTime) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.days) }}{{ form_errors(form.days) }}</td>
+		<td>
+			<table>
+				<tr>
+					<th>{{ form_label(form.dayMon) }}</th>
+					<th>{{ form_label(form.dayTue) }}</th>
+					<th>{{ form_label(form.dayWed) }}</th>
+					<th>{{ form_label(form.dayThu) }}</th>
+					<th>{{ form_label(form.dayFri) }}</th>
+					<th>{{ form_label(form.daySat) }}</th>
+					<th>{{ form_label(form.daySun) }}</th>
+				</tr>
+				<tr>
+					<td>{{ form_widget(form.dayMon) }}</td>
+					<td>{{ form_widget(form.dayTue) }}</td>
+					<td>{{ form_widget(form.dayWed) }}</td>
+					<td>{{ form_widget(form.dayThu) }}</td>
+					<td>{{ form_widget(form.dayFri) }}</td>
+					<td>{{ form_widget(form.daySat) }}</td>
+					<td>{{ form_widget(form.daySun) }}</td>
+				</tr>
+			</table>
+		</td>
+	</tr>
+	<tr>
+		<td>{{ form_widget(form.cancel) }}</td>
+		<td>{{ form_widget(form.submit) }}</td>
+	</tr>
+</table>
+{{ form_widget(form._token) }}
+{{ form_end(form) }}

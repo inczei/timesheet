@@ -1,0 +1,29 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+<div class="statusList">
+<table>
+	<tr>
+		<td>{{ form_label(form.sender) }}{{ form_errors(form.sender) }}</td>
+		<td>{{ form_widget(form.sender) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.recipient) }}{{ form_errors(form.recipient) }}</td>
+		<td>{{ form_widget(form.recipient) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.subject) }}{{ form_errors(form.subject) }}</td>
+		<td>{{ form_widget(form.subject) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.content) }}{{ form_errors(form.content) }}</td>
+		<td>{{ form_widget(form.content) }}</td>
+	<tr>
+		<td align="left">{{ form_widget(form.cancel) }}
+			{{ form_widget(form.saveasdraft) }}</td>
+		<td align="right">{{ form_widget(form.submit) }}</td>
+	</tr>
+</table>
+</div>
+{{ form_widget(form.id) }}
+{{ form_widget(form._token) }}
+{{ form_end(form) }}

@@ -1,0 +1,101 @@
+{% if data is defined and data|length %}
+<div class="usersummary">
+<table>
+	<tr>
+		<td>Working hours in the last week : <b>{{ data.lastweek|number_format(1) }}</b>{% if data.lastweek > 0 %} <a title="Click here to download your last weekly timings" target="_blank" href="{{ path('timesheet_hr_weeklyreport', { 'timestamp': data.timestamplast, 'user': userId }) }}">Download</a>{% endif %}</td>
+		<td> </td>
+		<td>Working hours in this week : <b>{{ data.thisweek|number_format(1) }}</b>{% if data.thisweek > 0 %} <a title="Click here to download your current weekly timings" target="_blank" href="{{ path('timesheet_hr_weeklyreport', { 'timestamp': data.timestamp, 'user': userId }) }}">Download</a>{% endif %}</td>
+		<td> </td>
+		<td>Working hours in the next week : <b>{{ data.nextweek|number_format(1) }}</b>{% if data.nextweek > 0 %} <a title="Click here to download your next weekly timings" target="_blank" href="{{ path('timesheet_hr_weeklyreport', { 'timestamp': data.timestampnext, 'user': userId }) }}">Download</a>{% endif %}</td>
+	</tr>
+	<tr>
+		<td>Working hours in the last month : <b>{{ data.lastmonth|number_format(1) }}</b>{% if data.lastmonth > 0 %} <a title="Click here to download your last monthly timings" target="_blank" href="{{ path('timesheet_hr_monthlyreport', { 'timestamp': data.timestamplastmonth, 'user': userId }) }}">Download</a>{% endif %}</td>
+		<td> </td>
+		<td>Working hours in this month : <b>{{ data.thismonth|number_format(1) }}</b>{% if data.thismonth > 0 %} <a title="Click here to download your current monthly timings" target="_blank" href="{{ path('timesheet_hr_monthlyreport', { 'timestamp': data.timestamp, 'user': userId }) }}">Download</a>{% endif %}</td>
+		<td> </td>
+		<td>Working hours in the next month : <b>{{ data.nextmonth|number_format(1) }}</b>{% if data.nextmonth > 0 %} <a title="Click here to download your next monthly timings" target="_blank" href="{{ path('timesheet_hr_monthlyreport', { 'timestamp': data.timestampnextmonth, 'user': userId }) }}">Download</a>{% endif %}</td>
+	</tr>
+	<tr>
+		<td>Current status : <b>{{ data.status }}</b></td>
+		<td> </td>
+		<td>Remaining holidays until Today : <b>{{ data.holidays|number_format(1) }}</b></td>
+		<td> </td>
+		<td><a class="showRequest" data-userid="{{ userId }}" data-url="{{ path('timesheet_ajax_showrequests') }}" base-url="{{ base }}" href="#" title="Click here to see your request">Your requests</a></td>
+	</tr>
+	<tr>
+		<td>
+			{% if data.todayshift is defined and data.todayshift|length %}
+			<u>Today's Shift:</u>
+				{% for ts in data.todayshift %}
+					<br>{{ ts.title }} ({{ ts.startTime|date('H:i') }}-{{ ts.finishTime|date('H:i') }})
+				{% endfor %}
+			{% endif %}
+		</td>
+		<td></td>
+		<td>{% if data.nextshift is defined and data.nextshift|length %}
+			<u>Next Shift:</u>
+				{% for ns in data.nextshift %}
+					<br>{{ ns.date|date('d/m/Y') }} {{ ns.title }} ({{ ns.startTime|date('H:i') }}-{{ ns.finishTime|date('H:i') }})
+				{% endfor %}
+			{% endif %}
+		</td>
+		<td></td>
+		<td></td>
+	</tr>
+</table>
+{% if data.swaprequests is defined and data.swaprequests|length %}
+<br>
+<b>Swap requests</b>
+<table>
+	<tr>
+		<th>Created On</th>
+		<th>Name</th>
+		<th>Date</th>
+		<th>Location</th>
+		<th>Time</th>
+		<th> </th>
+		<th>With</th>
+		<th>Date</th>
+		<th>Location</th>
+		<th>Time</th>
+		<th>Comment</th>
+		<th>Status</th>
+	</tr>
+	{% for sw in data.swaprequests %}
+	<tr>
+		<td>{{ sw.createdOn|date('d/m/Y H:i') }}</td>
+		<td>{{ sw.name1 }}</td>
+		<td>{{ sw.date1|date('d/m/Y') }}</td>
+		<td>{{ sw.location1 }}</td>
+		<td>{{ sw.time1 }}</td>
+		<td> </td>
+		<td>{{ sw.name2 }}</td>
+		<td>{{ sw.date2|date('d/m/Y') }}</td>
+		<td>{{ sw.location2 }}</td>
+		<td>{{ sw.time2 }}</td>
+		{% if sw.comment|length>30 %}
+			<td title="{{ sw.comment }}">{{ sw.comment|slice(0,30) }}...</td>
+		{% else %}
+			<td>{{ sw.comment }}</td>
+		{% endif %}
+		<td{% if sw.accepted == true %} title="Approved on: {{ sw.acceptedOn|date('d/m/Y H:i') }}"{% endif %}>{% if sw.accepted == true %}
+			Approved
+			{% else %}
+				{% if sw.accepted is empty %}
+					{% if sw.userId2 == userId %}
+						<input type="button" class="buttonApproveSwap" id="{{ sw.id }}" data-question="Would you like to approve this request?" value="Approve / Deny"> 
+					{% else %}
+						Pending
+					{% endif %}
+				{% else %}
+					Declined
+				{% endif %}
+			{% endif %}
+		</td>
+	</tr>
+	{% endfor %}
+</table>
+<input type="hidden" id="swapapprovedeny" data-url="{{ path('timesheet_ajax_swapapprovedeny') }}" data-base="{{ base }}">
+{% endif %}
+</div>
+{% endif %}

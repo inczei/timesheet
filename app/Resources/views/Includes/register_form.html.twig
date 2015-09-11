@@ -1,0 +1,144 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+<table>
+	<tr>
+		<td>{{ form_label(form.title) }}{{ form_errors(form.title) }}</td>
+		<td>{{ form_widget(form.title) }}</td>
+		<td> </td>
+		<td> </td>
+		<td> </td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.firstName) }}{{ form_errors(form.firstName) }}</td>
+		<td>{{ form_widget(form.firstName) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.lastName) }}{{ form_errors(form.lastName) }}</td>
+		<td>{{ form_widget(form.lastName) }}</td>
+	</tr>
+		<td>{{ form_label(form.birthday) }}{{ form_errors(form.birthday) }}</td>
+		<td>{{ form_widget(form.birthday) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.nationality) }}{{ form_errors(form.nationality) }}</td>
+		<td>{{ form_widget(form.nationality) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.email) }}{{ form_errors(form.email) }}</td>
+		<td>{{ form_widget(form.email) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.exEmail) }}{{ form_errors(form.exEmail) }}</td>
+		<td>{{ form_widget(form.exEmail) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.phoneLandline) }}{{ form_errors(form.phoneLandline) }}</td>
+		<td>{{ form_widget(form.phoneLandline) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.phoneMobile) }}{{ form_errors(form.phoneMobile) }}</td>
+		<td>{{ form_widget(form.phoneMobile) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.addressLine1) }}{{ form_errors(form.addressLine1) }}</td>
+		<td>{{ form_widget(form.addressLine1) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.addressLine2) }}{{ form_errors(form.addressLine2) }}</td>
+		<td>{{ form_widget(form.addressLine2) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.addressCity) }}{{ form_errors(form.addressCity) }}</td>
+		<td>{{ form_widget(form.addressCity) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.addressCounty) }}{{ form_errors(form.addressCounty) }}</td>
+		<td>{{ form_widget(form.addressCounty) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.addressCountry) }}{{ form_errors(form.addressCountry) }}</td>
+		<td>{{ form_widget(form.addressCountry) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.addressPostcode) }}{{ form_errors(form.addressPostcode) }}</td>
+		<td>{{ form_widget(form.addressPostcode) }}</td>
+	</tr>
+	<tr>
+		<td colspan="5"><hr></td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.nokName) }}{{ form_errors(form.nokName) }}</td>
+		<td>{{ form_widget(form.nokName) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.nokPhone) }}{{ form_errors(form.nokPhone) }}</td>
+		<td>{{ form_widget(form.nokPhone) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.nokRelation) }}{{ form_errors(form.nokRelation) }}</td>
+		<td>{{ form_widget(form.nokRelation) }}</td>
+		<td> </td>
+		<td> </td>
+		<td> </td>
+	</tr>
+	<tr>
+		<td colspan="5"><hr></td>
+	</tr>
+	{% if form.domainId is defined %}
+	<tr>
+		<td>{{ form_label(form.domainId) }}{{ form_errors(form.domainId) }}</td>
+		<td>{{ form_widget(form.domainId) }}</td>
+		<td> </td>
+		<td> </td>
+		<td> </td>
+	</tr>
+	{% endif %}
+	<tr>
+		<td>{{ form_label(form.username) }}{{ form_errors(form.username) }}</td>
+		<td>{{ form_widget(form.username) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.payrolCode) }}{{ form_errors(form.payrolCode) }}</td>
+		<td>{{ form_widget(form.payrolCode) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.upass.first) }}{{ form_errors(form.upass.first) }}</td>
+		<td>{{ form_widget(form.upass.first) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.upass.second) }}{{ form_errors(form.upass.second) }}</td>
+		<td>{{ form_widget(form.upass.second) }}</td>
+	</tr>
+	<tr>
+		<td colspan="5"><hr></td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.role) }}{{ form_errors(form.role) }}</td>
+		<td>{{ form_widget(form.role) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.ni) }}{{ form_errors(form.ni) }}</td>
+		<td>{{ form_widget(form.ni) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.group) }}{{ form_errors(form.group) }}</td>
+		<td>{{ form_widget(form.group) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.groupAdmin) }}{{ form_errors(form.groupAdmin) }}</td>
+		<td>{{ form_widget(form.groupAdmin) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.location) }}{{ form_errors(form.location) }}</td>
+		<td>{{ form_widget(form.location) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.locationAdmin) }}{{ form_errors(form.locationAdmin) }}</td>
+		<td>{{ form_widget(form.locationAdmin) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.loginRequired) }}{{ form_errors(form.loginRequired) }}</td>
+		<td>{{ form_widget(form.loginRequired) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.isActive) }}{{ form_errors(form.isActive) }}</td>
+		<td>{{ form_widget(form.isActive) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.notes) }}{{ form_errors(form.notes) }}</td>
+		<td colspan="4">{{ form_widget(form.notes) }}</td>
+	</tr>
+	<tr>
+		<td colspan="2" align="left">{{ form_widget(form.cancel) }}</td>
+		<td> </td>
+		<td colspan="2" align="right">{{ form_widget(form.submit) }}</td>
+	</tr>
+</table>
+{{ form_widget(form._token) }}
+{{ form_end(form) }}

@@ -1,0 +1,61 @@
+{% if ((requests is defined and requests|length) or (accepted is defined and accepted|length)) %}
+{% if requests is defined and requests|length %}
+<table id="approval">
+	<tr>
+		<th>Requested On</th>
+		<th>Name</th>
+		<th>Type</th>
+		<th>Date / Time</th>
+		<th>Comment</th>
+		<th>Your comment</th>
+		<th> </th>
+	</tr>
+	{% for r in requests %}
+	<tr id="{{ r.id }}">
+		<td title="Requested by {{ r.createdByName }}">{{ r.createdOn|date('d/m/Y H:i') }}</td>
+		<td title="Username : {{ r.username }}">{{ r.firstName }} {{ r.lastName }}</td>
+		<td>
+			<span class="addRequest" data-id="{{ r.id }}" data-url="{{ path('timesheet_ajax_addrequest') }}" data-date="" data-action="edit" base-url="{{ base }}" style="padding: 2px; margin: 2px; font-size: normal; font-weight: bold; -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; -khtml-border-radius: 10px; color: #{{ r.textColor }}; background-color: #{{ r.backgroundColor }}; border: #{{ r.borderColor }} solid 2px; padding: 2px;" title="Click here to edit">{{ r.typeName }}</span>
+		</td>
+		<td>{% if r.fullday %}
+				{% if r.start|date('d/m/Y') == r.finish|date('d/m/Y') %}{{ r.start|date('d/m/Y') }}{% else %}{{ r.start|date('d/m/Y') }} - {{ r.finish|date('d/m/Y') }}{% endif %}
+			{% else %}
+				{{ r.start|date('d/m/Y') }} {{ r.start|date('H:i') }} - {{ r.finish|date('H:i') }}
+			{% endif %}</td>
+		<td>{{ r.comment }}</td>
+		<td><input type="text" name="comment" id="comment_{{ r.id }}" size="10" value=""></td>
+		<td><input type="button" class="buttonApprove" id="{{ r.id }}" value="Approve / Deny" data-question="Would you like to approve or deny the {{ r.typeName }} request for {{ r.firstName }} {{ r.lastName }}?"></td>
+	</tr>
+	{% endfor %}
+</table>
+{% endif %}
+{% if accepted is defined and accepted|length %}
+<table id="accepted">
+	<tr>
+		<th>Requested On</th>
+		<th>Name</th>
+		<th>Type</th>
+		<th>Date / Time</th>
+		<th>Comment</th>
+		<th>Manager's comment</th>
+		<th>Status</th>
+	</tr>
+	{% for a in accepted %}
+	<tr id="{{ a.id }}">
+		<td title="Requested by {{ a.createdByName }}">{{ a.createdOn|date('d/m/Y H:i') }}</td>
+		<td title="Username : {{ a.username }}">{{ a.firstName }} {{ a.lastName }}</td>
+		<td><span style="padding: 2px; margin: 2px; font-size: normal; font-weight: bold; -moz-border-radius: 10px; -webkit-border-radius: 10px; border-radius: 10px; -khtml-border-radius: 10px; color: #{% if a.accepted < 0 %}aaaaaa{% else %}{{ a.textColor }}{% endif %}; background-color: #{{ a.backgroundColor }}; border: #{% if a.accepted < 0 %}aaaaaa{% else %}{{ a.borderColor }}{% endif %} solid 2px; padding: 2px;">{{ a.typeName }}</span></td>
+		<td>{% if a.fullday %}
+				{% if a.start|date('d/m/Y') == a.finish|date('d/m/Y') %}{{ a.start|date('d/m/Y') }}{% else %}{{ a.start|date('d/m/Y') }} - {{ a.finish|date('d/m/Y') }}{% endif %}
+			{% else %}
+				{{ a.start|date('d/m/Y') }} {{ a.start|date('H:i') }} - {{ a.finish|date('H:i') }}
+			{% endif %}</td>
+		<td{% if a.comment|length > 30 %} title="{{ a.comment }}"{% endif %}>{{ a.comment|length > 30?a.comment|slice(0,30) ~ '...':a.comment }}</td>
+		<td{% if a.acceptedComment|length > 30 %} title="{{ a.acceptedComment }}"{% endif %}>{{ a.acceptedComment|length > 30?a.acceptedComment|slice(0,30) ~ '...':a.acceptedComment }}</td>
+		<td class="{% if a.accepted > 0 %}accepted{% endif %}{% if a.accepted < 0 %}denied{% endif %}{% if a.accepted == 0 %}pending{% endif %}"{% if a.accepted != 0 %} title="{% if a.accepted > 0 %}Approved{% else %}Denied{% endif %} by {{ a.acceptedByName }} on {{ a.acceptedOn|date('d/m/Y H:i') }}"{% endif %}>{% if a.accepted > 0 %}Approved{% endif %}{% if a.accepted < 0 %}Denied{% endif %}{% if a.accepted == 0 %}Pending{% endif %}</td>
+	</tr>
+	{% endfor %}
+</table>
+{% endif %}
+<input type="hidden" id="holidayapproval" data-url="{{ path('timesheet_ajax_approvedeny') }}" data-base="{{ base }}">
+{% endif %}

@@ -1,0 +1,41 @@
+{% extends 'TimesheetHrBundle:Default:base.html.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<br>
+<span class="message">{% if message is defined and message|length %}<b>{{ message|raw }}</b>{% else %} {% endif %}
+</span>
+{{ form_start(form) }}
+<div class="punch">
+<h3>Please select your new status, enter your username and password</h3>
+{{ form_errors(form) }}
+<table>
+	<tr>
+		<td>{{ form_label(form.status) }}{{ form_errors(form.status) }}</td>
+		<td>{{ form_widget(form.status) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.uname) }}{{ form_errors(form.uname) }}</td>
+		<td>{{ form_widget(form.uname) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.upass) }}{{ form_errors(form.upass) }}</td>
+		<td>{{ form_widget(form.upass) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.comment) }}{{ form_errors(form.comment) }}</td>
+		<td>{{ form_widget(form.comment) }}</td>
+	</tr>
+	<tr>
+		<td colspan="2" align="center">{{ form_widget(form.submit) }}</td>
+	</tr>
+	<tr>
+		<td colspan="2" class="loginMessage">
+			{% for flashMessage in app.session.flashbag.get('login') %}{{ flashMessage|raw }}{% endfor %}
+		</td>
+	</tr>
+</table>
+</div>
+{{ form_widget(form._token) }}
+{{ form_end(form) }}
+{% endblock %}

@@ -1,0 +1,70 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+<table>
+	<tr>
+		<td>{{ form_label(form.name) }}{{ form_errors(form.name) }}</td>
+		<td>{{ form_widget(form.name) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.active) }}{{ form_errors(form.active) }}</td>
+		<td>{{ form_widget(form.active) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.fixedipaddress) }}{{ form_errors(form.fixedipaddress) }}</td>
+		<td>{{ form_widget(form.fixedipaddress) }}</td>
+		<td> </td>
+		<td> </td>
+		<td> </td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.ipaddress) }}{{ form_errors(form.ipaddress) }}</td>
+		<td colspan="4">{{ form_widget(form.ipaddress) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.phoneLandline) }}{{ form_errors(form.phoneLandline) }}</td>
+		<td>{{ form_widget(form.phoneLandline) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.phoneFax) }}{{ form_errors(form.phoneFax) }}</td>
+		<td>{{ form_widget(form.phoneFax) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.phoneMobile) }}{{ form_errors(form.phoneMobile) }}</td>
+		<td>{{ form_widget(form.phoneMobile) }}</td>
+		<td> </td>
+		<td> </td>
+		<td> </td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.addressLine1) }}{{ form_errors(form.addressLine1) }}</td>
+		<td>{{ form_widget(form.addressLine1) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.addressLine2) }}{{ form_errors(form.addressLine2) }}</td>
+		<td>{{ form_widget(form.addressLine2) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.addressCity) }}{{ form_errors(form.addressCity) }}</td>
+		<td>{{ form_widget(form.addressCity) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.addressCounty) }}{{ form_errors(form.addressCounty) }}</td>
+		<td>{{ form_widget(form.addressCounty) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.addressCountry) }}{{ form_errors(form.addressCountry) }}</td>
+		<td>{{ form_widget(form.addressCountry) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.addressPostcode) }}{{ form_errors(form.addressPostcode) }}</td>
+		<td>{{ form_widget(form.addressPostcode) }}</td>
+	</tr>
+	<tr>
+		<td colspan="2" align="left">{{ form_widget(form.cancel) }}</td>
+		<td> </td>
+		<td colspan="2" align="right">{{ form_widget(form.submit) }}</td>
+	</tr>
+</table>
+{{ form_widget(form.domainId) }}
+{{ form_widget(form._token) }}
+{{ form_end(form) }}
+{% if add is defined and add|length %}
+<hr>
+<h2>Add staff member requirements</h2>
+{{ dump(add) }}
+{% endif %}

@@ -1,0 +1,71 @@
+<pdf>
+	<page page-size="A4-landscape">
+		Name: {{ name }}, Username: {{ username }}
+		<br/>
+		Month: {{ month }} ({{ date1|date('d/m/Y') }} - {{ date2|date('d/m/Y') }})
+		<br/>
+		{% if report is defined and report|length %}
+		<br/>
+		<table>
+			{% for yw,report1 in report %}
+			<tr>
+				<td width="20" text-align="center"><b>Week {{ yw }}</b></td>
+				{% set start=1 %}
+				{% for d,rep in report1 %}
+					{% if start == 1 %}
+						{% if rep.dayno != 1 %}
+						{% for i in 1..(rep.dayno-1) %}
+							<td width="40" text-align="center"></td>
+						{% endfor %}
+						{% endif %}
+						{% set start=0 %}
+					{% endif %}
+					<td width="40" text-align="center">{% if rep.day is defined %}<b>{{ rep.day }}</b><br/><b>{{ d|date('j M Y') }}</b>{% endif %}</td>
+				{% endfor %}
+			</tr>
+			<tr>
+				<td width="20" text-align="center"></td>
+				{% set start=1 %}
+				{% for d,rep in report1 %}
+					{% if start == 1 %}
+						{% if rep.dayno != 1 %}
+						{% for i in 1..(rep.dayno-1) %}
+							<td width="40" text-align="center"></td>
+						{% endfor %}
+						{% endif %}
+						{% set start=0 %}
+					{% endif %}
+					{% if rep.timings is defined and rep.timings|length %}
+					<td width="40" text-align="center"><br/><br/>
+						{% for k,r in rep.timings %}
+							{% if k>0 %}<br/>{% endif %}
+							{{ r.startTime|slice(0,5) }} - {{ r.finishTime|slice(0,5) }} at {{ r.name }}
+						{% endfor %}<br/><br/>
+						{% if rep.holidays is defined and rep.holidays|length %}
+							{% for h in rep.holidays %}
+								{{ h.name }}<br/>
+							{% endfor %}
+						{% endif %}
+					</td>
+					{% else %}
+						<td width="40" text-align="center"><br/><br/>
+							{% if rep.holidays is defined and rep.holidays|length %}
+								{% for h in rep.holidays %}
+									{{ h.name }}<br/>
+								{% endfor %}
+							{% else %}
+							 - - -
+							{% endif %}
+							<br/><br/>
+						</td>
+					{% endif %}
+				{% endfor %}
+			</tr>
+			{% endfor %}
+		</table>		
+		{% endif %}
+		<br/>
+		<br/>
+		{{ footer }}
+	</page>
+</pdf>

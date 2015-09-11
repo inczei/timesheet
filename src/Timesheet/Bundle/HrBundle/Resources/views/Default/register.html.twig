@@ -1,0 +1,15 @@
+{% extends 'TimesheetHrBundle:Default:base.html.twig' %}
+{% block title %}Registration - HR{% endblock %}
+{% block header %}<h2 align="center">Registration</h2>{% endblock %}
+{% block content %}
+{% if form is defined and form|length %}
+<div class="login">
+{% if message is defined and message|length %}
+</div>
+<div class="loginMessage">{{ message }}</div>
+{% endif %}
+<div class="registrationList">
+{{ include('Includes/register_form.html.twig', { 'form': form }) }}
+</div>
+{% endif %}
+{% endblock %}

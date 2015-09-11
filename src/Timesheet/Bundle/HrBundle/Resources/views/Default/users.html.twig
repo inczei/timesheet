@@ -1,0 +1,35 @@
+{% extends 'TimesheetHrBundle:Default:base.html.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<div class="message">
+{% if message is defined and message|length %}
+<div class="loginMessage">{{ message }}</div>
+{% endif %}
+</div>
+{% if userForm is defined and userForm|length %}
+<div class="registrationList">
+<h2>User</h2>
+{{ include('Includes/register_form.html.twig', { 'form': userForm }) }}
+</div>
+{% elseif contractForm is defined and contractForm|length %}
+<div class="registrationList">
+<h2>Contract</h2>
+{{ include('Includes/contract_form.html.twig', { 'form': contractForm }) }}
+</div>
+{% elseif timingForm is defined and timingForm|length %}
+<div class="registrationList">
+<h2>Timings</h2>
+{{ include('Includes/timing_form.html.twig', { 'form': timingForm, 'list': timingList }) }}
+</div>
+{% elseif userqualificationForm is defined and userqualificationForm|length %}
+<div class="registrationList">
+<h2>Qualifications</h2>
+{{ include('Includes/userqualification_form.html.twig', { 'form': userqualificationForm, 'qualifications': qualifications, 'title': title }) }}
+</div>
+{% else %}
+<div class="statusList">
+{{ render(controller('TimesheetHrBundle:Default:usermenu', { 'base': base, 'domainId': domainId })) }}
+</div>
+{% endif %}
+{% endblock %}

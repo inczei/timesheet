@@ -1,0 +1,22 @@
+{% if list is defined and list|length %}
+<table>
+	<tr>
+		<th>Type</th>
+		<th>Date/Time</th>
+		<th>Comment</th>
+		<th>Paid</th>
+		<th>Created By</th>
+	</tr>
+{% for l in list %}
+	<tr>
+		<td title="{{ l.requestcomment }}">{{ l.requestname }}</td>
+		<td>{{ l.times }}</td>
+		<td>{{ l.comment }}</td>
+		<td>{% if l.paid %}X{% else %} {% endif %}</td>
+		<td title="{{ l.createdOn|date('d/m/Y H:i') }}">{{ l.createdByName }}</td>
+	</tr>
+{% endfor %}
+</table>
+{% else %}
+<p>You have no request</p>
+{% endif %}

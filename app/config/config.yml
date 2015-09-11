@@ -5,6 +5,7 @@ imports:
 framework:
     #esi:             ~
     #translator:      { fallback: "%locale%" }
+    translator: ~
     secret:          "%secret%"
     router:
         resource: "%kernel.root_dir%/config/routing.yml"
@@ -33,10 +34,11 @@ twig:
 assetic:
     debug:          "%kernel.debug%"
     use_controller: false
-    bundles:        [ InvestShareBundle ]
+    bundles:        [ TimesheetHrBundle ]
     #java: /usr/bin/java
     filters:
         cssrewrite: ~
+#            apply_to: "\.css$"
         #closure:
         #    jar: "%kernel.root_dir%/Resources/java/compiler.jar"
         #yui_css:
@@ -58,7 +60,20 @@ doctrine:
 
     orm:
         auto_generate_proxy_classes: "%kernel.debug%"
-        auto_mapping: true
+        entity_managers:
+            default:
+                auto_mapping: true
+                dql:
+                    datetime_functions:
+                        DATE: DoctrineExtensions\Query\Mysql\Date
+                        MONTH: DoctrineExtensions\Query\Mysql\Month
+                        YEAR: DoctrineExtensions\Query\Mysql\Year
+                        DAY: DoctrineExtensions\Query\Mysql\Day
+                        DATE_FORMAT: DoctrineExtensions\Query\Mysql\DateFormat
+                        DATEDIFF: DoctrineExtensions\Query\Mysql\DateDiff
+                    string_functions:
+                        GROUP_CONCAT: DoctrineExtensions\Query\Mysql\GroupConcat
+                        CONCAT_WS: DoctrineExtensions\Query\Mysql\ConcatWs
 
 # Swiftmailer Configuration
 swiftmailer:
@@ -66,7 +81,12 @@ swiftmailer:
     host:      "%mailer_host%"
     username:  "%mailer_user%"
     password:  "%mailer_password%"
-    spool:     { type: memory }
+#    spool:     { type: memory }
+
+fos_user:
+    db_driver: orm
+    firewall_name: main
+    user_class: Timesheet\Bundle\HrBundle\Entity\User
 
 ps_pdf:
     nodes_file: ~
@@ -80,3 +100,9 @@ ps_pdf:
     markdown_stylesheet_filepath: ~
     markdown_document_template_filepath: ~
     document_parser_type: ~
+ivory_ck_editor:
+    default_config: myconfig
+    configs:
+        myconfig:
+            toolbar: standard
+            

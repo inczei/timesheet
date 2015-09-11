@@ -1,0 +1,33 @@
+<h2>Locations</h2>
+<a href="{{ path(base, {'action': 'editlocation', 'param1': '0' }) }}">New location</a>
+{% if locations is defined and locations|length %}
+<table>
+	<tr>
+		<th>Name</th>
+		<th>Address</th>
+		<th>Phone(s)</th>
+		<th>Required Staff</th>
+		<th>IP Address</th>
+		<th>Status</th>
+	</tr>
+	{% for l in locations %}
+	<tr>
+		<td>
+			<a href="{{ path(base, {'action': 'editlocation', 'param1': l.id }) }}" title="Click here to edit">{{ l.name }}</a>
+		</td>
+		<td>{{ l.address.line1 }}{% if l.address.line2|length %}, {{ l.address.line2 }}{% endif %}{% if l.address.city|length %}, {{ l.address.city }}{% endif %}{% if l.address.county|length %}, {{ l.address.county }}{% endif %}{% if l.address.country|length %}, {{ l.address.country }}{% endif %}{% if l.address.postcode|length %}, {{ l.address.postcode }}{% endif %}</td>
+		<td>{{ l.phone.landline }}{% if l.phone.mobile|length %}, {{ l.phone.mobile }}{% endif %}{% if l.phone.fax|length %}, {{ l.phone.fax }}{% endif %}</td>
+		<td>
+		{% if l.members is defined and l.members|length %}
+			{% for k,m in l.members %}
+				{{ k }} : {{ m }}<br>
+			{% endfor %}
+		{% endif %}
+		</td>
+		<td>{% if l.ipaddress|length %}{% for ip in l.ipaddress %}{{ ip.IpAddress }}<br>{% endfor %}{% else %}Not specified{% endif %}</td>
+		<td>{% if l.active %}Active{% else %}Inactive{% endif %}</td>
+	</tr>
+	{% endfor %}
+</table>
+<hr>
+{% endif %}

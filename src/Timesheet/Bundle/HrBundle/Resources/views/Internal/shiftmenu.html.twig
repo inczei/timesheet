@@ -1,0 +1,43 @@
+<h2>Shifts</h2>
+<a href="{{ path(base, {'action': 'editshift', 'param1': '0' }) }}">New shift</a>
+{% if shifts is defined and shifts|length %}
+<table>
+	<tr>
+		<th rowspan="2">Title</th>
+		<th rowspan="2">Location</th>
+		<th rowspan="2">Start</th>
+		<th rowspan="2">Finish</th>
+		<th colspan="7">Days</th>
+		<th colspan="2">Requirements</th>
+	</tr>
+	<tr>
+		<th>Mon</th>
+		<th>Tue</th>
+		<th>Wed</th>
+		<th>Thu</th>
+		<th>Fri</th>
+		<th>Sat</th>
+		<th>Sun</th>
+		<th>Staff</th>
+		<th>Qualification</th>
+	</tr>
+	{% for s in shifts %}
+	<tr>
+		<td><a href="{{ path(base, {'action': 'editshift', 'param1': s.id }) }}" title="Click here to edit">{% if s.title|length %}{{ s.title }}{% else %}????{% endif %}</a></td>
+		<td>{% if locations[s.locationId] is defined %}{{ locations[s.locationId] }}{% else %}???{% endif %}</td>
+		<td>{% if s.startTime is not empty %}{{ s.startTime|date('H:i') }}{% endif %}</td>
+		<td>{% if s.finishTime is not empty %}{{ s.finishTime|date('H:i') }}{% endif %}</td>
+		<td>{% if s.days[1] is defined and s.days[1] %}X{% endif %}</td>
+		<td>{% if s.days[2] is defined and s.days[2] %}X{% endif %}</td>
+		<td>{% if s.days[3] is defined and s.days[3] %}X{% endif %}</td>
+		<td>{% if s.days[4] is defined and s.days[4] %}X{% endif %}</td>
+		<td>{% if s.days[5] is defined and s.days[5] %}X{% endif %}</td>
+		<td>{% if s.days[6] is defined and s.days[6] %}X{% endif %}</td>
+		<td>{% if s.days[0] is defined and s.days[0] %}X{% endif %}</td>
+		<td>{% if s.staffReq is defined and s.staffReq|length %}{% for r in s.staffReq %}{{ r.name }} : {{ r.numberOfStaff }}<br>{% endfor %}{% endif %}<a href="{{ path(base, {'action': 'editsreq', 'param1': s.id }) }}" title="Click here to edit">Edit Req.</a></td>
+		<td>{% if s.qualReq is defined and s.qualReq|length %}{% for r in s.qualReq %}{{ r.name }} : {{ r.numberOfStaff }}<br>{% endfor %}{% endif %}<a href="{{ path(base, {'action': 'editqreq', 'param1': s.id }) }}" title="Click here to edit">Edit Req.</a></td>
+	</tr>
+	{% endfor %}
+</table>
+<hr>
+{% endif %}

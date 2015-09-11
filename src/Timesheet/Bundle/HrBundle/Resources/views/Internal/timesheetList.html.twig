@@ -1,0 +1,247 @@
+<div class="currentMonth">{{ currentMonth }}</div> [<span class="showhideButton" name="showhide" column="columnHide">Show</span> full dedails]
+{% if timesheet is defined and timesheet|length %}
+<table>
+{% for userName,t1 in timesheet %}
+{% set tah=0 %}
+{% set tahOrig=0 %}
+{% set ah=0 %}
+{% set ahd=0 %}
+{% set lates=0 %}
+{% set leave=0 %}
+{% set ot=0 %}
+{% set ota=0 %}
+	<tr class="header">
+		<th colspan="{% if isManager %}14{% else %}13{% endif %}"><h2>{{ userName }}</h2></th>
+		<th colspan="10" class="columnHide"></th>
+	</tr>
+	<tr>
+		<th colspan="2"></th>
+		<th colspan="2">Agreed Time</th>
+		<th colspan="2">Actual Time</th>
+		<th>Total Agreed Hours</th>
+		<th>Actual Hours</th>
+		<th>Hours Lates</th>
+		<th>Hours Leave Early</th>
+		<th>Overetime</th>
+		<th colspan="2">Notes</th>
+		{% if isManager  %}<th>Check</th>{% endif %}
+		<th colspan="10" class="columnHide">Break</th>
+	</tr>
+	<tr>
+		<th colspan="2">Date</th>
+		<th>Sign In</th>
+		<th>Sign Out</th>
+		<th>Sign In</th>
+		<th>Sign Out</th>
+		<th><i>[Original]</i></th>
+		<th><i>(Deducted)</i></th>
+		<th> </th>
+		<th> </th>
+		<th><i>(Agreed)</i></th>
+		<th>Employee</th>
+		<th>Manager</th>
+		{% if isManager %}<th> </th>{% endif %}
+		<th class="columnHide">Lunch Start</th>
+		<th class="columnHide">Lunch Finish</th>
+		<th class="columnHide">Total Lunch Time</th>
+		<th class="columnHide">Gone Out</th>
+		<th class="columnHide">Came Back</th>
+		<th class="columnHide">Break Start</th>
+		<th class="columnHide">Break Finish</th>
+		<th class="columnHide">Total Other Time</th>
+		<th class="columnHide">Deducted Time</th>
+		<th class="columnHide">Total Break Time</th>
+	</tr>
+	{% for date,t2 in t1 %}
+	{% if (t2[1]['timestamp'] is not defined or t2[1]['timestamp']<1) and (t2[0]['class'] is not defined or t2[0]['class']|length == 0) and (date < 'now'|date('Y-m-d')) %}
+		{% set noDate1=1 %}
+	{% else %}
+		{% set noDate1=0 %}
+	{% endif %}
+	{% if (t2[2]['timestamp'] is not defined or t2[2]['timestamp']<1) and (t2[0]['class'] is not defined or t2[0]['class']|length == 0) and (date < 'now'|date('Y-m-d')) %}
+		{% set noDate2=1 %}
+	{% else %}
+		{% set noDate2=0 %}
+	{% endif %}
+	<tr{% if t2[0]['class'] is defined and t2[0]['class']|length %} class="{{ t2[0]['class'] }}"{% endif %}{% if t2[0]['comment'] is defined and t2[0]['comment']|length %} title="{{ t2[0]['comment'] }}"{% endif %}>
+		<td>{{ date|date('d/m/Y') }}</td>
+		<td>{{ date|date('D') }}</td>
+		<td>
+			{% if t2[0]['agreedStart'] is defined and t2[0]['agreedStart'] %}{{ t2[0]['agreedStart']|date('H:i') }}{% else %}{% endif %}
+		</td>
+		<td>
+			{% if t2[0]['agreedFinish'] is defined and t2[0]['agreedFinish'] %}{{ t2[0]['agreedFinish']|date('H:i') }}{% else %}{% endif %}
+		</td>
+		<td{% if noDate1 == 1 and t2[0]['userId'] is defined %} class="addPunch" data-typeid="1" data-type="Sign In" data-username="{{ userName }}" data-date="{{ date }}" data-userid="{{ t2[0]['userId'] }}"{% endif %}>
+			<div{% if t2[0]['Late'] is defined and t2[0]['Late'] > 0 %} class="PunchIncorrect"{% endif %}{% if t2[1]['location'] is defined and t2[1]['location']|length>0 %} title="Location: {{ t2[1]['location'] }}"{% endif %}>
+			{% if t2[1]['timestamp'] is defined and t2[1]['timestamp'] %}
+				{{ t2[1]['timestamp']|date('H:i') }}
+			{% else %}
+				{% if t2[2]['timestamp'] is defined and t2[2]['timestamp'] %}
+					????
+				{% endif %}
+			{% endif %}
+			</div>
+		</td>
+		<td{% if noDate2 == 1 and t2[0]['userId'] is defined %} class="addPunch" data-typeid="2" data-type="Sign Out" data-username="{{ userName }}" data-date="{{ date }}" data-datedisplay="{{ date|date('d/m/Y') }}" data-userid="{{ t2[0]['userId'] }}"{% endif %}>
+			<div{% if t2[0]['Leave'] is defined and t2[0]['Leave'] > 0 %} class="PunchIncorrect"{% endif %}{% if t2[2]['location'] is defined and t2[2]['location']|length>0 %} title="Location: {{ t2[2]['location'] }}"{% endif %}>
+			{% if t2[2]['timestamp'] is defined and t2[2]['timestamp'] %}
+				{{ t2[2]['timestamp']|date('H:i') }}
+			{% else %}
+				{% if t2[1]['timestamp'] is defined and t2[1]['timestamp'] %}
+					????
+				{% endif %}
+			{% endif %}
+			</div>
+		</td>
+		<td>
+			{% if t2[0]['AgreedTime'] is defined and t2[0]['AgreedTime']>0 %}{{ (t2[0]['AgreedTime']/60)|number_format(2) }}{% set tah=tah+t2[0]['AgreedTime'] %} Hr{% endif %}
+			{% if t2[0]['AgreedTimeOrig'] is defined and t2[0]['AgreedTimeOrig']>0 %}<br><i>[{{ (t2[0]['AgreedTimeOrig']/60)|number_format(2) }}{% set tahOrig=tahOrig+t2[0]['AgreedTimeOrig'] %} Hr]</i>{% endif %}
+		</td>
+		<td>
+			{% if t2[0]['WorkTime'] is defined and t2[0]['WorkTime']>0 %}{{ (t2[0]['WorkTime']/60)|number_format(2) }}{% set ah=ah+t2[0]['WorkTime'] %} Hr
+			{% if t2[0]['Deducted'] is defined and t2[0]['Deducted'] > 0 %}<br>({{ (t2[0]['Deducted']/60)|number_format(2) }}{% set ahd=ahd+t2[0]['Deducted'] %} Hr){% endif %}
+			{% endif %}
+		</td>
+		<td>{% if t2[0]['Late'] is defined and t2[0]['Late'] > 0 %}{{ (t2[0]['Late']/60)|number_format(2) }}<br>{{ (t2[0]['Late'])|number_format(0) }}{% set lates=lates+t2[0]['Late'] %} min{% endif %}</td>
+		<td>{% if t2[0]['Leave'] is defined and t2[0]['Leave'] > 0 %}{{ (t2[0]['Leave']/60)|number_format(2) }}<br>{{ (t2[0]['Leave'])|number_format(0) }}{% set leave=leave+t2[0]['Leave'] %} min{% endif %}</td>
+		<td>
+			{% if t2[0]['Overtime'] is defined and t2[0]['Overtime'] > 0 %}{{ (t2[0]['Overtime']/60)|number_format(2) }}<br>{{ (t2[0]['Overtime'])|number_format(0) }}{% set ot=ot+t2[0]['Overtime'] %} min{% endif %}
+			{% if t2[0]['OvertimeAgreed'] is defined and t2[0]['OvertimeAgreed'] > 0 %}<br><i>({{ (t2[0]['OvertimeAgreed']/60)|number_format(2) }}{% set ota=ota+t2[0]['OvertimeAgreed'] %})</i>{% endif %}
+		</td>
+		<td>
+			{% if t2[1]['comment'] is defined and t2[1]['comment']|length %}
+				<div{% if t2[1]['comment']|length>30 %} title="{{ t2[1]['comment'] }}"{% endif %}>{{ t2[1]['comment']|length>30?t2[1]['comment']|slice(0,30) ~ '...':t2[1]['comment'] }}</div>
+			{% endif %}
+			{% if t2[1]['holidays'] is defined and t2[1]['holidays']|length %}
+				{% for h in t2[1]['holidays'] %}
+				<div class="holidayClass" style="color: #{{ h['textColor'] }}; background-color: #{{ h['backgroundColor'] }}; border: #{{ h['borderColor'] }} solid 2px;" title="{% if h['comment'] is defined and h['comment']|length %}
+					{{ h['comment'] }}
+				{% endif %}
+				{{ '\n' }}
+				{% if h['acceptedComment'] is defined and h['acceptedComment']|length  %}
+					Manager:{{ h['acceptedComment'] }}
+				{% endif %}">
+				{{ h['name'] }}
+				</div>
+				{% endfor %}
+			{% endif %}
+		</td>
+		<td>
+			{% if t2[2]['comment'] is defined and t2[2]['comment']|length %}
+				<div{% if t2[2]['comment']|length>30 %} title="{{ t2[2]['comment'] }}"{% endif %}>{{ t2[2]['comment']|length>30?t2[2]['comment']|slice(0,30) ~ '...':t2[2]['comment'] }}</div>
+			{% endif %}
+		</td>
+		{% if isManager  %}
+		<td>
+			{% if t2[0]['class'] is defined and t2[0]['class']|length %}
+			{% else %}
+				{% if t2[0]['checked'] is defined and t2[0]['checked']|length %}
+					<span title="Checked by {{ (t2[0]['checked']['title']~' '~t2[0]['checked']['firstName']~' '~t2[0]['checked']['lastName'])|trim }}{{ "\n"|raw }}Checked on {{ t2[0]['checked']['checkedOn']|date('d/m/Y H:i') }}{{ "\n"|raw }}Comment:{{ t2[0]['checked']['comment'] }}">OK</span>
+				{% else %}
+					{% if t2[1]['timestamp'] is defined and t2[1]['timestamp'] and t2[2]['timestamp'] is defined and t2[2]['timestamp'] %}
+					<span class="timesheetCheck" data-url="{{ path('timesheet_ajax_timesheetcheck') }}" data-date="{{ date|date('Y-m-d') }}" data-userid="{{ t2[0]['userId'] }}">Check</span>
+					{% endif %}
+				{% endif %}
+			{% endif %}
+		</td>
+		{% endif %}
+		<td class="columnHide">
+			<div{% if t2[5]['comment'] is defined and t2[5]['comment']|length %} title="{{ t2[5]['comment'] }}"{% endif %}>
+			{% if t2[5]['timestamp'] is defined and t2[5]['timestamp'] %}{{ t2[5]['timestamp']|date('H:i') }}{% else %}{% endif %}
+			</div>
+		</td>
+		<td class="columnHide">
+			<div{% if t2[6]['comment'] is defined and t2[6]['comment']|length %} title="{{ t2[6]['comment'] }}"{% endif %}>
+			{% if t2[6]['timestamp'] is defined and t2[6]['timestamp'] %}{{ t2[6]['timestamp']|date('H:i') }}{% else %}{% endif %}
+			</div>
+		</td>
+		<td class="columnHide">
+			{% if t2[0]['LunchTime'] is defined and t2[0]['LunchTime'] %}{{ t2[0]['LunchTime']|number_format(0) }} min{% else %}{% endif %}		
+		</td>
+		<td class="columnHide">
+			<div{% if t2[7]['comment'] is defined and t2[7]['comment']|length %} title="{{ t2[7]['comment'] }}"{% endif %}>
+			{% if t2[7]['timestamp'] is defined and t2[7]['timestamp'] %}{{ t2[7]['timestamp']|date('H:i') }}{% else %}{% endif %}
+			</div>
+		</td>
+		<td class="columnHide">
+			<div{% if t2[8]['comment'] is defined and t2[8]['comment']|length %} title="{{ t2[8]['comment'] }}"{% endif %}>
+			{% if t2[8]['timestamp'] is defined and t2[8]['timestamp'] %}{{ t2[8]['timestamp']|date('H:i') }}{% else %}{% endif %}
+			</div>
+		</td>
+		<td class="columnHide">
+			<div{% if t2[3]['comment'] is defined and t2[3]['comment']|length %} title="{{ t2[3]['comment'] }}"{% endif %}>
+			{% if t2[3]['timestamp'] is defined and t2[3]['timestamp'] %}{{ t2[3]['timestamp']|date('H:i') }}{% else %}{% endif %}
+			</div>
+			{% if t2[3]['multi'] is defined and t2[3]['multi']|length %}
+			{% for m in t2[3]['multi'] %}
+				{% if m[0] is defined and m[0]|length %}<div>{{ m[0]|date('H:i') }}</div>{% endif %}
+				{% if m[1] is defined and m[1]|length %}<div>{{ m[1]|date('H:i') }}</div>{% endif %}
+			{% endfor %}
+			{% endif %}
+		</td>
+		<td class="columnHide">
+			<div{% if t2[4]['comment'] is defined and t2[4]['comment']|length %} title="{{ t2[4]['comment'] }}"{% endif %}>
+			{% if t2[4]['timestamp'] is defined and t2[4]['timestamp'] %}{{ t2[4]['timestamp']|date('H:i') }}{% else %}{% endif %}
+			</div>
+			{% if t2[4]['multi'] is defined and t2[4]['multi']|length %}
+			{% for m in t2[4]['multi'] %}
+				{% if m[0] is defined and m[0]|length %}<div>{{ m[0]|date('H:i') }}</div>{% endif %}
+				{% if m[1] is defined and m[1]|length %}<div>{{ m[1]|date('H:i') }}</div>{% endif %}
+			{% endfor %}
+			{% endif %}
+		</td>
+		<td class="columnHide">
+			{% if t2[0]['OtherTime'] is defined and t2[0]['OtherTime'] %}{{ t2[0]['OtherTime']|number_format(0) }}{% else %}{% endif %}		
+		</td>
+		<td class="columnHide">
+			{% if t2[0]['DeductedTime'] is defined and t2[0]['DeductedTime'] %}{{ t2[0]['DeductedTime']|number_format(0) }}{% else %}{% endif %}		
+		</td>
+		<td class="columnHide">
+			{% if t2[0]['TotalBreakTime'] is defined and t2[0]['TotalBreakTime'] %}{{ t2[0]['TotalBreakTime']|number_format(0) }}{% else %}{% endif %}		
+		</td>
+	</tr>
+	{% endfor %}
+	<tr>
+		<th colspan="2"><b>Summary</b></th>
+		<th> </th>
+		<th> </th>
+		<th> </th>
+		<th> </th>
+		<th><b title="Total Agreed Hours">{{ (tah/60)|number_format(2) }} Hr</b><br>
+			<i><b title="Original">[{{ (tahOrig/60)|number_format(2) }} Hr]</b></i>
+		</th>
+		<th>
+			<b title="Actual Hours">{{ (ah/60)|number_format(2) }} Hr</b><br>
+			<i><b title="Deducted">({{ (ahd/60)|number_format(2) }} Hr)</b></i>
+		</th>
+		<th><b title="Lates">{{ (lates/60)|number_format(2) }} Hr</b></th>
+		<th><b title="Leave Early">{{ (leave/60)|number_format(2) }} Hr</b></th>
+		<th><b title="Overtime">{{ (ot/60)|number_format(2) }} Hr</b><br>
+			<i><b title="Agreed">({{ (ota/60)|number_format(2) }} Hr)</b></i>
+		</th>
+		<th> </th>
+		<th> </th>
+		{% if isManager  %}<th> </th>{% endif %}
+		<th class="columnHide"> </th>
+		<th class="columnHide"> </th>
+		<th class="columnHide"><b>Total Lunch Time: </b></th>
+		<th class="columnHide"> </th>
+		<th class="columnHide"> </th>
+		<th class="columnHide"> </th>
+		<th class="columnHide"> </th>
+		<th class="columnHide"><b>Total Other Time: </b></th>
+		<th class="columnHide"><b>Deducted Time: </b></th>
+		<th class="columnHide"><b>Total Break Time: </b></th>
+	</tr>
+	<tr>
+		<td colspan="{% if isManager  %}14{% else %}13{% endif %}"><hr></td>
+		<td colspan="10" class="columnHide"><hr></td>
+	</tr>
+{% endfor %}
+</table>
+<input type="hidden" id="addPunch" data-url="{{ path('timesheet_ajax_addpunch') }}" data-base="{{ path('timesheet_ajax_timesheetlist') }}">
+{% if isManager %}<input type="hidden" id="tsc_ajaxurl" data-ajaxurl="{{ path('timesheet_ajax_timesheetcheck') }}">{% endif %}
+{% else %}
+<h3>Not data found</h3>
+{% endif %}

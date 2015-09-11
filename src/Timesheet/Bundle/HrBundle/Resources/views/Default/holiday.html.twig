@@ -1,0 +1,32 @@
+{% extends 'TimesheetHrBundle:Default:base.html.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<div class="message">{% spaceless %}
+	{% if message is defined and message|length %}
+	<div class="loginMessage">{{ message }}</div>
+	{% endif %}
+{% endspaceless %}</div>
+<div class="statusList">
+<table>
+	<tr>
+		<td><span class="switchMonth" data-div="holidayDiv" name="prev"> < < Prev.Month</span></td>
+		<td>
+			<b>{{ title }}</b>
+			<div tabindex="0" class="onclick-menu">
+				<ul class="onclick-menu-content">
+					<li><button name="onclickmenu" data-url="{{ path('timesheet_ajax_holiday') }}" base-div="holidayDiv" base-url="{{ path('timesheet_hr_holiday') }}" data-action="add" data-location="" data-timestamp="{{ timestamp }}">Add holiday request</button></li>
+					<li><button name="onclickmenu" data-url="{{ path('timesheet_ajax_holiday') }}" base-div="holidayDiv" base-url="{{ path('timesheet_hr_holiday') }}" data-action="swap" data-location="" data-timestamp="{{ timestamp }}">Swap shifts</button></li>
+				</ul>
+			</div>
+			
+		</td>
+		<td><span class="switchMonth" data-div="holidayDiv" name="next">Next.Month > > </span></td>
+	</tr>
+</table>
+<br>
+<div class="calendar" id="holidayDiv" data-url="{{ path('timesheet_ajax_holidaylist') }}" data-userid="{{ userId }}" data-timestamp="{{ timestamp }}">
+{{ render(controller('TimesheetHrBundle:Ajax:holidayList', { 'userId': userId, 'timestamp': timestamp })) }}
+</div>
+</div>
+{% endblock %}

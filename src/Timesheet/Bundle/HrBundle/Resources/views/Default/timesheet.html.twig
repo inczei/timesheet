@@ -1,0 +1,24 @@
+{% extends 'TimesheetHrBundle:Default:base.html.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<div class="message">{% spaceless %}
+	{% if message is defined and message|length %}
+	<div class="loginMessage">{{ message }}</div>
+	{% endif %}
+{% endspaceless %}</div>
+<div class="statusList">
+<table>
+	<tr>
+		<td><span class="switchMonth" data-div="timesheetDiv" name="prev"> < < Prev.Month</span></th>
+		<td><b>{{ title }}</b></th>
+		<td><span class="switchMonth" data-div="timesheetDiv" name="next">Next.Month > > </span></th>
+	</tr>
+</table>
+<br>
+User search:<input type="text" id="usersearch" value="{{ usersearch }}"><input type="button" id="usersearchButton" value="Search">
+<div class="timesheet" id="timesheetDiv" data-url="{{ path('timesheet_ajax_timesheetlist') }}" data-userid="{{ userId }}" data-locationid="" data-timestamp="{{ timestamp }}">
+{{ render(controller('TimesheetHrBundle:Ajax:timesheetList', { 'userId': userId, 'timestamp': timestamp, 'usersearch': usersearch })) }}
+</div>
+</div>
+{% endblock %}

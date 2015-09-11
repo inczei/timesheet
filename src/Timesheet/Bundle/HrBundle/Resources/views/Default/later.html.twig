@@ -1,0 +1,10 @@
+{% extends 'TimesheetHrBundle:Default:base.html.twig' %}
+{% block title %}Later... - HR{% endblock %}
+{% block header %}<h2>Later...</h2>{% endblock %}
+{% block content %}
+<div class="login">
+{% if message is defined and message|length %}
+<div class="loginMessage">{{ message }}</div>
+{% endif %}
+</div>
+{% endblock %}

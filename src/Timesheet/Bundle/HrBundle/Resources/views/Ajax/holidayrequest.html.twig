@@ -1,0 +1,36 @@
+{% if holidayrequestform is defined and holidayrequestform|length %}
+{{ form_start(holidayrequestform) }}
+{{ form_errors(holidayrequestform) }}
+<table>
+	{% if holidayrequestform.userId is defined %}
+	<tr>
+		<td>{{ form_label(holidayrequestform.userId) }}{{ form_errors(holidayrequestform.userId) }}</td><td>{{ form_widget(holidayrequestform.userId) }}<div id="ht_userdetails"><br></div></td>
+	</tr>
+	{% endif %}
+	<tr>
+		<td>{{ form_label(holidayrequestform.typeId) }}{{ form_errors(holidayrequestform.typeId) }}</td><td>{{ form_widget(holidayrequestform.typeId) }}<div id="ht_comment"><br></div></td>
+	</tr>
+	<tr>
+		<td>{{ form_label(holidayrequestform.startTime) }}{{ form_errors(holidayrequestform.startDate) }}{{ form_errors(holidayrequestform.startTime) }}</td><td align="center"><span style="display: table"><span style="display: table-row"><span id="hr_startDate" style="display: table-cell;">{{ form_widget(holidayrequestform.startDate) }}</span><span id="hr_startTime" style="display: table-cell;">{{ form_widget(holidayrequestform.startTime) }}</span></span></span></td>
+	</tr>
+	<tr>
+		<td>{{ form_label(holidayrequestform.finishTime) }}{{ form_errors(holidayrequestform.finishDate) }}{{ form_errors(holidayrequestform.finishTime) }}</td><td align="center"><span style="display: table"><span style="display: table-row"><span id="hr_finishDate" style="display: table-cell;">{{ form_widget(holidayrequestform.finishDate) }}</span><span id="hr_finishTime" style="display: table-cell;">{{ form_widget(holidayrequestform.finishTime) }}</span></span></span></td>
+	</tr>
+	<tr>
+		<td>{{ form_label(holidayrequestform.comment) }}{{ form_errors(holidayrequestform.comment) }}</td><td>{{ form_widget(holidayrequestform.comment) }}</td>
+	</tr>
+	<tr>
+		<td> </td><td>{{ form_widget(holidayrequestform.submit) }}</td>
+	</tr>
+</table>
+{{ form_widget(holidayrequestform.id) }}
+{{ form_widget(holidayrequestform._token) }}
+{{ form_end(holidayrequestform) }}
+{% if holidayTypes is defined and holidayTypes|length %}
+<div style="display: block">
+{% for ht in holidayTypes %}
+<input type="hidden" id="ht_{{ ht.id }}" data-comment="{{ ht.comment }}" data-paid="{{ ht.paid }}" data-adminonly="{{ ht.adminOnly }}" data-fullday="{{ ht.fullday }}" data-bothtime="{{ ht.bothtime }}" data-textcolor="{{ ht.textColor }}" data-backgroundcolor="{{ ht.backgroundColor }}" data-bordercolor="{{ ht.bordercolor }}" value="{{ ht.name }}"><br>
+{% endfor %}
+</div>
+{% endif %}
+{% endif %}

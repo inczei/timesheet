@@ -1,0 +1,36 @@
+{% if holidays is defined and holidays|length %}
+<table>
+{% for w,t in holidays %}
+	<tr class="header">
+	{% for day,t1 in t %}
+		{% if t1.day=='' %}
+		<th class="calendarHeaderOther">
+		{% else %}
+		<th class="calendarHeader">
+			{% if t1.date|date('Y') != 'now'|date('Y') %}
+			<span style="font-size: x-small">{{ t1.day }} {{ t1.date|date('Y') }}</span>
+			{% else %}
+			{{ t1.day }}
+			{% endif %}
+			{% if t1.date >= 'now'|date('Y-m-d') or admin %}
+				<span class="addRequest plusButton" data-id="" data-action="add" data-date="{{ t1.date }}" data-url="{{ path('timesheet_ajax_addrequest') }}" base-url="{{ base }}" title="add new request">+</span>
+			{% endif %}
+		{% endif %}
+		</th>	
+	{% endfor %}
+	</tr>
+	<tr class="normal">
+	{% for day,t1 in t %}
+		<td class="{{ t1.class }}"{% if t1.day!='' %}{% if t1.date >= 'now'|date('Y-m-d') or admin %} name="calendarCell"{% endif %} data-date="{{ t1.date }}" data-url="{{ path('timesheet_ajax_addrequest') }}" base-url="{{ base }}"{% endif %}>
+			{% if t1.content is defined and t1.content|length %}{{ t1.content|raw }}{% endif %}
+		</td>
+	{% endfor %}
+	</tr>
+	<tr class="footer">
+	{% for day,t1 in t %}
+		<td></td>	
+	{% endfor %}
+	</tr>
+{% endfor %}
+</table>
+{% endif %}

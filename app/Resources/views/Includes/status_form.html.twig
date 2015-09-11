@@ -1,0 +1,32 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+<table>
+	<tr>
+		<td>{{ form_label(form.nameStart) }}{{ form_errors(form.nameStart) }}</td>
+		<td>{{ form_widget(form.nameStart) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.nameFinish) }}{{ form_errors(form.nameFinish) }}</td>
+		<td>{{ form_widget(form.nameFinish) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.active) }}{{ form_errors(form.active) }}</td>
+		<td>{{ form_widget(form.active) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.level) }}{{ form_errors(form.level) }}</td>
+		<td>{{ form_widget(form.level) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.multi) }}{{ form_errors(form.multi) }}</td>
+		<td>{{ form_widget(form.multi) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.color) }}{{ form_errors(form.color) }}</td>
+		<td>{{ form_widget(form.color) }}</td>
+	</tr>
+	<tr>
+		<td colspan="2" align="left">{{ form_widget(form.cancel) }}</td>
+		<td> </td>
+		<td colspan="2" align="right">{{ form_widget(form.submit) }}</td>
+	</tr>
+</table>
+{{ form_widget(form._token) }}
+{{ form_end(form) }}

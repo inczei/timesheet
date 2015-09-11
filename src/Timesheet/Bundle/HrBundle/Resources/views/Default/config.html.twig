@@ -1,0 +1,54 @@
+{% extends 'TimesheetHrBundle:Default:base.html.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<div class="message">{% spaceless %}
+	{% if message is defined and message|length %}
+	<div class="loginMessage">{{ message }}</div>
+	{% endif %}
+{% endspaceless %}</div>
+<div class="statusList">
+{{ form_start(form) }}
+{{ form_errors(form) }}
+<table>
+	<tr>
+		<td>{{ form_label(form.companyname) }}{{ form_errors(form.companyname) }}</td>
+		<td>{{ form_widget(form.companyname) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.domain) }}{{ form_errors(form.domain) }}</td>
+		<td>{{ form_widget(form.domain) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.timezone) }}{{ form_errors(form.timezone) }}</td>
+		<td>{{ form_widget(form.timezone) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.ahew) }}{{ form_errors(form.ahew) }}</td>
+		<td>{{ form_widget(form.ahew) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.yearstart) }}{{ form_errors(form.yearstart) }}</td>
+		<td>{{ form_widget(form.yearstart) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.hct) }}{{ form_errors(form.hct) }}</td>
+		<td>{{ form_widget(form.hct) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.lunchtime) }}{{ form_errors(form.lunchtime) }}</td>
+		<td>{{ form_widget(form.lunchtime) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.lunchtimeUnpaid) }}{{ form_errors(form.lunchtimeUnpaid) }}</td>
+		<td>{{ form_widget(form.lunchtimeUnpaid) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_widget(form.cancel) }}</td>
+		<td>{{ form_widget(form.submit) }}</td>
+	</tr>
+</table>
+{{ form_widget(form._token) }}
+{{ form_end(form) }}
+</div>
+{% endblock %}

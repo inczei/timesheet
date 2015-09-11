@@ -1,0 +1,23 @@
+<h2>Qualifications</h2>
+<a href="{{ path('timesheet_hr_admin', {'action': 'edituserqualification', 'param1': '0' }) }}">New qualification</a>
+{% if userqualifications is defined and userqualifications|length %}
+<table>
+	<tr>
+		<th>Title</th>
+		<th>Achievement Date</th>
+		<th>Expiry Date</th>
+		<th>Comments</th>
+		<th> </th>
+	</tr>
+	{% for uq in userqualifications %}
+	<tr>
+		<td>{{ uq.title }}</td>
+		<td>{{ uq.achievementDate|format('d/m/Y') }}</td>
+		<td>{{ uq.expiryDate|format('d/m/Y') }}</td>
+		<td>{{ uq.comments }}</td>
+		<td><a href="{{ path('timesheet_hr_admin', {'action': 'edituserqualification', 'param1': uq.id }) }}" title="Click here to edit">Edit</a></td>
+	</tr>
+	{% endfor %}
+</table>
+<hr>
+{% endif %}

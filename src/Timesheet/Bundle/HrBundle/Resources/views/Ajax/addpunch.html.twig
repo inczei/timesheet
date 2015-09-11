@@ -1,0 +1,31 @@
+{% if addpunchform is defined and addpunchform|length %}
+{{ form_start(addpunchform) }}
+{{ form_errors(addpunchform) }}
+<hr>
+<h2>Add new status</h2>
+<table>
+	{% if addpunchform.userId is defined %}
+	<tr>
+		<td>{{ form_label(addpunchform.userId) }}{{ form_errors(addpunchform.userId) }}</td><td>{{ form_widget(addpunchform.userId) }}</td>
+	</tr>
+	{% endif %}
+	<tr>
+		<td>{{ form_label(addpunchform.typeId) }}{{ form_errors(addpunchform.typeId) }}</td><td>{{ form_widget(addpunchform.typeId) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(addpunchform.date) }}{{ form_errors(addpunchform.date) }}</td><td>{{ form_widget(addpunchform.date) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(addpunchform.comment) }}{{ form_errors(addpunchform.comment) }}</td><td>{{ form_widget(addpunchform.comment) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_widget(addpunchform.cancel) }}</td><td>{{ form_widget(addpunchform.submit) }}</td>
+	</tr>
+</table>
+<hr>
+{{ form_widget(addpunchform.id) }}
+{{ form_widget(addpunchform._token) }}
+{{ form_end(addpunchform) }}
+{% else  %}
+<h2>No form...</h2>
+{% endif %}

@@ -1,0 +1,45 @@
+<p><u>{{ shiftTitle }}</u></p>
+{{ form_start(form) }}
+{{ form_errors(form) }}
+{% if list is defined and list|length %}
+<table>
+	<tr>
+		<th>Group</th>
+		<th>No.of Staff</th>
+		<th></th>
+	</tr>
+	{% for l in list %}
+	<tr>
+		<td>{{ l.name }}</td>
+		<td>{{ l.numberOfStaff }}</td>
+		<td>{{ form_widget(form.children['delete_'~l.groupId]) }}</td>
+	</tr>
+	{% endfor %}
+	{% if form.delete is defined %}
+	<tr>
+		<td></td>
+		<td colspan="2">{{ form_widget(form.delete) }}</td>
+	</tr>
+	{% endif %}
+	<tr>
+		<td colspan="3"><hr></td>
+	</tr>
+</table>
+{% endif %}
+<table>
+	<tr>
+		<td>{{ form_label(form.groupId) }}{{ form_errors(form.groupId) }}</td>
+		<td>{{ form_widget(form.groupId) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.numberOfStaff) }}{{ form_errors(form.numberOfStaff) }}</td>
+		<td>{{ form_widget(form.numberOfStaff) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_widget(form.cancel) }}</td>
+		<td>{{ form_widget(form.submit) }}</td>
+	</tr>
+</table>
+{{ form_widget(form.shiftId) }}
+{{ form_widget(form._token) }}
+{{ form_end(form) }}

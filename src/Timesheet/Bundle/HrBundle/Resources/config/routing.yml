@@ -1,0 +1,158 @@
+timesheet_hr_homepage:
+    path:     /
+    defaults: { _controller: TimesheetHrBundle:Default:index }
+timesheet_hr_reset:
+    path:     /reset
+    defaults: { _controller: TimesheetHrBundle:Default:reset }
+timesheet_hr_resetpassword:
+    path:     /resetpassword/{link}
+    defaults: { _controller: TimesheetHrBundle:Default:resetpassword, link: '' }
+timesheet_hr_menu:
+    path:     /menu
+    defaults: { _controller: TimesheetHrBundle:Internal:menu }
+timesheet_hr_login:
+    path:     /login
+    defaults: { _controller: TimesheetHrBundle:Default:login }
+timesheet_hr_registration:
+    path:     /registration
+    defaults: { _controller: TimesheetHrBundle:Default:registration }
+timesheet_hr_status:
+    path:     /status
+    defaults: { _controller: TimesheetHrBundle:Default:status }
+timesheet_hr_timesheet:
+    path:     /timesheet/{userId}/{timestamp}/{usersearch}
+    defaults: { _controller: TimesheetHrBundle:Default:timesheet, userId: '0', timestamp: '0', usersearch: '' }
+timesheet_hr_schedule:
+    path:     /schedule/{locationId}/{timestamp}
+    defaults: { _controller: TimesheetHrBundle:Default:schedule, locationId: '', timestamp: '' }
+timesheet_hr_holiday:
+    path:     /holiday/{userId}/{timestamp}
+    defaults: { _controller: TimesheetHrBundle:Default:holiday, userId: '0', timestamp: '0' }
+timesheet_hr_admin:
+    path:     /admin/{action}/{param1}/{param2}
+    defaults: { _controller: TimesheetHrBundle:Default:admin, action: '', param1: '', param2: '' }
+timesheet_hr_config:
+    path:     /config/{action}/{param1}/{param2}
+    defaults: { _controller: TimesheetHrBundle:Default:config, action: '', param1: '', param2: '' }
+timesheet_hr_users:
+    path:     /users/{action}/{param1}/{param2}
+    defaults: { _controller: TimesheetHrBundle:Default:users, action: '', param1: '', param2: '' }
+timesheet_hr_messages:
+    path:     /messages/{action}/{page}
+    defaults: { _controller: TimesheetHrBundle:Default:messages, action: '', page: '' }
+timesheet_hr_locations:
+    path:     /locations/{action}/{param1}/{param2}
+    defaults: { _controller: TimesheetHrBundle:Default:locations, action: '', param1: '', param2: '' }
+timesheet_hr_shifts:
+    path:     /shifts/{action}/{param1}/{param2}
+    defaults: { _controller: TimesheetHrBundle:Default:shifts, action: '', param1: '', param2: '' }
+timesheet_hr_weeklyreport:
+    path:     /weekly.pdf/{timestamp}/{user}
+    defaults: { _controller: TimesheetHrBundle:Default:weeklyreport, timestamp: '', user: '' }
+timesheet_hr_monthlyreport:
+    path:     /monthly.pdf/{timestamp}/{user}
+    defaults: { _controller: TimesheetHrBundle:Default:monthlyreport, timestamp: '', user: '' }
+timesheet_hr_weeklylocationreport:
+    path:     /weeklylocation.pdf/{timestamp}/{location}/{type}
+    defaults: { _controller: TimesheetHrBundle:Default:weeklylocationreport, timestamp: '', location: '', type: '' }
+timesheet_hr_sysadmin:
+    path:     /sysadmin/{action}/{param1}/{param2}
+    defaults: { _controller: TimesheetHrBundle:Default:sysadmin, action: '', param1: '', param2: '' }
+timesheet_hr_forgotpassword:
+    path:     /forgotpassword
+    defaults: { _controller: TimesheetHrBundle:Default:forgotpassword }
+
+fos_user_security:
+    resource: "@FOSUserBundle/Resources/config/routing/security.xml"
+fos_user_register:
+    resource: "@FOSUserBundle/Resources/config/routing/registration.xml"
+    prefix: /register
+fos_user_resetting:
+    resource: "@FOSUserBundle/Resources/config/routing/resetting.xml"
+    prefix: /resetting
+fos_user_change_password:
+    resource: "@FOSUserBundle/Resources/config/routing/change_password.xml"
+    prefix: /profile
+timesheet_internal_usermenu:
+    path:     /usermenu/{base}
+    defaults: { _controller: TimesheetHrBundle:Internal:usermenu, base: '' }
+timesheet_internal_locationmenu:
+    path:     /locationmenu/{base}
+    defaults: { _controller: TimesheetHrBundle:Internal:locationmenu, base: '' }
+timesheet_internal_groupmenu:
+    path:     /groupmenu/{domainId}
+    defaults: { _controller: TimesheetHrBundle:Internal:groupmenu, domainId: '' }
+timesheet_internal_qualificationmenu:
+    path:     /qualificationmenu
+    defaults: { _controller: TimesheetHrBundle:Internal:qualificationmenu }
+timesheet_internal_userqualificationmenu:
+    path:     /userqualificationmenu
+    defaults: { _controller: TimesheetHrBundle:Internal:userqualificationmenu }
+
+timesheet_ajax_userinfo:
+    path:     /ajax/userinfo/{id}
+    defaults: { _controller: TimesheetHrBundle:Ajax:userinfo, id: '' }
+timesheet_ajax_userlist:
+    path:     /ajax/userlist
+    defaults: { _controller: TimesheetHrBundle:Ajax:userlist }
+timesheet_ajax_schedule:
+    path:     /ajax/schedule
+    defaults: { _controller: TimesheetHrBundle:Ajax:schedule }
+timesheet_ajax_allocation:
+    path:     /ajax/allocation/{date}/{locationId}/{shiftId}
+    defaults: { _controller: TimesheetHrBundle:Ajax:allocation, date: '', locationId: '', shiftId: '' }
+timesheet_ajax_addrequest:
+    path:     /ajax/addrequest
+    defaults: { _controller: TimesheetHrBundle:Ajax:addrequest }
+timesheet_ajax_swaprequest:
+    path:     /ajax/swaprequest
+    defaults: { _controller: TimesheetHrBundle:Ajax:swaprequest }
+timesheet_ajax_handleholidayrequest:
+    path:     /ajax/handleholidayrequest
+    defaults: { _controller: TimesheetHrBundle:Ajax:handleholidayrequest }
+timesheet_ajax_handleswaprequest:
+    path:     /ajax/handleswaprequest
+    defaults: { _controller: TimesheetHrBundle:Ajax:handleswaprequest }
+timesheet_ajax_approvedeny:
+    path:     /ajax/approvedeny
+    defaults: { _controller: TimesheetHrBundle:Ajax:approvedeny }
+timesheet_ajax_swapapprovedeny:
+    path:     /ajax/swapapprovedeny
+    defaults: { _controller: TimesheetHrBundle:Ajax:swapapprovedeny }
+timesheet_ajax_holidaylist:
+    path:     /ajax/holidayList/{userId}/{timestamp}/{func}
+    defaults: { _controller: TimesheetHrBundle:Ajax:holidayList, userId: '0', timestamp: '0', func: '' }
+timesheet_ajax_timesheetlist:
+    path:     /ajax/timesheetList/{userId}/{timestamp}/{func}/{usersearch}
+    defaults: { _controller: TimesheetHrBundle:Ajax:timesheetList, userId: '0', timestamp: '0', func: '', usersearch: '' }
+timesheet_ajax_schedulelist:
+    path:     /ajax/scheduleList/{locationId}/{timestamp}/{func}/{usersearch}/{groupsearch}/{qualificationsearch}/{base}
+    defaults: { _controller: TimesheetHrBundle:Ajax:scheduleList, locationId: '0', timestamp: '0', func: '', usersearch: '', groupsearch: '', qualificationsearch: '', base: '' }
+timesheet_ajax_schedule:
+    path:     /ajax/schedule
+    defaults: { _controller: TimesheetHrBundle:Ajax:schedule }
+timesheet_ajax_holiday:
+    path:     /ajax/holiday
+    defaults: { _controller: TimesheetHrBundle:Ajax:holiday }
+timesheet_ajax_addpunch:
+    path:     /ajax/addpunch/{type}/{timestamp}
+    defaults: { _controller: TimesheetHrBundle:Ajax:addpunch, type: '', timestamp: '0' }
+timesheet_ajax_shiftday:
+    path:     /ajax/shiftday/{dayid}
+    defaults: { _controller: TimesheetHrBundle:Ajax:shiftday, dayid: '' }
+timesheet_ajax_usershift:
+    path:     /ajax/usershift/{userid}
+    defaults: { _controller: TimesheetHrBundle:Ajax:usershift, userid: '' }
+timesheet_ajax_showrequests:
+    path:     /ajax/showrequests/{userid}
+    defaults: { _controller: TimesheetHrBundle:Ajax:showrequests, userid: '' }
+timesheet_ajax_getmessage:
+    path:     /ajax/getmessage/{id}
+    defaults: { _controller: TimesheetHrBundle:Ajax:getmessage, id: '' }
+timesheet_ajax_sysadmin:
+    path:     /ajax/sysadmin
+    defaults: { _controller: TimesheetHrBundle:Ajax:sysadmin }
+timesheet_ajax_timesheetcheck:
+    path:     /ajax/timesheetcheck
+    defaults: { _controller: TimesheetHrBundle:Ajax:timesheetcheck }
+    

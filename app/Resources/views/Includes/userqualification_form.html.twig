@@ -1,0 +1,69 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+{% if title is defined and title|length %}
+<h3>{{ title }}</h3>
+{% endif %}
+{% if qualifications is defined and qualifications|length %}
+<table>
+	<tr>
+		<th>Qualification</th>
+		<th>Achievement Date</th>
+		<th>Expirey Date</th>
+		<th>Comments</th>
+		<th> </th>
+	</tr>
+{% for q in qualifications %}
+	<tr>
+		<td>{{ q.title }}</td>
+		<td>{{ date(q.achievementDate)|date('d/m/Y') }}</td>
+		<td>{{ date(q.expiryDate)|date('d/m/Y') }}</td>
+		<td>{{ q.comments }}</td>
+		<td>{{ form_widget(form.children['delete_'~q.uqId]) }}</td>
+	</tr>
+{% endfor %}
+	<tr>
+		<td></td>
+		<td></td>
+		<td></td>
+		<td colspan="2">{{ form_widget(form.delete) }}</td>
+	</tr>
+	<tr>
+		<td colspan="5"><hr></td>
+	</tr>
+</table>
+{% endif %}
+<table>
+	<tr>
+		<td></td>
+		<td>{{ form_label(form.qualificationId) }}{{ form_errors(form.qualificationId) }}</td>
+		<td>{{ form_widget(form.qualificationId) }}</td>
+		<td></td>
+	</tr>
+	<tr>
+		<td></td>
+		<td>{{ form_label(form.achievementDate) }}{{ form_errors(form.achievementDate) }}</td>
+		<td>{{ form_widget(form.achievementDate) }}</td>
+		<td></td>
+	</tr>
+	<tr>
+		<td></td>
+		<td>{{ form_label(form.expiryDate) }}{{ form_errors(form.expiryDate) }}</td>
+		<td>{{ form_widget(form.expiryDate) }}</td>
+		<td></td>
+	</tr>
+	<tr>
+		<td></td>
+		<td>{{ form_label(form.comments) }}{{ form_errors(form.comments) }}</td>
+		<td>{{ form_widget(form.comments) }}</td>
+		<td></td>
+	</tr>
+	<tr>
+		<td></td>
+		<td align="left">{{ form_widget(form.cancel) }}</td>
+		<td align="right">{{ form_widget(form.submit) }}</td>
+		<td></td>
+	</tr>
+</table>
+{{ form_widget(form.userId) }}
+{{ form_widget(form._token) }}
+{{ form_end(form) }}
