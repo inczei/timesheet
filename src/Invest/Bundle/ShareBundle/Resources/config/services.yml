@@ -1,9 +1,0 @@
-parameters:
-#    invest_share.example.class: Invest\Bundle\ShareBundle\Example
-
-services:
-    invest.share.functions:
-        class: Invest\Bundle\ShareBundle\Service\Functions
-        arguments: [@doctrine]
-        calls:
-          - [ setContainer, [ @service_container ] ]

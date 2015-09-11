@@ -28,4 +28,7 @@ assetic:
     use_controller: true
 
 swiftmailer:
+    transport: gmail
+    username: inczeihu@gmail.com
+    password: Imi73imI
     delivery_address: imre@skillfill.co.uk

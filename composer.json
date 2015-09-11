@@ -5,8 +5,7 @@
 	"description" : "The \"Symfony Standard Edition\" distribution",
 	"autoload" : {
 		"psr-0" : {
-			"" : "src/",
-			"Ghunti\\HighchartsPHP\\" : "src/"
+			"" : "src/"
 		}
 	},
 	"require" : {
@@ -24,7 +23,10 @@
 		"incenteev/composer-parameter-handler" : "~2.0",
 		"doctrine/doctrine-fixtures-bundle" : "dev-master",
 		"doctrine/data-fixtures" : "dev-master",
-		"psliwa/pdf-bundle" : "dev-master"
+		"friendsofsymfony/user-bundle": "~2.0@dev",
+		"psliwa/pdf-bundle": "~1.0",
+		"egeloen/ckeditor-bundle": "^3.0",
+		"beberlei/DoctrineExtensions": "^1.0"
 	},
 	"scripts" : {
 		"post-install-cmd" : [

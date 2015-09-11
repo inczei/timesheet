@@ -1,6 +1,0 @@
-{% if data is defined and data|length %}
-"EPIC","Company","List","Price","Change (p)","Change (%)","Updated (UTC)"
-{% for d in data %}
-"{{ d.Code }}","{{ d.Name }}","{{ d.List }}","{{ d.Price|number_format(2) }}","{{ d.Changes|number_format(2) }}","{% if d.Price==0 %}0{% else %}{{ (d.Changes/d.Price*100)|number_format(2) }}{% endif %} %","{{ d.Date }}"
-{% endfor %}
-{% endif %}
