@@ -16,13 +16,15 @@ class UserQualificationType extends AbstractType
 {
 	
 	private $qualification;
+	private $level;
 	private $user;
 	private $list;
 	
 	
-	public function __construct($qualifications, $user, $list)
+	public function __construct($qualifications, $levels, $user, $list)
 	{
 		$this->qualifications = $qualifications;
+		$this->levels = $levels;
 		$this->user = $user;
 		$this->list = $list;
 	}
@@ -36,6 +38,12 @@ class UserQualificationType extends AbstractType
     		->add('qualificationId', 'choice', array(
     			'choices'=>array(''=>' - Please select - ')+$this->qualifications,
     			'label'=>'Qualification:',
+    			'required'=>true,
+    			'data'=>''
+    		))
+    		->add('levelId', 'choice', array(
+    			'choices'=>array(''=>' - Please select - ')+$this->levels,
+    			'label'=>'Level:',
     			'required'=>true,
     			'data'=>''
     		))

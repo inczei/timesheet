@@ -1,0 +1,21 @@
+<div class="statusList">
+{% if history is defined and history|length %}
+<h3>{{ (resident.title~' '~resident.firstName~' '~resident.lastName)|trim }}{% if resident.nickname is defined and resident.nickname|length %} ({{ resident.nickname }}){% endif %}</h3>
+<table>
+	<tr>
+		<th>Location - Room</th>
+		<th>Move In</th>
+		<th>Notes</th>
+		<th>Move Out</th>
+	</tr>
+	{% for h in history %}
+	<tr>
+		<td>{{ h.name }} - {{ h.roomNumber }}</td>
+		<td>{{ h.moveIn|date('d/m/Y') }}</td>
+		<td>{{ h.notes }}</td>
+		<td>{{ h.moveOut|date('d/m/Y') }}</td>
+	</tr>
+	{% endfor %}
+</table>
+{% endif %}
+</div>

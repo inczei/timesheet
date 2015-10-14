@@ -1,0 +1,129 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+<table>
+	<tr>
+		<td>{{ form_label(form.title) }}{{ form_errors(form.title) }}</td>
+		<td>{{ form_widget(form.title, { 'attr': {'tabindex':'1'}}) }}</td>
+		<td> </td>
+		<td> </td>
+		<td> </td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.firstName) }}{{ form_errors(form.firstName) }}</td>
+		<td>{{ form_widget(form.firstName, { 'attr': {'tabindex':'2'}}) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.lastName) }}{{ form_errors(form.lastName) }}</td>
+		<td>{{ form_widget(form.lastName, { 'attr': {'tabindex':'3'}}) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.nickName) }}{{ form_errors(form.nickName) }}</td>
+		<td>{{ form_widget(form.nickName, { 'attr': {'tabindex':'4'}}) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.maidenName) }}{{ form_errors(form.maidenName) }}</td>
+		<td>{{ form_widget(form.maidenName, { 'attr': {'tabindex':'5'}}) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.birthday) }}{{ form_errors(form.birthday) }}</td>
+		<td>{{ form_widget(form.birthday, { 'attr': {'tabindex':'6'}}) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.nationality) }}{{ form_errors(form.nationality) }}</td>
+		<td>{{ form_widget(form.nationality, { 'attr': {'tabindex':'7'}}) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.maritalStatus) }}{{ form_errors(form.maritalStatus) }}</td>
+		<td>{{ form_widget(form.maritalStatus, { 'attr': {'tabindex':'8'}}) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.religion) }}{{ form_errors(form.religion) }}</td>
+		<td>{{ form_widget(form.religion, { 'attr': {'tabindex':'9'}}) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.phoneLandline) }}{{ form_errors(form.phoneLandline) }}</td>
+		<td>{{ form_widget(form.phoneLandline, { 'attr': {'tabindex':'10'}}) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.phoneMobile) }}{{ form_errors(form.phoneMobile) }}</td>
+		<td>{{ form_widget(form.phoneMobile, { 'attr': {'tabindex':'11'}}) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.email) }}{{ form_errors(form.email) }}</td>
+		<td>{{ form_widget(form.email, { 'attr': {'tabindex':'12'}}) }}</td>
+		<td> </td>
+		<td> </td>
+		<td> </td>
+	</tr>
+	<tr>
+		<td colspan="5"><hr></td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.addressLine1) }}{{ form_errors(form.addressLine1) }}</td>
+		<td>{{ form_widget(form.addressLine1, { 'attr': {'tabindex':'13'}}) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.addressLine2) }}{{ form_errors(form.addressLine2) }}</td>
+		<td>{{ form_widget(form.addressLine2, { 'attr': {'tabindex':'14'}}) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.addressCity) }}{{ form_errors(form.addressCity) }}</td>
+		<td>{{ form_widget(form.addressCity, { 'attr': {'tabindex':'15'}}) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.addressCounty) }}{{ form_errors(form.addressCounty) }}</td>
+		<td>{{ form_widget(form.addressCounty, { 'attr': {'tabindex':'16'}}) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.addressCountry) }}{{ form_errors(form.addressCountry) }}</td>
+		<td>{{ form_widget(form.addressCountry, { 'attr': {'tabindex':'17'}}) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.addressPostcode) }}{{ form_errors(form.addressPostcode) }}</td>
+		<td>{{ form_widget(form.addressPostcode, { 'attr': {'tabindex':'18'}}) }}</td>
+	</tr>
+	<tr>
+		<td colspan="5"><hr></td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.ni) }}{{ form_errors(form.ni) }}</td>
+		<td>{{ form_widget(form.ni, { 'attr': {'tabindex':'19'}}) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.nhs) }}{{ form_errors(form.nhs) }}</td>
+		<td>{{ form_widget(form.nhs, { 'attr': {'tabindex':'20'}}) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.notes) }}{{ form_errors(form.notes) }}</td>
+		<td colspan="4">{{ form_widget(form.notes, { 'attr': {'tabindex':'21'}}) }}</td>
+	</tr>
+	{% if form.domainId is defined %}
+	<tr>
+		<td colspan="5"><hr></td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.domainId) }}{{ form_errors(form.domainId) }}</td>
+		<td>{{ form_widget(form.domainId, { 'attr': {'tabindex':'22'}}) }}</td>
+		<td> </td>
+		<td> </td>
+		<td> </td>
+	</tr>
+	{% endif %}
+	{% if form.roomId is defined %}
+	<tr>
+		<td colspan="5"><hr><h2>Move in</h2></td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.roomId) }}{{ form_errors(form.roomId) }}</td>
+		<td>{{ form_widget(form.roomId, { 'attr': {'tabindex':'23'}}) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.roomMoveIn) }}{{ form_errors(form.roomMoveIn) }}</td>
+		<td>{{ form_widget(form.roomMoveIn, { 'attr': {'tabindex':'24'}}) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.roomNotes) }}{{ form_errors(form.roomNotes) }}</td>
+		<td colspan="4">{{ form_widget(form.roomNotes, { 'attr': {'tabindex':'25'}}) }}</td>
+	</tr>
+	{% endif %}
+	{% if form.cancel is defined and form.submit is defined %}
+	<tr>
+		<td colspan="2" align="left">{{ form_widget(form.cancel, { 'attr': {'tabindex':'27'}}) }}</td>
+		<td> </td>
+		<td colspan="2" align="right">{{ form_widget(form.submit, { 'attr': {'tabindex':'26'}}) }}</td>
+	</tr>
+	{% endif %}
+</table>
+{{ form_widget(form.id) }}
+{{ form_widget(form._token) }}
+{{ form_end(form) }}

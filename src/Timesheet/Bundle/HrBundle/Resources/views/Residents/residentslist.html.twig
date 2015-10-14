@@ -1,0 +1,92 @@
+{% extends 'TimesheetHrBundle:Default:base.html.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+{% if message is defined and message|length %}<span class="message"><b>{{ message|raw }}</b></span>{% else %}{% endif %}
+{% if form is defined and form|length %}
+<div class="registrationList">
+{% if readOnly is defined and readOnly==true %}
+<a href="{{ path('residents_hr_list', { 'action': '', 'id': '' }) }}">Back to Resident List</a>
+{% endif %}
+<h2>Resident details</h2>
+{% if readOnly is defined and readOnly==true %}
+<a href="{{ path('residents_hr_list', { 'action': 'edit', 'id': residentId }) }}">Edit</a>
+{% endif %}
+{{ include('TimesheetHrBundle:Includes:resident_form.html.twig', {'form': form}) }}
+</div>
+{% else %}
+<div class="statusList">
+<h2>Residents</h2>
+<a href="{{ path('residents_hr_list', { 'action': 'new', 'id': '' }) }}">New resident</a>
+{% if residents is defined and residents|length %}
+<table>
+	<tr>
+		<th>Name</th>
+		<th>Current location</th>
+		<th>Contacts</th>
+		<th>Notes</th>
+		<th>Created On</th>
+		{% if admin is defined and admin %}
+		<th>Company</th>
+		{% endif %}
+	</tr>
+{% for r in residents %}
+	<tr>
+		<td>
+			<a href="{{ path('residents_hr_list', { 'action': 'show', 'id': r.id }) }}">{{ (r.title~' '~r.firstName~' '~r.lastName)|trim }}{% if r.nickName|length %} ({{ r.nickName }}){% endif %}</a>
+			<br>
+			<a href="{{ path('residents_hr_residentphotos', {'action': 'show', 'id': r.id }) }}">Photo</a>{% if r.photos is defined and r.photos|length %}{% for ph in r.photos %}<div class="photoThumbnail" data-userid="{{ r.id }}" data-photoid="{{ ph.id }}" data-func="resident"><img alt="Latest photo" src="data:image/png;base64,{{ ph.photo }}" width="{{ ph.width }}" height="{{ ph.height }}"></div>{% endfor %}{% endif %}
+		</td>
+		<td>
+			{% if r.currentLocation is defined and r.currentLocation|length %}
+			<div class="residentHistory" title="Click here to see the room history" data-url="{{ path('timesheet_ajax_residenthistory') }}" data-id="{{ r.id }}">{{ r.currentLocation.roomNumber }} - {{ r.currentLocation.name }}</div>
+			<br>
+			<a href="{{ path('residents_hr_move', { 'id': r.id }) }}" title="Move to another room out move out">Move...</a>
+			{% else %}
+			Out
+			{% endif %}
+		</td>
+		<td>
+			<a href="{{ path('residents_hr_residentcontacts', {'action': 'show', 'residentid': r.id }) }}">Edit</a>
+			{% if r.contacts is defined and r.contacts|length %}
+				{% for rc in r.contacts %}
+					{% if rc.emergency is defined and rc.emergency==true %}
+						<div class="contactsEmergency">{{ (rc.title~' '~rc.firstName~' '~rc.lastName)|trim }}
+						{% if rc.preferredName is defined and rc.preferredName|length %} ({{ rc.preferredName }}){% endif %}
+						 - 
+						{{ rc.relation }}
+						{% if rc.preferredPhone is defined and rc.preferredPhone|length%}<div>{{ rc.preferredPhone }}</div>{% endif %}
+						{% if rc.phoneLandline is defined and rc.phoneLandline|length%}<div>{{ rc.phoneLandline }}</div>{% endif %}
+						{% if rc.phoneMobile is defined and rc.phoneMobile|length%}<div>{{ rc.phoneMobile }}</div>{% endif %}
+						{% if rc.phoneOther is defined and rc.phoneOther|length%}<div>{{ rc.phoneOther }}</div>{% endif %}
+						</div>
+					{% endif %}
+				{% endfor %}
+				{% for rc in r.contacts %}
+					{% if rc.emergency is defined and rc.emergency==false %}
+						<div class="contactsNormal">{{ (rc.title~' '~rc.firstName~' '~rc.lastName)|trim }}
+						{% if rc.preferredName is defined and rc.preferredName|length %} ({{ rc.preferredName }}){% endif %}
+						 - 
+						{{ rc.relation }}
+						{% if rc.preferredPhone is defined and rc.preferredPhone|length%}<div>{{ rc.preferredPhone }}</div>{% endif %}
+						{% if rc.phoneLandline is defined and rc.phoneLandline|length%}<div>{{ rc.phoneLandline }}</div>{% endif %}
+						{% if rc.phoneMobile is defined and rc.phoneMobile|length%}<div>{{ rc.phoneMobile }}</div>{% endif %}
+						{% if rc.phoneOther is defined and rc.phoneOther|length%}<div>{{ rc.phoneOther }}</div>{% endif %}
+						</div>
+					{% endif %}
+				{% endfor %}
+			{% endif %}
+		</td>
+		<td>{{ r.notes|nl2br }}</td>
+		<td>{{ r.createdOn|date('d/m/Y H:i') }}</td>
+		{% if admin is defined and admin %}
+		<td>{% if companies[r.domainId] is defined %}{{ companies[r.domainId] }}{% else %}????{% endif %}</td>
+		{% endif %}
+	</tr>
+{% endfor %}
+</table>
+<input type="hidden" id="photoThumbnail" data-url="{{ path('timesheet_ajax_photo') }}">
+{% endif %}
+</div>
+{% endif %}
+{% endblock %}

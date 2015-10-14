@@ -4,11 +4,11 @@
 <table>
 	<tr>
 		<th>Name</th>
-		{% if domainId is defined and domainId > 0 %}{% else %}<th>Domain</th>{% endif %}
+		{% if domainId is defined and domainId > 0 %}{% else %}<th>Company</th>{% endif %}
 	</tr>
 	{% for g in groups %}
 	<tr>
-		<td><a href="{{ path(base, {'action': 'editgroup', 'param1': g.id }) }}" title="Click here to edit">{{ g.Name }}</a></td>
+		<td><a href="{{ path(base, {'action': 'editgroup', 'param1': g.id }) }}" title="Click here to edit">{{ g.name }}</a></td>
 		{% if domainId is defined and domainId > 0 %}{% else %}<td>{% if domains[g.domainId] is defined and domains[g.domainId]|length %}{{ domains[g.domainId] }}{% else %}????{% endif %}</td>{% endif %}
 	</tr>
 	{% endfor %}

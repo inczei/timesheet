@@ -1,0 +1,27 @@
+<h2>Rooms</h2>
+<a href="{{ path(base, {'action': 'editroom', 'param1': '0' }) }}">New room</a>
+{% if rooms is defined and rooms|length %}
+<table>
+	<tr>
+		<th>Room Number</th>
+		<th>Location</th>
+		<th>Places</th>
+		<th>Notes</th>
+		<th>Availability</th>
+		<th>Status</th>
+	</tr>
+	{% for r in rooms %}
+	<tr>
+		<td>
+			<a href="{{ path(base, {'action': 'editroom', 'param1': r.id }) }}" title="Click here to edit">{{ r.roomNumber }}</a>
+		</td>
+		<td>{% if locations is defined and locations[r.locationId] is defined %}{{ locations[r.locationId] }}{% else %}????{% endif %}</td>
+		<td>{{ r.places }}{% if r.extraPlaces is defined and r.extraPlaces|length and r.extraPlaces>0 %} (+{{ r.extraPlaces }}){% endif %}</td>
+		<td>{{ r.notes }}</td>
+		<td>{% if r.open %}Open{% else %}Closed{% endif %}</td>
+		<td>{% if r.active %}Active{% else %}Inactive{% endif %}</td>
+	</tr>
+	{% endfor %}
+</table>
+<hr>
+{% endif %}

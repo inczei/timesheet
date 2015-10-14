@@ -4,6 +4,7 @@
 <table>
 	<tr>
 		<th>Title</th>
+		<th>Level</th>
 		<th>Achievement Date</th>
 		<th>Expiry Date</th>
 		<th>Comments</th>
@@ -12,6 +13,7 @@
 	{% for uq in userqualifications %}
 	<tr>
 		<td>{{ uq.title }}</td>
+		<td>{{ uq.level }}</td>
 		<td>{{ uq.achievementDate|format('d/m/Y') }}</td>
 		<td>{{ uq.expiryDate|format('d/m/Y') }}</td>
 		<td>{{ uq.comments }}</td>

@@ -1,0 +1,109 @@
+{% if (required is defined and required|length) or (notrequired is defined and notrequired|length) or (requiredQualifications is defined and requiredQualifications|length)%}
+<div class="statusList">
+<table>
+	<tr>
+		<th colspan="6">Required Staff</th>
+	</tr>
+	<tr>
+		<th colspan="2">Shift</th>
+		<th>Group</th>
+		<th>Required</th>
+		<th>Allocated</th>
+		<th>Names</th>
+	</tr>
+{% if required is defined and required|length %}
+	{% for r in required %}
+		{% set tmpAllocated='' %}
+		{% set tmpNumber=0 %}
+		{% for a in allocated %}
+			{% if a.shiftId==r.shiftId and a.groupId==r.groupId %}
+				{% set tmpNumber=tmpNumber+1 %}
+				{% if users[a.userId] is defined %}
+				{% set tmpAllocated=tmpAllocated~((users[a.userId].firstName~' '~users[a.userId].lastName)|trim)~'<br>' %}
+				{% else %}
+				{% set tmpAllocated=tmpAllocated~'id:'~(a.userId)~',' %}
+				{% endif %}
+			{% endif %}
+		{% endfor %}	
+	<tr>
+		<td>{% if shifts[location.id][r.shiftId]['title'] is defined and shifts[location.id][r.shiftId]['title']|length %}{{ shifts[location.id][r.shiftId]['title'] }}{% else %}????{% endif %}</td>
+		<td>{% if shifts[location.id][r.shiftId]['title'] is defined and shifts[location.id][r.shiftId]['title']|length %}{{ shifts[location.id][r.shiftId]['timings'] }}{% else %}????{% endif %}</td>
+		<td>{{ r.name }}</td>		
+		<td>{{ r.numberOfStaff }}</td>
+		<td>{{ tmpNumber }}</td>
+		<td>{{ tmpAllocated|raw }}</td>
+	</tr>
+	{% endfor %}
+{% endif %}
+{% if notrequired is defined and notrequired|length %}
+	<tr>
+		<td colspan="6"><br><br></td>
+	</tr>
+	<tr>
+		<th colspan="6">Allocated, but not required</th>
+	</tr>
+	<tr>
+		<th colspan="2">Shift</th>
+		<th>Group</th>
+		<th> </th>
+		<th> </th>
+		<th>Name</th>
+	</tr>
+	{% for nr in notrequired %}
+	<tr>
+		<td>{% if shifts[location.id][nr.shiftId]['title'] is defined and shifts[location.id][nr.shiftId]['title']|length %}{{ shifts[location.id][nr.shiftId]['title'] }}{% else %}????{% endif %}</td>
+		<td>{% if shifts[location.id][nr.shiftId]['title'] is defined and shifts[location.id][nr.shiftId]['title']|length %}{{ shifts[location.id][nr.shiftId]['timings'] }}{% else %}????{% endif %}</td>
+		<td>{{ nr.name }}</td>
+		<td> </td>
+		<td> </td>
+		<td>{% if users[nr.userId] is defined %}
+				{{ (users[nr.userId].firstName~' '~users[nr.userId].lastName)|trim }}<br>
+			{% else %}
+				{{ nr.userId }},
+			{% endif %}
+		</td>
+	</tr>
+	{% endfor %}
+{% endif %}
+{% if requiredQualifications is defined and requiredQualifications|length %}
+	<tr>
+		<td colspan="6"><br><br></td>
+	</tr>
+	<tr>
+		<th colspan="6">Required Qualifications</th>
+	</tr>
+	<tr>
+		<th colspan="2">Shift</th>
+		<th>Qualification</th>
+		<th>Required</th>
+		<th>Allocated</th>
+		<th>Names</th>
+	</tr>
+	{% for rq in requiredQualifications %}
+		{% set tmpAllocated='' %}
+		{% set tmpNumber=0 %}
+		{% for aq in allocatedQualifications %}
+			{% if aq.shiftId==rq.shiftId and aq.qualificationId==rq.qualificationId and (aq.rank is null or aq.rank>=rq.rank) %}
+				{% set tmpNumber=tmpNumber+1 %}
+				{% if users[aq.userId] is defined %}
+				{% set tmpAllocated=tmpAllocated~((users[aq.userId].firstName~' '~users[aq.userId].lastName)|trim)~'<br>' %}
+				{% else %}
+				{% set tmpAllocated=tmpAllocated~'id:'~(aq.userId)~',' %}
+				{% endif %}
+			{% endif %}
+		{% endfor %}	
+	<tr>
+		<td>{% if shifts[location.id][rq.shiftId]['title'] is defined and shifts[location.id][rq.shiftId]['title']|length %}{{ shifts[location.id][rq.shiftId]['title'] }}{% else %}????{% endif %}</td>
+		<td>{% if shifts[location.id][rq.shiftId]['title'] is defined and shifts[location.id][rq.shiftId]['title']|length %}{{ shifts[location.id][rq.shiftId]['timings'] }}{% else %}????{% endif %}</td>
+		<td>{{ rq.title }}{% if rq.level is defined and rq.level|length %} {{ rq.level }}{% else %}{% endif %}</td>
+		<td>{{ rq.numberOfStaff }}</td>
+		<td>{{ tmpNumber }}</td>
+		<td>{{ tmpAllocated|raw }}</td>
+	</tr>
+	{% endfor %}
+{% endif %}
+</table>
+</div>
+{% else %}
+No requirement
+{% endif %}

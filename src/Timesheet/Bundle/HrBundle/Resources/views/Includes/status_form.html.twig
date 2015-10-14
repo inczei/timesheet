@@ -22,6 +22,12 @@
 		<td>{{ form_label(form.color) }}{{ form_errors(form.color) }}</td>
 		<td>{{ form_widget(form.color) }}</td>
 	</tr>
+	{% if form.companies is defined and form.companies|length %}
+	<tr>
+		<td>{{ form_label(form.companies) }}{{ form_errors(form.companies) }}</td>
+		<td colspan="4">{{ form_widget(form.companies) }}</td>
+	</tr>	
+	{% endif %}
 	<tr>
 		<td colspan="2" align="left">{{ form_widget(form.cancel) }}</td>
 		<td> </td>

@@ -1,0 +1,33 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+<table>
+	<tr>
+		<td>{{ form_label(form.residentName) }}{{ form_errors(form.residentName) }}</td>
+		<td>{{ form_widget(form.residentName) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.currentLocation) }}{{ form_errors(form.currentLocation) }}</td>
+		<td>{{ form_widget(form.currentLocation) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.date) }}{{ form_errors(form.date) }}</td>
+		<td>{{ form_widget(form.date, { 'attr': {'tabindex':'1'}}) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.roomId) }}{{ form_errors(form.roomId) }}</td>
+		<td>{{ form_widget(form.roomId, { 'attr': {'tabindex':'2'}}) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.notes) }}{{ form_errors(form.notes) }}</td>
+		<td colspan="4">{{ form_widget(form.notes, { 'attr': {'tabindex':'3'}}) }}</td>
+	</tr>
+	{% if form.cancel is defined and form.submit is defined %}
+	<tr>
+		<td colspan="2" align="left">{{ form_widget(form.cancel, { 'attr': {'tabindex':'5'}}) }}</td>
+		<td> </td>
+		<td colspan="2" align="right">{{ form_widget(form.submit, { 'attr': {'tabindex':'4'}}) }}</td>
+	</tr>
+	{% endif %}
+</table>
+{{ form_widget(form.residentId) }}
+{{ form_widget(form.currentRoomId) }}
+{{ form_widget(form._token) }}
+{{ form_end(form) }}

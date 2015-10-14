@@ -10,7 +10,7 @@
 {% if locationForm is defined and locationForm|length %}
 <div class="registrationList">
 <h2>Location</h2>
-{{ include('Includes/location_form.html.twig', { 'form': locationForm, 'members': members }) }}
+{{ include('TimesheetHrBundle:Includes:location_form.html.twig', { 'form': locationForm, 'members': members }) }}
 </div>
 {% else %}
 <div class="statusList">

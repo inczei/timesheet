@@ -23,6 +23,13 @@
 		<td><a class="showRequest" data-userid="{{ userId }}" data-url="{{ path('timesheet_ajax_showrequests') }}" base-url="{{ base }}" href="#" title="Click here to see your request">Your requests</a></td>
 	</tr>
 	<tr>
+		<td><a href="{{ path('timesheet_hr_messages') }}">Messages{% if data.unread is defined and data.unread > 0 %} ({{ data.unread }}){% endif %}</a></td>
+		<td> </td>
+		<td> </td>
+		<td> </td>
+		<td> </td>
+	</tr>
+	<tr>
 		<td>
 			{% if data.todayshift is defined and data.todayshift|length %}
 			<u>Today's Shift:</u>

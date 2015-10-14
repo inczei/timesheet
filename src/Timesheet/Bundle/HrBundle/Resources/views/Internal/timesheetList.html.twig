@@ -10,8 +10,9 @@
 {% set leave=0 %}
 {% set ot=0 %}
 {% set ota=0 %}
+{% set holidaysummary=[] %}
 	<tr class="header">
-		<th colspan="{% if isManager %}14{% else %}13{% endif %}"><h2>{{ userName }}</h2></th>
+		<th colspan="{% if isManager %}15{% else %}14{% endif %}"><h2>{{ userName }}</h2></th>
 		<th colspan="10" class="columnHide"></th>
 	</tr>
 	<tr>
@@ -20,10 +21,10 @@
 		<th colspan="2">Actual Time</th>
 		<th>Total Agreed Hours</th>
 		<th>Actual Hours</th>
-		<th>Hours Lates</th>
-		<th>Hours Leave Early</th>
+		<th>Lates</th>
+		<th>Leave Early</th>
 		<th>Overetime</th>
-		<th colspan="2">Notes</th>
+		<th colspan="3">Notes</th>
 		{% if isManager  %}<th>Check</th>{% endif %}
 		<th colspan="10" class="columnHide">Break</th>
 	</tr>
@@ -38,6 +39,7 @@
 		<th> </th>
 		<th> </th>
 		<th><i>(Agreed)</i></th>
+		<th> </th>
 		<th>Employee</th>
 		<th>Manager</th>
 		{% if isManager %}<th> </th>{% endif %}
@@ -109,29 +111,11 @@
 			{% if t2[0]['Overtime'] is defined and t2[0]['Overtime'] > 0 %}{{ (t2[0]['Overtime']/60)|number_format(2) }}<br>{{ (t2[0]['Overtime'])|number_format(0) }}{% set ot=ot+t2[0]['Overtime'] %} min{% endif %}
 			{% if t2[0]['OvertimeAgreed'] is defined and t2[0]['OvertimeAgreed'] > 0 %}<br><i>({{ (t2[0]['OvertimeAgreed']/60)|number_format(2) }}{% set ota=ota+t2[0]['OvertimeAgreed'] %})</i>{% endif %}
 		</td>
-		<td>
-			{% if t2[1]['comment'] is defined and t2[1]['comment']|length %}
-				<div{% if t2[1]['comment']|length>30 %} title="{{ t2[1]['comment'] }}"{% endif %}>{{ t2[1]['comment']|length>30?t2[1]['comment']|slice(0,30) ~ '...':t2[1]['comment'] }}</div>
-			{% endif %}
-			{% if t2[1]['holidays'] is defined and t2[1]['holidays']|length %}
-				{% for h in t2[1]['holidays'] %}
-				<div class="holidayClass" style="color: #{{ h['textColor'] }}; background-color: #{{ h['backgroundColor'] }}; border: #{{ h['borderColor'] }} solid 2px;" title="{% if h['comment'] is defined and h['comment']|length %}
-					{{ h['comment'] }}
-				{% endif %}
-				{{ '\n' }}
-				{% if h['acceptedComment'] is defined and h['acceptedComment']|length  %}
-					Manager:{{ h['acceptedComment'] }}
-				{% endif %}">
-				{{ h['name'] }}
-				</div>
-				{% endfor %}
-			{% endif %}
-		</td>
-		<td>
-			{% if t2[2]['comment'] is defined and t2[2]['comment']|length %}
-				<div{% if t2[2]['comment']|length>30 %} title="{{ t2[2]['comment'] }}"{% endif %}>{{ t2[2]['comment']|length>30?t2[2]['comment']|slice(0,30) ~ '...':t2[2]['comment'] }}</div>
-			{% endif %}
-		</td>
+		<td>{% spaceless %}
+		{% if t2[1]['holidays'] is defined and t2[1]['holidays']|length %}{% for h in t2[1]['holidays'] %}<div class="holidayClass" style="color: #{{ h['textColor'] }}; background-color: #{{ h['backgroundColor'] }}; border: #{{ h['borderColor'] }} solid 2px;" title="{% if h['comment'] is defined and h['comment']|length %}{{ h['comment'] }}{% endif %}{{ '\n'|raw }}{% if h['acceptedComment'] is defined and h['acceptedComment']|length  %}Manager:{{ h['acceptedComment'] }}{% endif %}">{{ h['name'] }}</div>{% set holidaysummary=holidaysummary|merge({('_'~h['typeId']):{'name':(h['name']), 'num':1}}) %}{% endfor %}{% endif %}
+		{% endspaceless %}</td>
+		<td>{% spaceless %}{% if t2[1]['comment'] is defined and t2[1]['comment']|length %}<div{% if t2[1]['comment']|length>30 %} title="{{ t2[1]['comment'] }}"{% endif %}>{{ t2[1]['comment']|length>30?t2[1]['comment']|slice(0,30) ~ '...':t2[1]['comment'] }}</div>{% endif %}{% endspaceless %}</td>
+		<td>{% spaceless %}{% if t2[2]['comment'] is defined and t2[2]['comment']|length %}<div{% if t2[2]['comment']|length>30 %} title="{{ t2[2]['comment'] }}"{% endif %}>{{ t2[2]['comment']|length>30?t2[2]['comment']|slice(0,30) ~ '...':t2[2]['comment'] }}</div>{% endif %}{% endspaceless %}</td>
 		{% if isManager  %}
 		<td>
 			{% if t2[0]['class'] is defined and t2[0]['class']|length %}
@@ -220,22 +204,23 @@
 		<th><b title="Overtime">{{ (ot/60)|number_format(2) }} Hr</b><br>
 			<i><b title="Agreed">({{ (ota/60)|number_format(2) }} Hr)</b></i>
 		</th>
+		<th>{% if holidaysummary is defined and holidaysummary|length %}Holidays:{% for hs in holidaysummary %}<br>{{ hs.num }} X {{ hs.name }}{% endfor %}{% endif %}</th>
 		<th> </th>
 		<th> </th>
 		{% if isManager  %}<th> </th>{% endif %}
 		<th class="columnHide"> </th>
 		<th class="columnHide"> </th>
-		<th class="columnHide"><b>Total Lunch Time: </b></th>
 		<th class="columnHide"> </th>
 		<th class="columnHide"> </th>
 		<th class="columnHide"> </th>
 		<th class="columnHide"> </th>
-		<th class="columnHide"><b>Total Other Time: </b></th>
-		<th class="columnHide"><b>Deducted Time: </b></th>
-		<th class="columnHide"><b>Total Break Time: </b></th>
+		<th class="columnHide"> </th>
+		<th class="columnHide"> </th>
+		<th class="columnHide"> </th>
+		<th class="columnHide"> </th>
 	</tr>
 	<tr>
-		<td colspan="{% if isManager  %}14{% else %}13{% endif %}"><hr></td>
+		<td colspan="{% if isManager  %}15{% else %}14{% endif %}"><hr></td>
 		<td colspan="10" class="columnHide"><hr></td>
 	</tr>
 {% endfor %}

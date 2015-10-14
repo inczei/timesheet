@@ -9,6 +9,7 @@
 		<th>Multi</th>
 		<th>Color</th>
 		<th>Active</th>
+		{% if domainId is defined and domainId > 0 %}{% else %}<th>Company</th>{% endif %}
 	</tr>
 	{% for s in statuses %}
 	<tr>
@@ -18,6 +19,22 @@
 		<td>{% if s.multi %}Multi{% else %}Single{% endif %}</td>
 		<td style="color: #{{ s.color }}">{{ s.colorName }}</td>
 		<td>{{ s.activeName }}</td>
+		{% if domainId is defined and domainId > 0 %}
+		{% else %}
+			<td>
+				{% if s.domains is defined and s.domains|length %}
+					{% for d in s.domains %}
+						{% if companies[d] is defined and companies[d]|length %}
+							{{ companies[d] }}<br>
+						{% else %}
+							[{{ d }}]
+						{% endif %}
+					{% endfor %}
+				{% else %}
+				-
+				{% endif %}
+			</td>
+		{% endif %}
 	</tr>
 	{% endfor %}
 </table>

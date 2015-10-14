@@ -953,3 +953,70 @@ select.swapUser1, select.swapUser2, select.swapShift1, select.swapShift2 {
 	border-color: #000066;
 	color: #000066;
 }
+
+#status_companies {
+	text-align: left;
+}
+
+#status_companies label:after {
+	content: '\A';
+	white-space: pre;
+}
+
+.photoThumbnail img {
+	padding: 5px;
+	border: #444444 dotted 1px;
+	cursor: pointer;
+}
+.residentHistory {
+	cursor: pointer;
+	color: #ff0000;
+	text-decoration: underline dashed #cc0000;
+}
+
+.residentHistory:hover {
+	text-decoration: underline;
+}
+
+.dayInfo {
+	position: relative;
+	width: 100%;
+}
+.dayInfoLeft {
+	
+}
+.dayInfoRight {
+	
+}
+.dayInfoMiddle {
+
+}
+.dayInfoProblem {
+	position: absolute;
+	right: 1px;
+	top: 1px;
+	color: #ff0000;
+	font-size: large;
+	font-weight: bold;
+	cursor: pointer;
+	padding: 0px 3px;
+	border: #ff0000 solid 1px;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+	border-radius: 10px;
+	-khtml-border-radius: 10px;
+	after: ' ! ';
+}
+.dayInfoProblem:after {
+	color: red;
+	content: '\002753';
+}
+
+.noProblem {
+	border: #008800 solid 1px;
+}
+
+.noProblem:after {
+	color: green;
+	content: '\002714';
+}

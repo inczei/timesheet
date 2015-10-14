@@ -1,0 +1,7 @@
+<div class="statusList">
+{{ include('TimesheetHrBundle:Ajax:photo.html.twig', { 'alt': alt, 'type': photo.type, 'photo': photo.photo, 'width': photo.width, 'height': photo.height }) }}
+{% if form is defined and form|length %}
+<h2>{{ title }}</h2>
+{{ include('TimesheetHrBundle:Includes:photonotes_form.html.twig', { 'form': form }) }}
+{% endif %}
+</div>

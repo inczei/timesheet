@@ -1,0 +1,23 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+<table>
+	<tr>
+		<td>{{ form_label(form.name) }}{{ form_errors(form.name) }}</td>
+		<td>{{ form_widget(form.name) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.file) }}{{ form_errors(form.file) }}</td>
+		<td>{{ form_widget(form.file) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.notes) }}{{ form_errors(form.notes) }}</td>
+		<td>{{ form_widget(form.notes) }}</td>
+	</tr>
+	<tr>
+		<td align="left">{{ form_widget(form.cancel) }}</td>
+		<td align="right">{{ form_widget(form.submit) }}</td>
+	</tr>
+</table>
+{{ form_widget(form.id) }}
+{{ form_widget(form._token) }}
+{{ form_end(form) }}

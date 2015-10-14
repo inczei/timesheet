@@ -1,0 +1,53 @@
+{% extends 'TimesheetHrBundle:Default:base.html.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<div class="message">
+{% if message is defined and message|length %}
+<div class="loginMessage">{{ message }}</div>
+{% endif %}
+</div>
+{% if form is defined and form|length %}
+<div class="registrationList">
+<h2>Resident Contact</h2>
+{{ include('TimesheetHrBundle:Includes:residentcontact_form.html.twig', { 'form': form }) }}
+</div>
+{% else %}
+<div class="statusList">
+<a href="{{ path('residents_hr_list') }}">Back to Residents List</a><br>
+<b>{{ (resident.title~' '~resident.firstName~' '~resident.lastName)|trim }}</b><br>
+<br>
+<a href="{{ path('residents_hr_residentcontacts', { 'action': 'new', 'residentid': resident.id, 'contactid': '' }) }}">Add new contact</a>
+{% if contacts is defined and contacts|length %}
+<h2>Resident Contacts</h2>
+<table>
+	<tr>
+		<th>Name:</th>
+		<th>Relation</th>
+		<th>E-mail</th>
+		<th>Phone number(s)</th>
+		<th>Address</th>
+	</tr>
+	{% for c in contacts %}
+	<tr>
+		<td><a href="{{ path('residents_hr_residentcontacts', { 'action': 'edit', 'residentid': c.residentId, 'contactid': c.id }) }}" title="Click here to edit">{{ (c.title~' '~c.firstName~' '~c.lastName)|trim }}</a></td>
+		<td>{{ c.relation }}</td>
+		<td>{{ c.email }}</td>
+		<td>{{ c.preferredPhone }}{% if c.phoneMobile is defined and c.phoneMobile|length %}<br>{{ c.phoneMobile }}{% endif %}{% if c.phoneLandline is defined and c.phoneLandline|length %}<br>{{ c.phoneLandline }}{% endif %}{% if c.phoneMobile is defined and c.phoneMobile|length %}<br>{{ c.phoneMobile }}{% endif %}{% if c.phoneOther is defined and c.phoneOther|length %}<br>{{ c.phoneOther }}{% endif %}</td>
+		<td>
+			{{ c.addressLine1 }}
+			{% if c.addressLine2 is defined and c.addressLine2|length %}<br>{{ c.addressLine2 }}{% endif %}
+			<br>{{ c.addressCity }}
+			{% if c.addressCounty is defined and c.addressCounty|length %}<br>{{ c.addressCounty }}{% endif %}
+			{% if c.addressCountry is defined and c.addressCountry|length %}<br>{{ c.addressCountry }}{% endif %}
+			<br>{{ c.addressPostcode }}
+		</td>
+	</tr>
+	{% endfor %}
+</table>
+{% else %}
+<br><br><b>No contact registered</b>
+{% endif %}
+</div>
+{% endif %}
+{% endblock %}

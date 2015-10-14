@@ -1,0 +1,36 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+<table>
+	<tr>
+		<td>{{ form_label(form.roomNumber) }}{{ form_errors(form.roomNumber) }}</td>
+		<td>{{ form_widget(form.roomNumber) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.locationId) }}{{ form_errors(form.locationId) }}</td>
+		<td>{{ form_widget(form.locationId) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.places) }}{{ form_errors(form.places) }}</td>
+		<td>{{ form_widget(form.places) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.extraPlaces) }}{{ form_errors(form.extraPlaces) }}</td>
+		<td>{{ form_widget(form.extraPlaces) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.open) }}{{ form_errors(form.open) }}</td>
+		<td>{{ form_widget(form.open) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.active) }}{{ form_errors(form.active) }}</td>
+		<td>{{ form_widget(form.active) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.notes) }}{{ form_errors(form.notes) }}</td>
+		<td colspan="4">{{ form_widget(form.notes) }}</td>
+	</tr>
+	<tr>
+		<td colspan="2" align="left">{{ form_widget(form.cancel) }}</td>
+		<td> </td>
+		<td colspan="2" align="right">{{ form_widget(form.submit) }}</td>
+	</tr>
+</table>
+{{ form_widget(form._token) }}
+{{ form_end(form) }}

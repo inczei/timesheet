@@ -9,6 +9,7 @@
 				<ul class="onclick-menu-content">
 					<li><button name="onclickmenu" question="Are you sure you want to delete all the allocations in this week?" data-url="{{ path('timesheet_ajax_schedule') }}" base-div="scheduleDiv" data-action="clean" data-location="{{ locationId }}" data-timestamp="{{ timestamp }}">Clean this week</button></li>
 					<li><button name="onclickmenu" question="Are you sure you want to copy all the allocations from last week? Will be deleted all existing allocations in this week!" data-url="{{ path('timesheet_ajax_schedule') }}" base-div="scheduleDiv" data-action="copy" data-location="{{ locationId }}" data-timestamp="{{ timestamp }}">Copy from previous week</button></li>
+					<li><button name="onclickmenu" question="Are you sure you want to copy all the allocations from next week? Will be deleted all existing allocations in this week!" data-url="{{ path('timesheet_ajax_schedule') }}" base-div="scheduleDiv" data-action="copyback" data-location="{{ locationId }}" data-timestamp="{{ timestamp }}">Copy from next week</button></li>
 					<li><button name="onclickmenu" question="Are you sure you want to fill this week with preferred timings? Will be added to all existing allocations in this week!" data-url="{{ path('timesheet_ajax_schedule') }}" base-div="scheduleDiv" data-action="fill" data-location="{{ locationId }}" data-timestamp="{{ timestamp }}">Fill with preferred timings</button></li>
 					<li><button name="onclickmenu" question="Are you sure you want to publish this week? Will not be able to change!" data-url="{{ path('timesheet_ajax_schedule') }}" base-div="scheduleDiv" data-action="publish" data-location="{{ locationId }}" data-timestamp="{{ timestamp }}">Publish</button></li>
 					<li><button name="onclickmenu" question="Are you sure you want to unpublish this week? Will be able to change!" data-url="{{ path('timesheet_ajax_schedule') }}" base-div="scheduleDiv" data-action="unpublish" data-location="{{ locationId }}" data-timestamp="{{ timestamp }}">Unpublish</button></li>
@@ -24,7 +25,7 @@
 <table>
 	<tr>
 		<th rowspan="{{ (4+locations|length) }}">
-			User search : <input type="text" class="userSearch" name="userSearch" size="10" data-url="{{ path('timesheet_ajax_userlist') }}" base-url="{{ base }}" data-type="2" value="{{ usersearch }}">
+			User search : <input type="text" class="userSearch" name="userSearch" size="10" data-url="{{ path('timesheet_ajax_userlist') }}" base-url="{{ base }}" data-type="2" value="{{ usersearch }}"><input type="hidden" id="lastSearch" value="">
 			<br>
 			Select group : <select name="groupSearch" class="userSearch" data-url="{{ path('timesheet_ajax_userlist') }}" base-url="{{ base }}" data-type="2" value="{{ groupsearch }}">
 				<option value=""> - All - </option>
@@ -45,7 +46,15 @@
 		</th>
 		<th class="secondHeader">Location</th>
 		{% for v in week %}
-			<th class="secondHeader">{{ v.day }}<br>{{ v.date }}</th>
+			<th class="secondHeader">
+				<div class="dayInfo">
+					{{ v.day }}<br>{{ v.date }}
+					{% if v.problem is null %}
+					{% else %}
+					<span class="dayInfoProblem{% if v.problem is defined and v.problem==true %}{% else %} noProblem{% endif %}" id="dayInfo{{ v.dayOfWeek }}" data-url="{{ path('timesheet_ajax_showdailyproblems') }}" data-date="{{ v.fulldate }}" data-location="{{ locations|keys|join('|') }}" title="Click here to see all the requirements"></span>
+					{% endif %}
+				</div>
+			</th>
 		{% endfor %}
 	</tr>
 {% for k,l in locations %}

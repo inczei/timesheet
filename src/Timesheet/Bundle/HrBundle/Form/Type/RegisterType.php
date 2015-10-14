@@ -116,9 +116,10 @@ class RegisterType extends AbstractType
     		))
     		->add('nationality', 'country', array(
     			'label'=>'Nationality:',
+    			'preferred_choices'=>array('GB'),
     			'required'=>true,
     			'data'=>((isset($this->user))?($this->user->getNationality()):('')),
-    			'empty_value'=>' - Please select - ',
+//    			'empty_value'=>' - Please select - ',
     		))
     		->add('addressLine1', 'text', array(
     			'label'=>'Address:',
@@ -148,9 +149,10 @@ class RegisterType extends AbstractType
     		))
     		->add('addressCountry', 'country', array(
     			'label'=>'Country:',
-    			'required'=>true,
+				'preferred_choices'=>array('GB'),
+  				'required'=>true,
     			'data'=>((isset($this->user))?($this->user->getAddressCountry()):('')),
-    			'empty_value'=>' - Please select - ',
+//    			'empty_value'=>' - Please select - ',
     		))
     		->add('loginRequired', 'choice', array(
     			'choices'=>array(0=>'No', 1=>'Yes'),

@@ -42,7 +42,15 @@ class QualRequirements
      */
     private $qualificationId;
 
-
+    /**
+     * @var integer
+     *
+     * @ORM\Column(name="levelId", type="integer", nullable=true)
+     */
+    private $levelId;
+    
+    
+    
     /**
      * Get id
      *
@@ -120,5 +128,28 @@ class QualRequirements
     public function getQualificationId()
     {
         return $this->qualificationId;
+    }
+    
+    /**
+     * Set levelId
+     *
+     * @param integer $levelId
+     * @return QualRequirements
+     */
+    public function setLevelId($levelId)
+    {
+        $this->levelId = $levelId;
+
+        return $this;
+    }
+
+    /**
+     * Get levelId
+     *
+     * @return integer 
+     */
+    public function getLevelId()
+    {
+        return $this->levelId;
     }
 }

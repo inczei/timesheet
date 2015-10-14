@@ -1,0 +1,94 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+<table>
+	<tr>
+		<td>{{ form_label(form.residentname) }}{{ form_errors(form.residentname) }}</td>
+		<td>{{ form_widget(form.residentname) }}</td>
+		<td> </td>
+		<td> </td>
+		<td> </td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.emergency) }}{{ form_errors(form.emergency) }}</td>
+		<td>{{ form_widget(form.emergency) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.relation) }}{{ form_errors(form.relation) }}</td>
+		<td>{{ form_widget(form.relation) }}</td>
+	</tr>
+	<tr>
+		<td colspan="5"><hr></td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.title) }}{{ form_errors(form.title) }}</td>
+		<td>{{ form_widget(form.title) }}</td>
+		<td> </td>
+		<td> </td>
+		<td> </td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.firstName) }}{{ form_errors(form.firstName) }}</td>
+		<td>{{ form_widget(form.firstName) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.lastName) }}{{ form_errors(form.lastName) }}</td>
+		<td>{{ form_widget(form.lastName) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.email) }}{{ form_errors(form.email) }}</td>
+		<td>{{ form_widget(form.email) }}</td>
+		<td> </td>
+		<td> </td>
+		<td> </td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.preferredPhone) }}{{ form_errors(form.preferredPhone) }}</td>
+		<td>{{ form_widget(form.preferredPhone) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.phoneLandline) }}{{ form_errors(form.phoneLandline) }}</td>
+		<td>{{ form_widget(form.phoneLandline) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.phoneMobile) }}{{ form_errors(form.phoneMobile) }}</td>
+		<td>{{ form_widget(form.phoneMobile) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.phoneOther) }}{{ form_errors(form.phoneOther) }}</td>
+		<td>{{ form_widget(form.phoneOther) }}</td>
+	</tr>
+	<tr>
+		<td colspan="5"><hr></td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.addressLine1) }}{{ form_errors(form.addressLine1) }}</td>
+		<td>{{ form_widget(form.addressLine1) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.addressLine2) }}{{ form_errors(form.addressLine2) }}</td>
+		<td>{{ form_widget(form.addressLine2) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.addressCity) }}{{ form_errors(form.addressCity) }}</td>
+		<td>{{ form_widget(form.addressCity) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.addressCounty) }}{{ form_errors(form.addressCounty) }}</td>
+		<td>{{ form_widget(form.addressCounty) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.addressCountry) }}{{ form_errors(form.addressCountry) }}</td>
+		<td>{{ form_widget(form.addressCountry) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.addressPostcode) }}{{ form_errors(form.addressPostcode) }}</td>
+		<td>{{ form_widget(form.addressPostcode) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.notes) }}{{ form_errors(form.notes) }}</td>
+		<td colspan="4">{{ form_widget(form.notes) }}</td>
+	</tr>
+	{% if form.cancel is defined and form.submit is defined %}
+	<tr>
+		<td colspan="2" align="left">{{ form_widget(form.cancel) }}</td>
+		<td> </td>
+		<td colspan="2" align="right">{{ form_widget(form.submit) }}</td>
+	</tr>
+	{% endif %}
+</table>
+{{ form_widget(form.id) }}
+{{ form_widget(form._token) }}
+{{ form_end(form) }}

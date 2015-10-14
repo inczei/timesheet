@@ -1,6 +1,6 @@
 {% if users is defined and users|length %}
 	{% for u in users %}
-		<div draggable="true" ondragstart="drag(event)" class="{% if selectedUser is defined and u.id==selectedUser %}scheduleUserSelected{% else %}scheduleUser{% endif %}" name="selectUser" id="{{ u.id }}" title="Username: {{ u.username }}{{ '\n'|raw }}Group: {{ u.groupname }}{% if u.userqualifications is defined and u.userqualifications|length %}{{ '\n'|raw }}Qualifications: {% set uqI=0 %}{% for uq in u.userqualifications %}{% if uqI==0 %}{% set uqI=uqI+1 %}{% else %}, {% endif %}{{ uq.title }}{% endfor %}{% endif %}">{{ u.firstName }} {{ u.lastName }}</div>
+		<div draggable="true" ondragstart="drag(event)" class="{% if selectedUser is defined and u.id==selectedUser %}scheduleUserSelected{% else %}scheduleUser{% endif %}" name="selectUser" id="{{ u.id }}" title="Username: {{ u.username }}{{ '\n'|raw }}Group: {{ u.groupname }}{% if u.userqualifications is defined and u.userqualifications|length %}{{ '\n'|raw }}Qualifications:{{ '\n'|raw }}{% for uq in u.userqualifications %} - {{ uq.title }}{% if uq.level is defined and uq.level|length %} {{ uq.level }}{% endif %}{{ '\n'|raw }}{% endfor %}{% endif %}">{{ u.firstName }} {{ u.lastName }}</div>
 	{% endfor %}
 	{% if found is defined and found > 30 %}
 		more found...totally {{ found }}

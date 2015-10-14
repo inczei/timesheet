@@ -1,0 +1,48 @@
+{% extends 'TimesheetHrBundle:Default:base.html.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<div class="message">
+{% if message is defined and message|length %}
+<div class="loginMessage">{{ message }}</div>
+{% endif %}
+</div>
+{% if form is defined and form|length %}
+<div class="registrationList">
+<h2>Photo upload</h2>
+{{ include('TimesheetHrBundle:Includes:photo_form.html.twig', { 'form': form }) }}
+</div>
+{% else %}
+<div class="statusList">
+<a href="{{ path('residents_hr_list') }}">Back to Residents List</a><br>
+<b>{{ (resident.title~' '~resident.firstName~' '~resident.lastName)|trim }}</b><br>
+<br>
+<a href="{{ path('residents_hr_residentphotos', { 'action': 'new', 'id': '' }) }}">Add new photo</a>
+{% if photos is defined and photos|length and images is defined and images|length %}
+<br><br>Photos:<br>
+	{% for k,p in photos %}
+		{% if images[k] is defined and images[k]|length %}
+		<div>
+		Created on {{ p.createdOn|date('d/m/Y H:i') }}
+			<div tabindex="0" class="onclick-menu">
+				<ul class="onclick-menu-content">
+					<li><button name="onclickmenu" question="Are you sure you want to delete this photo?" data-url="{{ path('timesheet_ajax_residentphoto') }}" base-div="" data-action="delete" data-location="{{ p.id }}" data-timestamp="">Delete</button></li>
+					<li><button name="onclickmenu" data-url="{{ path('timesheet_ajax_residentphoto') }}" base-div="" data-action="edit" data-location="{{ p.id }}" data-timestamp="">Edit</button></li>
+				</ul>
+			</div>
+		<div class="photoThumbnail" data-userid="{{ p.residentId }}" data-photoid="{{ p.id }}" data-func="resident">
+			<img alt="Photo {{ k }}" src="data:image/{{ images[k]['type'] }};base64,{{ images[k]['photo'] }}" width="{{ images[k]['width'] }}" height="{{ images[k]['height'] }}">
+		</div>
+		{% if p.notes is defined and p.notes|length %}
+		Notes:{{ p.notes }}
+		{% endif %}
+		</div><br>
+		{% endif %}
+	{% endfor %}
+<input type="hidden" id="photoThumbnail" data-url="{{ path('timesheet_ajax_photo') }}">
+{% else %}
+<br><br><b>No photo uploaded</b>
+{% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -11,7 +11,7 @@
 {% if pageRefresh is defined and pageRefresh|length and pageRefresh > 0 %}
 	<meta http-equiv="refresh" content="{{ pageRefresh }}">
 {% else %}
-	<meta http-equiv="refresh" content="3600; {{ path('timesheet_hr_homepage') }}">
+	<meta http-equiv="refresh" content="86400; {{ path('timesheet_hr_homepage') }}">
 {% endif %}
 </head>
 <body>

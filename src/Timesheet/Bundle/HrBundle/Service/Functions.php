@@ -21,17 +21,23 @@ use \DateTime;
 use \DateTimeZone;
 use Symfony\Component\Validator\Constraints\IsNull;
 use Timesheet\Bundle\HrBundle\Entity\TimesheetCheck;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Timesheet\Bundle\HrBundle\Entity\ResidentPlacements;
+use DoctrineExtensions\Query\Mysql\DateDiff;
 
 
 class Functions extends ContainerAware
 {
 	
 	protected $doctrine;
+	protected $requestStack;
 	public $link_length = 50;
 	
 	
-	public function __construct($doctrine) {
+	
+	public function __construct($doctrine, RequestStack $requestStack) {
 		$this->doctrine = $doctrine;
+		$this->requestStack = $requestStack;
 	}
 
 	
@@ -48,11 +54,10 @@ class Functions extends ContainerAware
 			->orderBy('i.timestamp', 'DESC')
 			->setParameter('userId', $userId)
 			->setMaxResults(1);
-// error_log('qb');
+
 		$query=$qb->getQuery();
-// error_log('query');
 		$result=$query->getArrayResult();
-// error_log('result:'.print_r($result, true));		
+	
 		if ($result && count($result)==1) {
 			return $result[0]['name'];
 		} else {
@@ -61,88 +66,590 @@ class Functions extends ContainerAware
 	}
 	
 	
-	public function getUsersList($id=null, $name=null, $all=false, $groupId=null, $qualificationId=null, $locationId=null, $extra=true, $domainId=null, $request) {
+	public function getUsersList($userId=null, $name=null, $all=false, $groupId=null, $qualificationId=null, $locationId=null, $extra=true, $domainId=null) {
+		
+		$request=$this->requestStack->getCurrentRequest();
+		$users=array();
+		$em=$this->doctrine->getManager();
+		$qb=$em
+			->createQueryBuilder()
+			->select('u.id')
 
-		$conn=$this->doctrine->getConnection();
-		 
-		$query='SELECT SQL_CALC_FOUND_ROWS'.
-			' `u`.`id`,'.
-			' `u`.`isActive`,'.
-			' `u`.`username`,'.
-			' `u`.`title`,'.
-			' `u`.`firstName`,'.
-			' `u`.`lastName`,'.
-			' `u`.`email`,'.
-			' `u`.`lastTime`,'.
-			' `u`.`groupAdmin`,'.
-			' `u`.`locationAdmin`,'.
-			' `u`.`domainId`,'.
-			' `g`.`Name` as `groupname`,'.
-			' `l`.`Name` as `locationname`,'.
-			' `s`.`Name` as `statusname`,'.
-			' `s`.`color`'.
-			' FROM `Users` `u`'.
-				' LEFT JOIN `Groups` `g` ON `u`.`groupId`=`g`.`id`'.
-				' LEFT JOIN `Location` `l` ON `u`.`locationId`=`l`.`id`'.
-				' LEFT JOIN `Status` `s` ON `u`.`lastStatus`=`s`.`id`'.
-				' LEFT JOIN `UserQualifications` `uq` ON `u`.`id`=`uq`.`userId`'.
-			' WHERE 1'.
-				(($id)?(' AND `u`.`id`=:uId'):('')).
-				(($domainId)?(' AND `u`.`domainId`=:dId'):('')).
-				(($name)?(' AND (`u`.`username` LIKE "%'.$name.'%" OR `u`.`firstName` LIKE "%'.$name.'%" OR `u`.`lastName` LIKE "%'.$name.'%")'):('')).
-				(($groupId)?(' AND `g`.`id`=:gId'):('')).
-				(($qualificationId)?(' AND `uq`.`qualificationId`=:qId'):('')).
-				(($locationId)?(' AND (`l`.`id`=:lId OR `l`.`id` IS NULL)'):('')).
-			' GROUP BY `u`.`id`'.
-			' ORDER BY `u`.`username`'.
-			(($all)?(''):(' LIMIT 30'));
-// error_log($query);
-		$stmt=$conn->prepare($query);
-		if ($id) {
-// error_log('userId:'.$id);
-			$stmt->bindValue('uId', $id);
+			->from('TimesheetHrBundle:User', 'u')
+			->leftJoin('TimesheetHrBundle:Groups', 'g', 'WITH', 'u.groupId=g.id')
+			->leftJoin('TimesheetHrBundle:Location', 'l', 'WITH', 'u.locationId=l.id')
+			->leftJoin('TimesheetHrBundle:Status', 's', 'WITH', 'u.lastStatus=s.id')
+			->leftJoin('TimesheetHrBundle:UserQualifications', 'uq', 'WITH', 'u.id=uq.userId')
+			
+			->where('u.id>0')
+			->groupBy('u.id')
+			->orderBy('u.username', 'ASC');
+
+		if ($userId) {
+			$qb->andWhere('u.id=:uId')
+				->setParameter('uId', $userId);
 		}
 		if ($domainId) {
-// error_log('domainId:'.$domainId);
-			$stmt->bindValue('dId', $domainId);
+			$qb->andWhere('u.domainId=:dId')
+				->setParameter('dId', $domainId);
 		}
 		if ($groupId) {
-// error_log('groupId:'.$groupId);
-			$stmt->bindValue('gId', $groupId);
+			$qb->andWhere('u.groupId=:gId')
+				->setParameter('gId', $groupId);
 		}
 		if ($qualificationId) {
-// error_log('qualificationId:'.$qualificationId);
-			$stmt->bindValue('qId', $qualificationId);
+			$qb->andWhere('uq.qualificationId=:qId')
+				->setParameter('qId', $qualificationId);
 		}
 		if ($locationId) {
-// error_log('locationId:'.$locationId);
-			$stmt->bindValue('lId', $locationId);
+			$qb->andWhere('u.locationId=:lId')
+				->setParameter('lId', $locationId);
 		}
-		$stmt->execute();
+		if ($name) {
+			$qb->andWhere('u.username LIKE :name OR u.firstName LIKE :name OR u.lastName LIKE :name')
+				->setParameter(':name', '%'.$name.'%');
+		}
+		
+		$query=$qb->getQuery();
+		$results=$query->getArrayResult();
 
-		$users=$stmt->fetchAll();
+		if ($results && count($results)) { 
+			$found=count($results);
 
-		$query='SELECT FOUND_ROWS() as `found`';
-		$stmt=$conn->prepare($query);
-		$stmt->execute();
+			$qb->addSelect('u.isActive')
+				->addSelect('u.username')
+				->addSelect('u.title')
+				->addSelect('u.firstName')
+				->addSelect('u.lastName')
+				->addSelect('u.email')
+				->addSelect('u.lastTime')
+				->addSelect('u.groupAdmin')
+				->addSelect('u.locationAdmin')
+				->addSelect('u.domainId')
+				->addSelect('g.name as groupname')
+				->addSelect('l.name as locationname')
+				->addSelect('s.name as statusname')
+				->addSelect('s.color');
 			
-		$found=$stmt->fetch();
+			if (!$all) {
+				$qb->setMaxResults(30);
+			}
+
+			$query=$qb->getQuery();
+			$users=$query->getArrayResult();
+				
+		} else {
+			$found=0;
+		}
 		
 		if ($users && $extra) {
 			foreach ($users as $k=>$v) {
 				$users[$k]['contracts']=$this->getContracts($v['id']);
 				$users[$k]['timings']=$this->getTimings($v['id'], true);
 				$users[$k]['userqualifications']=$this->getQualifications($v['id'], true);
-				$users[$k]['holidays']=$this->getHolidayEntitlement($v['id'], $request);
-// error_log('user:'.print_r($users[$k]['qualifications'], true));
+				$users[$k]['holidays']=$this->getHolidayEntitlement($v['id']);
+				$users[$k]['photos']=$this->getUserPhotos($v['id'], $domainId, false, true, 50);
+				$users[$k]['visas']=$this->getUserVisas($v['id']);
 			}
 			
-			$users[-1]['found']=$found['found'];
+			$users[-1]['found']=$found;
 		}
-// error_log('users:'.print_r($users, true));		
+		
 		return $users;
 	}
 	
+	
+	public function getUserVisas($userId) {
+error_log('getUserVisas');
+		if ($userId) {
+			$em=$this->doctrine->getManager();
+			$qb=$em
+				->createQueryBuilder()
+				->select('uv.id')
+				->addSelect('uv.startDate')
+				->addSelect('uv.endDate')
+				->addSelect('uv.notExpire')
+				->addSelect('uv.createdOn')
+				->addSelect('uv.notes')
+				->addSelect('v.title')
+				->from('TimesheetHrBundle:UserVisas', 'uv')
+				->join('TimesheetHrBundle:Visa', 'v', 'WITH', 'v.id=uv.visaId')
+				->where('uv.userId=:uId')
+				->orderBy('uv.notExpire', 'DESC')
+				->addOrderBy('uv.endDate', 'DESC')
+				->setParameter('uId', $userId);
+				
+			$query=$qb->getQuery();
+			// error_log('query:'.$query->getDql());
+			return $query->getArrayResult();
+		}
+		return null;
+	}
+
+	
+	public function getVisaList($domainId) {
+		$em=$this->doctrine->getManager();
+		$qb=$em
+			->createQueryBuilder()
+			->select('v.id')
+			->addSelect('v.title')
+			->from('TimesheetHrBundle:Visa', 'v')
+			->where('v.active=1')
+			->orderBy('v.title', 'ASC');
+		
+		$query=$qb->getQuery();
+		// error_log('query:'.$query->getDql());
+		$results=$query->getArrayResult();
+		$ret=array();
+		if ($results && count($results)) {
+			foreach ($results as $r) {
+				$ret[$r['id']]=$r['title'];
+			}
+		}
+		return $ret;		
+	}
+	
+	
+	public function getUserPhotos($userId=null, $domainId=null, $all=false, $resize=false, $newSize=80, $photoId=null) {
+error_log('getUserPhotos');
+		if ($userId || $domainId) {
+			$em=$this->doctrine->getManager();
+			$qb=$em
+				->createQueryBuilder()
+				->select('up.id')
+				->addSelect('up.userId')
+				->addSelect('up.photo')
+				->addSelect('up.createdOn')
+				->addSelect('up.notes')
+				->addSelect('up.type')
+				->from('TimesheetHrBundle:UserPhotos', 'up')
+				->join('TimesheetHrBundle:User', 'u', 'WITH', 'u.id=up.userId')
+				->where('up.id>0')
+				->orderBy('up.createdOn', 'DESC');
+			
+			if ($domainId) {
+				$qb->andWhere('u.domainId=:dId')
+					->setParameter('dId', $domainId);
+			}
+			if ($userId) {
+				$qb->andWhere('up.userId=:uId')
+					->setParameter('uId', $userId);
+			}
+			if ($photoId) {
+				$qb->andWhere('up.id=:pId')
+					->setParameter('pId', $photoId);
+			}
+			if (!$all) {
+				$qb->setMaxResults(1);
+			}
+			$query=$qb->getQuery();
+// error_log('query:'.$query->getDql());
+			$results=$query->getArrayResult();
+// error_log('results no:'.count($results));
+			foreach ($results as $k=>$v) {
+				$imgData=stream_get_contents($v['photo']);
+				$size=@getimagesizefromstring($imgData);
+				$results[$k]['origWidth']=$size[0];
+				$results[$k]['origHeight']=$size[1];
+				if ($resize) {
+					$data=$this->photoResize($imgData, $newSize);
+// error_log('size: '.strlen($imgData).' == '.strlen($data['photo']));
+					if (!is_null($data['photo'])) {
+						$results[$k]['photo']=base64_encode($data['photo']);
+						$results[$k]['width']=$data['width'];
+						$results[$k]['height']=$data['height'];
+						$results[$k]['type']=$data['type'];
+// error_log('resize, width:'.$data['width'].', height:'.$data['height']);
+					} else {
+						$results[$k]['photo']=base64_encode($imgData);
+						$results[$k]['width']=$data['width'];
+						$results[$k]['height']=$data['height'];
+					}
+				} else {
+					$size=@getimagesizefromstring($imgData);
+					$results[$k]['photo']=base64_encode($imgData);
+					$results[$k]['width']=$size[0];
+					$results[$k]['height']=$size[1];
+// error_log('no resize, sizes:'.print_r($size, true));
+				}
+
+			}
+			return $results; 
+		}
+		return null;
+	}
+	
+	
+	public function getResidentPhotos($residentId=null, $domainId=null, $all=false, $resize=false, $newSize=80, $photoId=null) {
+error_log('getUserPhotos');
+		if ($residentId || $domainId) {
+			$em=$this->doctrine->getManager();
+			$qb=$em
+				->createQueryBuilder()
+				->select('rp.id')
+				->addSelect('rp.residentId')
+				->addSelect('rp.photo')
+				->addSelect('rp.createdOn')
+				->addSelect('rp.notes')
+				->addSelect('rp.type')
+				->from('TimesheetHrBundle:ResidentPhotos', 'rp')
+				->join('TimesheetHrBundle:Residents', 'r', 'WITH', 'r.id=rp.residentId')
+				->where('rp.id>0')
+				->orderBy('rp.createdOn', 'DESC');
+			
+			if ($domainId) {
+				$qb->andWhere('r.domainId=:dId')
+					->setParameter('dId', $domainId);
+			}
+			if ($residentId) {
+				$qb->andWhere('rp.residentId=:rId')
+					->setParameter('rId', $residentId);
+			}
+			if ($photoId) {
+				$qb->andWhere('rp.id=:pId')
+					->setParameter('pId', $photoId);
+			}
+			if (!$all) {
+				$qb->setMaxResults(1);
+			}
+			$query=$qb->getQuery();
+// error_log('query:'.$query->getDql());
+			$results=$query->getArrayResult();
+// error_log('results no:'.count($results));
+			foreach ($results as $k=>$v) {
+				$imgData=stream_get_contents($v['photo']);
+				$size=@getimagesizefromstring($imgData);
+				$results[$k]['origWidth']=$size[0];
+				$results[$k]['origHeight']=$size[1];
+				if ($resize) {
+					$data=$this->photoResize($imgData, $newSize);
+// error_log('size: '.strlen($imgData).' == '.strlen($data['photo']));
+					if (!is_null($data['photo'])) {
+						$results[$k]['photo']=base64_encode($data['photo']);
+						$results[$k]['width']=$data['width'];
+						$results[$k]['height']=$data['height'];
+						$results[$k]['type']=$data['type'];
+// error_log('resize, width:'.$data['width'].', height:'.$data['height']);
+					} else {
+						$results[$k]['photo']=base64_encode($imgData);
+						$results[$k]['width']=$data['width'];
+						$results[$k]['height']=$data['height'];
+					}
+				} else {
+					$size=@getimagesizefromstring($imgData);
+					$results[$k]['photo']=base64_encode($imgData);
+					$results[$k]['width']=$size[0];
+					$results[$k]['height']=$size[1];
+// error_log('no resize, sizes:'.print_r($size, true));
+				}
+
+			}
+			return $results; 
+		}
+		return null;
+	}
+	
+	
+	public function photoResize($imgData, $newSize=null) {
+		
+		$data=array('photo'=>null, 'width'=>null, 'height'=>null);
+		
+		$ok=false;
+		try {
+			$img=@imagecreatefromstring($imgData);
+			$size=@getimagesizefromstring($imgData);
+			$ok=true;
+		} catch (\Exception $e) {
+			error_log('Exception:'.$e->getMessage());
+		}
+			
+		if ($ok && isset($size[1])) {
+			$width=$size[0];
+			$height=$size[1];
+			$ratio1=$width/$height;
+			$ratio2=$height/$width;
+			if ($newSize && ($width>$height && $width>$newSize) || ($width<$height && $height>$newSize)) {
+				if ($width<$height && $height>$newSize) {
+					$newWidth=(int)round($newSize*$ratio1);
+					$newHeight=$newSize;
+				} else {
+					$newWidth=$newSize;
+					$newHeight=(int)round($newSize*$ratio2);
+				}
+				$newImg=imagecreatetruecolor($newWidth, $newHeight);
+				$r=imagecopyresampled($newImg, $img, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
+				if ($r) {
+					ob_start();
+					imagepng($newImg);
+					$data['photo']=ob_get_clean();
+					$data['type']='png';
+				} else {
+					error_log('Error resizing image');
+				}
+			} else {
+				$newWidth=$width;
+				$newHeight=$height;
+			}
+			$data['width']=$newWidth;
+			$data['height']=$newHeight;
+		}
+
+		if (isset($img)) {
+			imagedestroy($img);
+		
+		}
+		if (isset($newImg)) {
+			imagedestroy($newImg);
+		}
+
+		return $data;
+	}
+	
+
+	public function getResidentContacts($residentId=null, $domainId=null) {
+		error_log('getResidentContacts');
+		if ($residentId || $domainId) {
+			$em=$this->doctrine->getManager();
+			$qb=$em
+			->createQueryBuilder()
+			->select('rc.id')
+			->addSelect('rc.residentId')
+			->addSelect('rc.title')
+			->addSelect('rc.firstName')
+			->addSelect('rc.lastName')
+			->addSelect('rc.relation')
+			->addSelect('rc.addressLine1')
+			->addSelect('rc.addressLine2')
+			->addSelect('rc.addressCity')
+			->addSelect('rc.addressCounty')
+			->addSelect('rc.addressCountry')
+			->addSelect('rc.addressPostcode')
+			->addSelect('rc.phoneMobile')
+			->addSelect('rc.phoneLandline')
+			->addSelect('rc.phoneOther')
+			->addSelect('rc.preferredPhone')
+			->addSelect('rc.email')
+			->addSelect('rc.emergency')
+			->from('TimesheetHrBundle:ResidentContacts', 'rc')
+			->join('TimesheetHrBundle:Residents', 'r', 'WITH', 'r.id=rc.residentId')
+			->where('rc.id>0')
+			->orderBy('rc.emergency', 'DESC')
+			->orderBy('rc.lastName', 'ASC');
+	
+			if ($domainId) {
+				$qb->andWhere('r.domainId=:dId')
+				->setParameter('dId', $domainId);
+			}
+			if ($residentId) {
+				$qb->andWhere('rc.residentId=:rId')
+				->setParameter('rId', $residentId);
+			}
+			$query=$qb->getQuery();
+			// error_log('query:'.$query->getDql());
+			return $query->getArrayResult();
+		}
+		return null;
+	}
+
+	
+	public function getRooms($domainId=null, $all=false, $nameOnly=false, $except=null) {
+error_log('getRooms');
+		$em=$this->doctrine->getManager();
+		$qb=$em
+			->createQueryBuilder()
+			->select('r.roomNumber')
+			->addSelect('r.id')
+			->addSelect('l.name')
+			->from('TimesheetHrBundle:Rooms', 'r')
+			->join('TimesheetHrBundle:Location', 'l', 'WITH', 'l.id=r.locationId')
+			->where('r.id>0')
+			->orderBy('l.name', 'ASC')
+			->orderBy('r.roomNumber', 'ASC');
+	
+		if ($domainId) {
+			$qb->andWhere('l.domainId=:dId')
+			->setParameter('dId', $domainId);
+		}
+		if ($all) {
+			$qb->andWhere('r.active=true');
+		}
+		if ($except) {
+			$qb->andWhere('r.id!=:eId')
+				->setParameter('eId', $except);
+		}
+		if (!$nameOnly) {
+			$qb->addSelect('r.notes')
+				->addSelect('r.places')
+				->addSelect('r.extraPlaces')
+				->addSelect('r.open')
+				->addSelect('r.active')
+				->addSelect('r.locationId');		
+		}
+		$query=$qb->getQuery();
+		// error_log('query:'.$query->getDql());
+		if ($nameOnly) {
+			$rooms=array();
+			$results=$query->getArrayResult();
+			if ($results && count($results)) {
+				foreach ($results as $r) {
+					$rooms[$r['id']]=$r['roomNumber'].' - '.$r['name'];
+				}
+			}
+			return $rooms;
+			
+		} else {
+			return $query->getArrayResult();
+		}
+	}
+
+	
+	public function getResidentLocation($residentId, $date) {
+		if ($residentId) {
+			$em=$this->doctrine->getManager();
+			$qb=$em->createQueryBuilder();
+			$qb
+				->select('rm.id')
+				->addSelect('rm.roomNumber')
+				->addSelect('l.name')
+				->from('TimesheetHrBundle:ResidentPlacements', 'rp')
+				->join('TimesheetHrBundle:Rooms', 'rm', 'WITH', 'rm.id=rp.roomId')
+				->join('TimesheetHrBundle:Location', 'l', 'WITH', 'l.id=rm.locationId')
+				->where('rp.residentId=:rId')
+				->andWhere($qb->expr()->isNull('rp.moveOut'))
+//				->andWhere('rp.moveOut=null or rp.movOut>:date')
+				->orderBy('rp.moveIn', 'DESC')
+//				->setParameter('date', $date->format('Y-m-d'))
+				->setParameter('rId', $residentId)
+				->setMaxResults(1);
+				
+			$query=$qb->getQuery();
+			// error_log('query:'.$query->getDql());
+			$results=$query->getArrayResult();
+			if ($results && count($results)) {
+				$result=reset($results);
+			
+				return $result;
+			}			
+		}
+		return null;
+	}
+	
+	
+	public function getLatestRoom($residentId) {
+error_log('getLatestRoom');
+		if ($residentId) {
+			$em=$this->doctrine->getManager();
+			$qb=$em
+				->createQueryBuilder()
+				->select('rm.id')
+				->addSelect('rm.roomNumber')
+				->addSelect('rm.notes as roomNotes')
+				->addSelect('rm.places')
+				->addSelect('rm.extraPlaces')
+				->addSelect('rm.open')
+				->addSelect('rm.active')
+				->addSelect('rm.locationId')
+				->addSelect('rp.notes')
+				->addSelect('rp.moveIn')
+				->addSelect('rp.moveOut')
+				->addSelect('l.name')
+				->from('TimesheetHrBundle:ResidentPlacements', 'rp')
+				->join('TimesheetHrBundle:Rooms', 'rm', 'WITH', 'rm.id=rp.roomId')
+				->join('TimesheetHrBundle:Location', 'l', 'WITH', 'l.id=rm.locationId')
+				->where('rp.residentId=:rId')
+				->orderBy('rp.moveIn', 'DESC')
+				->setMaxResults(1)
+				->setParameter('rId', $residentId);
+					
+			$query=$qb->getQuery();
+	// error_log('query:'.$query->getDql());
+			return $query->getArrayResult();
+		} else {
+			return array();
+		}
+	}
+	
+	
+	public function setResidentMoveIn($residentId, $roomId, $date, $notes, $userId, $currentRoomId=null) {
+error_log('setResidentMoveIn');
+		$em=$this->doctrine->getManager();		
+		$room=new ResidentPlacements();
+		$room->setResidentId($residentId);
+		$room->setRoomId($roomId);
+		$room->setMoveIn($date);
+		$room->setCreatedOn(new \DateTime());
+		$room->setCreatedBy($userId);
+		$room->setNotes(''.$notes);
+		
+		$em->persist($room);
+		$em->flush($room);
+			
+		if ($room->getId()) {
+				
+			if ($currentRoomId) {
+				return $this->setResidentMoveOut($residentId, $currentRoomId, $date, $userId);
+			}
+			return true;
+		}
+		return false;
+	}
+	
+
+	public function setResidentMoveOut($residentId, $currentRoomId, $date, $notes, $userId) {
+error_log('setResidentMoveOut');
+		$em=$this->doctrine->getManager();		
+		$rooms=$this->doctrine
+			->getRepository('TimesheetHrBundle:ResidentPlacements')
+			->findBy(array('residentId'=>$residentId, 'roomId'=>$currentRoomId, 'moveOut'=>null));
+					
+		if ($rooms && count($rooms)) {
+			foreach ($rooms as $room) {
+				$room->setMoveOut($date);
+				$room->setMoveOutNotes(''.$notes);
+				$room->setModifiedOn(new \DateTime());
+				$room->setModifiedBy($userId);
+	
+				$em->flush($room);
+			}
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	
+	public function getResidentHistory($residentId, $domainId) {
+error_log('getResidentHistory');
+		if ($residentId) {
+			$em=$this->doctrine->getManager();
+			$qb=$em
+				->createQueryBuilder()
+				->select('rm.id')
+				->addSelect('rm.roomNumber')
+				->addSelect('rm.notes as roomNotes')
+				->addSelect('rm.locationId')
+				->addSelect('rp.notes')
+				->addSelect('rp.moveIn')
+				->addSelect('rp.moveOut')
+				->addSelect('l.name')
+				->from('TimesheetHrBundle:Residents', 'r')
+				->join('TimesheetHrBundle:ResidentPlacements', 'rp', 'WITH', 'r.id=rp.residentId')
+				->join('TimesheetHrBundle:Rooms', 'rm', 'WITH', 'rm.id=rp.roomId')
+				->join('TimesheetHrBundle:Location', 'l', 'WITH', 'l.id=rm.locationId')
+				->where('r.id=:rId')
+				->andWhere('r.domainId=:dId')
+				->orderBy('rp.moveIn', 'DESC')
+				->addOrderBy('rp.createdOn', 'DESC')
+				->setParameter('rId', $residentId)
+				->setParameter('dId', $domainId);
+				
+			$query=$qb->getQuery();
+			// error_log('query:'.$query->getDql());
+			return $query->getArrayResult();
+		} else {
+			return array();
+		}
+	}
 	
 	public function getShifts($id=null, $userId=null, $locationId=null, $domainId=null) {
 /*
@@ -369,36 +876,39 @@ error_log('getMembers');
 		 * read the qualifications table by name
 		 */
 		
-		$conn=$this->doctrine->getConnection();
+		$em=$this->doctrine->getManager();
 		 
-		$query='SELECT'.
-			(($userId && $full)?(
-				' `uq`.`id` as `uqId`,'.
-				' `uq`.`comments`,'.
-				' `uq`.`achievementDate`,'.
-				' `uq`.`expiryDate`,'):('')).
-			' `q`.`id`,'.
-			' `q`.`title`'.
-			' FROM `Qualifications` `q`'.
-			(($userId)?(
-				' JOIN `UserQualifications` `uq` ON `q`.`id`=`uq`.`qualificationId`'.
-			' WHERE `uq`.`userId`=:uId'):(' WHERE 1')).
-			(($domainId)?(' AND `q`.`domainId`=:dId'):('')).
-			(($userId)?(' GROUP BY `q`.`id`'):('')).
-			' ORDER BY `q`.`title`'.
-			(($userId)?(', `uq`.`achievementDate`'):(''));
-// error_log($query);
-		$stmt=$conn->prepare($query);
+		$qb=$em
+			->createQueryBuilder()
+			->select('q.id')
+			->addSelect('q.title')
+			->from('TimesheetHrBundle:Qualifications', 'q')
+			->orderBy('q.title', 'ASC');
+			
+		if ($userId && $full) {
+			$qb->addSelect('uq.id as uqId')
+				->addSelect('uq.comments')
+				->addSelect('uq.achievementDate')
+				->addSelect('uq.expiryDate')
+				->addSelect('uq.levelId');
+		}
 		if ($userId) {
-			$stmt->bindValue('uId', $userId);
+			$qb->addSelect('ql.level')
+				->join('TimesheetHrBundle:UserQualifications', 'uq', 'WITH', 'q.id=uq.qualificationId')
+				->leftJoin('TimesheetHrBundle:QualificationLevels', 'ql', 'WITH', 'uq.levelId=ql.id')
+				->andWhere('uq.userId=:uId')
+				->groupBy('q.id')
+				->addOrderBy('uq.achievementDate', 'ASC')
+				->setParameter('uId', $userId);
 		}
 		if ($domainId) {
-// error_log('domain:'.$domainId);
-			$stmt->bindValue('dId', $domainId);
+			$qb->andWhere('q.domainId=:dId')
+				->setParameter('dId', $domainId);
 		}
-		$stmt->execute();
-		$results=$stmt->fetchAll();
 		
+		$query=$qb->getQuery();
+		$results=$query->getArrayResult();
+
 		$arr=array();
 		if ($results && !$full) {
 			foreach ($results as $result) {
@@ -406,6 +916,35 @@ error_log('getMembers');
 			}
 		} else {
 			$arr=$results;
+		}
+// error_log('arr:'.print_r($arr, true));	
+		return $arr;
+	}
+	
+	
+	public function getQualificationLevels() {
+		/*
+		 * read the qualification levels table by rank
+		 */
+		
+		$em=$this->doctrine->getManager();
+		 
+		$qb=$em
+			->createQueryBuilder()
+			->select('ql.id')
+			->addSelect('ql.level')
+			->from('TimesheetHrBundle:QualificationLevels', 'ql')
+			->orderBy('ql.rank', 'ASC');
+			
+		
+		$query=$qb->getQuery();
+		$results=$query->getArrayResult();
+		
+		$arr=array();
+		if ($results && count($results)) {
+			foreach ($results as $result) {
+				$arr[$result['id']]=$result['level'];
+			}
 		}
 	
 		return $arr;
@@ -451,6 +990,124 @@ error_log('getMembers');
 	}
 	
 	
+	public function getStatusColors() {
+	
+		$arr=array();
+		$arr['000000']='Black';
+		$arr['ff0000']='Light Red';
+		$arr['880000']='Red';
+		$arr['00ff00']='Light Green';
+		$arr['008800']='Green';
+		$arr['0000ff']='Light Blue';
+		$arr['000088']='Blue';
+		$arr['800080']='Purple';
+		$arr['ff00ff']='Magenta';
+		$arr['ffd700']='Gold';
+		$arr['ffff00']='Yellow';
+		$arr['ffa500']='Orange';
+	
+		return $arr;
+	}
+	
+	public function getStatusLevels() {
+	
+		$arr=array();
+		$arr[0]='Punch in/out';
+		$arr[1]='Other';
+	
+		return $arr;
+	}
+	
+	
+	public function getStatuses($id=null) {
+		 
+		$statuses=array();
+		$first=null;
+		 
+		$em=$this->doctrine->getManager();
+		$qb=$em
+			->createQueryBuilder()
+			->select('s.id')
+			->addSelect('s.start')
+			->addSelect('s.name')
+			->addSelect('s.active')
+			->addSelect('s.level')
+			->addSelect('s.multi')
+			->addSelect('s.color')
+			->addSelect('s.pair')
+			->from('TimesheetHrBundle:Status', 's')
+			->orderBy('s.id', 'ASC');
+			
+		if ($id) {
+			$qb->where('s.id=:id OR s.pair=:id')
+				->setParameter('id', $id);
+		}
+		$query=$qb->getQuery();
+	
+		$results=$query->getArrayResult();
+	
+		if ($results) {
+			$statusColors=$this->getStatusColors();
+			$statusLevels=$this->getStatusLevels();
+			 
+			foreach ($results as $result) {
+				if ($result['start']) {
+					$first=$result['id'];
+					$statuses[$result['id']]=array(
+						'id'=>$result['id'],
+						'nameStart'=>$result['name'],
+						'nameFinish'=>'',
+						'active'=>$result['active'],
+						'activeName'=>$result['active']?'Active':'Inactive',
+						'level'=>$result['level'],
+						'levelName'=>$statusLevels[$result['level']],
+						'multi'=>$result['multi'],
+						'color'=>$result['color'],
+						'colorName'=>$statusColors[$result['color']]
+					);
+					if (!isset($statuses[$result['id']]['domains'])) {
+						$statuses[$result['id']]['domains']=$this->getSelectedCompanies($result['id']);
+					}
+				} else {
+					$statuses[$result['pair']]['nameFinish']=$result['name'];
+				}
+			}
+		}
+		 
+		if ($id) {
+			return $statuses[$first];
+		}
+	
+		return $statuses;
+	}
+
+	
+	public function getSelectedCompanies($statusId) {
+		
+		$em=$this->doctrine->getManager();
+		$qb=$em
+			->createQueryBuilder()
+			->select('std.domainId')
+			->from('TimesheetHrBundle:StatusToDomain', 'std')
+			->where('std.statusId=:sId')
+			->orderBy('std.domainId', 'ASC')
+			->groupBy('std.domainId')
+			->setParameter('sId', $statusId);
+		
+		$query=$qb->getQuery();
+		$results=$query->getArrayResult();
+		
+		$ret=array();
+		if ($results && count($results)) {
+			foreach ($results as $result) {
+				$ret[]=$result['domainId'];
+			}
+		}
+
+		return $ret;
+	}
+	
+	
 	public function getCompanies() {
 		/*
 		 * get all the company names
@@ -459,7 +1116,7 @@ error_log('getMembers');
 			->getRepository('TimesheetHrBundle:Companies')
 			->findBy(
 				array(),
-				array('domain'=>'ASC')
+				array('companyname'=>'ASC')
 		);
 		
 		$ret=array();
@@ -592,7 +1249,7 @@ error_log('getMembers');
 		
 		
 		$query=$qb->getQuery();
-error_log('query:'.$query->getDql());
+// error_log('query:'.$query->getDql());
 		$results=$query->getArrayResult();
 
 		$arr=array();
@@ -687,8 +1344,29 @@ error_log('query:'.$query->getDql());
 	public function getQualRequirementsForShift($sId) {
 		$ret=array();
 	
-		$conn=$this->doctrine->getConnection();
+		$em=$this->doctrine->getManager();
 			
+		$qb=$em
+			->createQueryBuilder()
+			->select('qr.id')
+			->addSelect('qr.qualificationId')
+			->addSelect('qr.numberOfStaff')
+			->addSelect('s.startTime')
+			->addSelect('s.finishTime')
+			->addSelect('q.title as name')
+			->addSelect('qr.levelId')
+			->addSelect('ql.level')
+			->from('TimesheetHrBundle:QualRequirements', 'qr')
+			->join('TimesheetHrBundle:Qualifications', 'q', 'WITH', 'qr.qualificationId=q.id')
+			->join('TimesheetHrBundle:Shifts', 's', 'WITH', 'qr.shiftId=s.id')
+			->leftJoin('TimesheetHrBundle:QualificationLevels', 'ql', 'WITH', 'qr.levelId=ql.id')
+			->where('qr.shiftId=:sId')
+			->orderBy('q.title', 'ASC')
+			->setParameter('sId', $sId);
+		
+		$query=$qb->getQuery();
+		$ret=$query->getArrayResult();
+/*		
 		$query='SELECT'.
 				' `qr`.`id`,'.
 				' `qr`.`qualificationId`,'.
@@ -707,7 +1385,7 @@ error_log('query:'.$query->getDql());
 		$stmt->execute();
 	
 		$ret=$stmt->fetchAll();
-	
+*/	
 		return $ret;
 	}
 	
@@ -797,17 +1475,20 @@ error_log('query:'.$query->getDql());
 	}
 	
 	
-	public function calculateHours(&$result, $domainId, $lunchtime=null, $minhoursforlunch=null) {
+	public function calculateHours(&$result, $domainId, $lunchtime=null, $minhoursforlunch=null, $withLunchtime=false) {
 	
-		if ($lunchtime == null) {
-			$lunchtime=$this->getConfig('lunchtimeUnpaid', $domainId);
+		if ($withLunchtime) {
+			$lunchtime=0;
+		} else {
+			if ($lunchtime == null) {
+				$lunchtime=$this->getConfig('lunchtimeUnpaid', $domainId);
+			}
 		}
 		if ($minhoursforlunch == null) {
 			$minhoursforlunch=$this->getConfig('minhoursforlunch');
 		}
 		 
 		if ($result['startTime'] && $result['finishTime']) {
-// error_log('times:'.print_r($result, true));
 			if (is_object($result['startTime'])) {
 				$minutes=round((strtotime($result['finishTime']->format('H:i:s'))-strtotime($result['startTime']->format('H:i:s')))/60);
 			} else {
@@ -826,8 +1507,9 @@ error_log('query:'.$query->getDql());
 	}
 	
 	
-	public function getHolidayEntitlement($userId = null, $request) {
-// error_log('getHolidayEntitlement');	
+	public function getHolidayEntitlement($userId = null) {
+// error_log('getHolidayEntitlement');
+		$request=$this->requestStack->getCurrentRequest();
 		$ret=array(
 			'yearstart'=>null,
 			`csd`=>null,
@@ -1243,37 +1925,7 @@ error_log('userId:'.$userId.', start:'.$startDate.', finish:'.$finishDate);
 			->setParameter('finishDate', $finishDate);
 		
 		
-		$ret=$qb->getQuery()->getResult();
-/*		
-		$query='SELECT'.
-			' `r`.`id`,'.
-			' `r`.`start`,'.
-			' `r`.`finish`,'.
-			' DATEDIFF(DATE(`r`.`finish`), DATE(`r`.`start`))+1 as `days`,'.
-			' `r`.`acceptedComment`,'.
-			' `r`.`comment`,'.
-			' `rt`.`name`,'.
-			' `rt`.`entitlement`,'.
-			' `rt`.`comment` as `typeComment`'.
-			' FROM `Requests` `r`'.
-				' JOIN `RequestType` `rt` ON `r`.`typeId`=`rt`.`id`'.
-			' WHERE `r`.`userId`=:uId'.
-				' AND `rt`.`fullday`'.
-				' AND `rt`.`paid`'.
-				' AND `r`.`accepted`>0'.
-				' AND ((DATE(`r`.`start`)<=:startDate AND DATE(`r`.`finish`)>=:startDate) OR (DATE(`r`.`start`)<=:finishDate AND DATE(`r`.`finish`)>=:finishDate) OR (DATE(`r`.`start`)>=:startDate AND DATE(`r`.`finish`)<=:finishDate))';
-// error_log($query);
-		$conn=$this->doctrine->getConnection();
-		$stmt=$conn->prepare($query);
-		$stmt->bindValue('uId', $userId);
-		$stmt->bindValue('startDate', $startDate);
-		$stmt->bindValue('finishDate', $finishDate);
-		$stmt->execute();
-		
-		$ret=$stmt->fetchAll();
-*/
-// error_log('ret:'.print_r($ret, true));		
-		return $ret;
+		return $qb->getQuery()->getResult();
 	}
 	
 	
@@ -1396,37 +2048,27 @@ error_log('userId:'.$userId.', start:'.$startDate.', finish:'.$finishDate);
 	
 	
 	public function removeUserFromSchedule($date, $locationId, $shiftId, $userId) {
-		
+error_log('removeUserFromSchedule');		
 		$message='Not allowed to remove';
-		if (!$this->isPublished($shiftId, $date)) {
-			$conn=$this->doctrine->getConnection();
-			$em=$this->doctrine->getManager();
-			
-			$query='SELECT'.
-				' `id`'.
-				' FROM `Allocation`'.
-				' WHERE `date`=:date'.
-					' AND `locationId`=:lId'.
-					' AND `shiftId`=:sId'.
-					' AND `userId`=:uId';
-			$stmt=$conn->prepare($query);
-			$stmt->bindValue('date', $date);
-			$stmt->bindValue('uId', $userId);
-			$stmt->bindValue('sId', $shiftId);
-			$stmt->bindValue('lId', $locationId);
-			$stmt->execute();
-		
-			$results=$stmt->fetchAll();
-	
-			if ($results && count($results) == 1) {
-				$result=$this->doctrine
-					->getRepository('TimesheetHrBundle:Allocation')
-					->findOneBy(array('id'=>$results[0]['id']));
-					
+		$em=$this->doctrine->getManager();
+
+		$results=$this->doctrine
+			->getRepository('TimesheetHrBundle:Allocation')
+			->findBy(
+				array(
+					'published'=>false,
+					'date'=>new \DateTime($date),
+					'locationId'=>$locationId,
+					'shiftId'=>$shiftId,
+					'userId'=>$userId
+				)
+			);
+		if ($results && count($results) == 1) {
+			foreach ($results as $result) {
 				$em->remove($result);
 				$em->flush();
-				$message='';
 			}
+			$message='';
 		}
 		
 		return $message;		
@@ -1447,7 +2089,7 @@ error_log('getAllocationList');
 			' `a`.`userId`,'.
 			' `a`.`published`,'.
 			' `g`.`name` as `groupname`,'.
-			' GROUP_CONCAT(DISTINCT `q`.`title` ORDER BY `q`.`title` SEPARATOR ",") as `qualifications`,'.
+			' GROUP_CONCAT(DISTINCT CONCAT_WS(" ", `q`.`title`, `ql`.`level`) ORDER BY `q`.`title` SEPARATOR "\n - ") as `qualifications`,'.
 			' `c`.`AWH`'.
 			' FROM `Allocation` `a`'.
 				' JOIN `Users` `u` ON `a`.`userId`=`u`.`id`'.
@@ -1457,6 +2099,7 @@ error_log('getAllocationList');
 				' LEFT JOIN `Shifts` `s` ON `l`.`id`=`s`.`locationId`'.
 				' LEFT JOIN (`UserQualifications` `uq`'.
 					' JOIN `Qualifications` `q` ON `uq`.`qualificationId`=`q`.`id`) ON `uq`.`userId`=`u`.`id`'.
+				' LEFT JOIN `QualificationLevels` `ql` ON `uq`.`levelId`=`ql`.`id`'.
 			' WHERE `a`.`date`=:date'.
 				' AND `a`.`locationId`=:lId'.
 				' AND `a`.`shiftId`=:sId'.
@@ -1504,7 +2147,7 @@ error_log('getAllocationDivs');
 				' `a`.`userId`,'.
 				' `a`.`published`,'.
 				' `g`.`name` as `groupname`,'.
-				' GROUP_CONCAT(DISTINCT `q`.`title` ORDER BY `q`.`title` SEPARATOR ",") as `qualifications`,'.
+				' GROUP_CONCAT(DISTINCT CONCAT_WS(" ", `q`.`title`, `ql`.`level`) ORDER BY `q`.`title` SEPARATOR "\n - ") as `qualifications`,'.
 				' `sr`.`numberOfStaff`'.
 			' FROM `Allocation` `a`'.
 				' JOIN `Users` `u` ON `a`.`userId`=`u`.`id`'.
@@ -1513,6 +2156,7 @@ error_log('getAllocationDivs');
 				' LEFT JOIN `Shifts` `s` ON `l`.`id`=`s`.`locationId`'.
 				' LEFT JOIN `StaffRequirements` `sr` ON `sr`.`shiftId`=`s`.`id` AND `sr`.`groupId`=`g`.`id`'.
 				' LEFT JOIN `UserQualifications` `uq` ON `uq`.`userId`=`u`.`id`'.
+				' LEFT JOIN `QualificationLevels` `ql` ON `uq`.`levelId`=`ql`.`id`'.
 				' LEFT JOIN `Qualifications` `q` ON `uq`.`qualificationId`=`q`.`id`'.
 			' WHERE 1'.
 			(($locationId)?(' AND `a`.`locationId`=:lId'):('')).
@@ -1547,7 +2191,7 @@ error_log('getAllocationDivs');
 	
 	
 	public function createAllocationDiv($count, $numberOfStaff, $username, $fullname, $groupname, $qualifications, $date, $locationId, $shiftId, $userId, $published = false) {
-
+error_log('createAllocationDiv');
 		return '<div class="'.
 				'allocation allocationNormal'.
 				'">'.
@@ -1559,7 +2203,7 @@ error_log('getAllocationDivs');
 						'</td>')
 					).
 					'<td>'.
-					'<span class="allocationName" title="'.(($published)?('Published'.PHP_EOL):('')).'Username: '.$username.((strlen($groupname))?(PHP_EOL.'Group: '.$groupname):('')).((strlen($qualifications))?(PHP_EOL.'Qualifications: '.$qualifications):('')).'">'.$fullname.'</span>'.
+					'<span class="allocationName" title="'.(($published)?('Published'.PHP_EOL):('')).'Username: '.$username.((strlen($groupname))?(PHP_EOL.'Group: '.$groupname):('')).((strlen($qualifications))?(PHP_EOL.'Qualifications:'.PHP_EOL.' - '.$qualifications):('')).'">'.$fullname.'</span>'.
 					'</td></tr></table>'.
 				'</div>';
 	}
@@ -1632,7 +2276,7 @@ error_log('getAllocationForLocation');
 			' `u`.`firstName`,'.
 			' `u`.`lastName`,'.
 			' `u`.`groupId`,'.
-			' GROUP_CONCAT(DISTINCT `q`.`id` ORDER BY `q`.`title` SEPARATOR "|") as `qualifications`,'.
+			' GROUP_CONCAT(DISTINCT CONCAT_WS("#", `q`.`id`, `ql`.`rank`) ORDER BY `q`.`title` SEPARATOR "|") as `qualifications`,'.
 			' `a`.`date`,'.
 			' `a`.`locationId`,'.
 			' `a`.`published`,'.
@@ -1645,7 +2289,7 @@ error_log('getAllocationForLocation');
 				' JOIN `Location` `l` ON `a`.`locationId`=`l`.`id`'.
 				' JOIN `Shifts` `s` ON `a`.`shiftId`=`s`.`id`'.
 				' LEFT JOIN `Groups` `g` ON `u`.`groupId`=`g`.`id`'.
-				' LEFT JOIN (`Qualifications` `q` JOIN `UserQualifications` `uq` ON `q`.`id`=`uq`.`qualificationId`) ON `uq`.`userId`=`u`.`id`'.
+				' LEFT JOIN (`Qualifications` `q` JOIN `UserQualifications` `uq` ON `q`.`id`=`uq`.`qualificationId` LEFT JOIN `QualificationLevels` `ql` ON `uq`.`levelId`=`ql`.`id`) ON `uq`.`userId`=`u`.`id`'.
 			' WHERE `a`.`date` BETWEEN :monday AND :sunday'.
 			(($locationId)?(' AND `a`.`locationId`=:lId'):('')).
 			' GROUP BY `a`.`id`'.
@@ -1680,26 +2324,33 @@ error_log('getAllocationForLocation');
 				$q=((strlen($r['qualifications']))?(explode('|', $r['qualifications'])):(array()));
 				if (count($q)) {
 					foreach ($q as $q1) {
-						if (!isset($qualificationMembers[$day][$r['shiftId']][$q1])) {
-							$qualificationMembers[$day][$r['shiftId']][$q1]=0;
+						$qTmp=explode('#', $q1);
+						if (!isset($qualificationMembers[$day][$r['shiftId']][$qTmp[0]]['number'])) {
+							$qualificationMembers[$day][$r['shiftId']][$qTmp[0]]['number']=0;
+							$qualificationMembers[$day][$r['shiftId']][$qTmp[0]]['rank']=0;
 						}
-						$qualificationMembers[$day][$r['shiftId']][$q1]++;
+						$qualificationMembers[$day][$r['shiftId']][$qTmp[0]]['number']++;
+						// if the level not specified, we'll use the lowest level =1
+						$qualificationMembers[$day][$r['shiftId']][$qTmp[0]]['rank']=((isset($qTmp[1]))?($qTmp[1]):(1));
 					}
 				}
 				
 			}
 		}
+		$staff=array();
+		$qual=array();
 // error_log('members:'.print_r($members, true));		
-		//
+/*
 		$staff=$this->getRequiredStaffList($staffMembers, $monday, $locationId);
 		$qual=$this->getRequiredQualificationsList($qualificationMembers, $monday, $locationId);
+*/
 		if (count($ret)) {
 			if ($divs) {
 				$rs=$this->createWeeklyDiv($ret, $monday, $sunday);				
-				if (count($staff)) {
+				if (isset($staff) && count($staff)) {
 					$rs='<div class="allocation allocationHigh">Required staff:<div name="showhide" id="rs_showhidebutton" column="req_staff_div">Show</div><div class="req_staff_div" id="rs_showhide" style="display: none">'.((count($staff))?(implode('<br>', $staff)):('')).'</div></div>'.$rs;
 				}
-				if (count($qual)) {
+				if (isset($qual) && count($qual)) {
 					$rs='<div class="allocation allocationHigh">Required qualifications:<div name="showhide" id="rq_showhidebutton" column="req_qual_div">Show</div><div class="req_qual_div" id="rq_showhide" style="display: none">'.((count($qual))?(implode('<br>', $qual)):('')).'</div></div>'.$rs;
 				}
 				return $rs;
@@ -1709,10 +2360,10 @@ error_log('getAllocationForLocation');
 		} else {
 			if ($divs) {
 				$rs='';
-				if (count($staff)) {
+				if (isset($staff) && count($staff)) {
 					$rs='<div class="allocation allocationHigh">Required staff:<br>'.((count($staff))?(implode('<br>', $staff)):('')).'</div>'.$rs;
 				}
-				if (count($qual)) {
+				if (isset($qual) && count($qual)) {
 					$rs='<div class="allocation allocationHigh">Required qualifications:<br>'.((count($qual))?(implode('<br>', $qual)):('')).'</div>'.$rs;
 				}
 				return $rs;
@@ -1736,19 +2387,25 @@ error_log('getRequiredQualificationsList');
 			->select('q.title')
 			->addSelect('qr.qualificationId')
 			->addSelect('qr.numberOfStaff')
+			->addSelect('qr.levelId')
+			->addSelect('ql.level')
+			->addSelect('ql.rank')
 			->addSelect('qr.shiftId')
 			->addSelect('sd.dayId')
 			->addSelect('s.title as shiftTitle')
 			->addSelect('s.startTime')
 			->addSelect('s.finishTime')
+			->addSelect('CASE WHEN (sd.dayId=0) THEN 7 ELSE sd.dayId END as orderby')
 			->from('TimesheetHrBundle:Qualifications', 'q')
 			->join('TimesheetHrBundle:QualRequirements', 'qr', 'WITH', 'q.id=qr.qualificationId')
 			->join('TimesheetHrBundle:Shifts', 's', 'WITH', 'qr.shiftId=s.id')
 			->join('TimesheetHrBundle:Location', 'l', 'WITH', 's.locationId=l.id')
 			->join('TimesheetHrBundle:ShiftDays', 'sd', 'WITH', 's.id=sd.shiftId')
+			->leftJoin('TimesheetHrBundle:QualificationLevels', 'ql', 'WITH', 'ql.id=qr.levelId')
 			->orderBy('q.title')
 			->addOrderBy('sd.dayId')
 //			->addOrderBy('IF(sd.dayId=0, 7, sd.dayId)')
+			->addOrderBy('orderby', 'ASC')
 			->addOrderBy('s.startTime');
 		
 		if ($locationId) {
@@ -1757,31 +2414,6 @@ error_log('getRequiredQualificationsList');
 		}
 		
 		$results=$qb->getQuery()->getArrayResult();
-/*		
-		$query='SELECT'.
-			' `q`.`title`,'.
-			' `qr`.`qualificationId`,'.
-			' `qr`.`numberOfStaff`,'.
-			' `qr`.`shiftId`,'.
-			' `sd`.`dayId`,'.
-			' `s`.`title` as `shiftTitle`,'.
-			' `s`.`startTime`,'.
-			' `s`.`finishTime`'.
-			' FROM `Qualifications` `q`'.
-				' JOIN `QualRequirements` `qr` ON `q`.`id`=`qr`.`qualificationId`'.
-				' JOIN `Shifts` `s` ON `qr`.`shiftId`=`s`.`id`'.
-				' JOIN `ShiftDays` `sd` ON `sd`.`shiftId`=`s`.`id`'.
-				' JOIN `Location` `l` ON `s`.`locationId`=`l`.`id`'.
-			' WHERE `l`.`id`=:lId'.
-			' ORDER BY `q`.`title`, IF(`sd`.`dayId`=0, 7, `sd`.`dayId`), `s`.`startTime`';
-
-		$conn=$this->doctrine->getConnection();
-		$stmt=$conn->prepare($query);
-		$stmt->bindValue('lId', $locationId);
-		$stmt->execute();
-		$results=$stmt->fetchAll();
-*/		
-// error_log('members:'.print_r($members, true));
 		$ts=strtotime($monday);
 		$tmp=array();
 		$days=array();
@@ -1789,9 +2421,10 @@ error_log('getRequiredQualificationsList');
 			foreach ($results as $r) {
 				$day=date('D', mktime(0, 0, 0, date('n', $ts), date('j', $ts)-date('N', $ts)+$r['dayId'], date('Y', $ts)));
 				$days[$r['dayId']]=$day;
-				$tmp[$r['qualificationId']]['title']=$r['title'];
+				$tmp[$r['qualificationId']]['title']=$r['title'].(($r['level'])?(' '.$r['level']):(''));
 				$tmp[$r['qualificationId']]['requirement'][$r['dayId']][$r['shiftId']]=array(
 					'number'=>$r['numberOfStaff'],
+					'rank'=>$r['rank'],
 					'title'=>$r['shiftTitle'],
 					'time'=>$r['startTime']->format('H:i').'-'.$r['finishTime']->format('H:i'));
 			}
@@ -1814,7 +2447,10 @@ error_log('getRequiredQualificationsList');
 								$lastDay=$days[$kd];
 							}
 							foreach ($tmp2 as $sId=>$v) {
-								if (isset($members[$kd][$sId][$qId]) && $members[$kd][$sId][$qId] >= $v['number']) {
+								if (isset($v['rank'])) {
+									error_log('day:'.$kd.', shiftId:'.$sId.', qId:'.$qId.', rank:'.$v['rank']);
+								}
+								if (isset($members[$kd][$sId][$qId]) && $members[$kd][$sId][$qId]['rank']>=$v['rank'] && $members[$kd][$sId][$qId]['number'] >= $v['number']) {
 									$ok=true;
 								} else {
 									$ok=false;
@@ -2084,19 +2720,60 @@ error_log('createHolidayDiv');
 	
 	public function getAllLocationDivs($locationId=null, $timestamp=null) {
 error_log('getAllLocationDivs');
-		$conn=$this->doctrine->getConnection();
 		
 		if ($timestamp) {
 			$monday=date('Y-m-d', mktime(0, 0, 0, date('n', $timestamp), date('j', $timestamp)-date('N', $timestamp)+1, date('Y', $timestamp)));
 			$sunday=date('Y-m-d', mktime(0, 0, 0, date('n', $timestamp), date('j', $timestamp)-date('N', $timestamp)+7, date('Y', $timestamp)));
 		}
+
+		$em=$this->doctrine->getManager();
+		$qb=$em
+			->createQueryBuilder()
+			->select('u.username')
+			->addSelect('u.firstName')
+			->addSelect('u.lastName')
+			->addSelect('u.groupId')
+			->addSelect('a.date')
+			->addSelect('a.locationId')
+			->addSelect('a.shiftId')
+			->addSelect('a.userId')
+			->addSelect('g.name as groupname')
+			->addSelect('s.startTime')
+			->addSelect('s.finishTime')
+//			->addSelect('GROUP_CONCAT(DISTINCT CONCAT_WS(\'#\', q.id, ql.rank) ORDER BY q.title SEPARATOR \'|\') as qualifications')
+			->addSelect('GROUP_CONCAT(DISTINCT q.id, \'#\', ql.level ORDER BY q.title SEPARATOR \'|\') as qualifications')
+			->from('TimesheetHrBundle:Allocation', 'a')
+			->join('TimesheetHrBundle:User', 'u', 'WITH', 'a.userId=u.id')
+			->join('TimesheetHrBundle:Location', 'l', 'WITH', 'a.locationId=l.id')
+			->join('TimesheetHrBundle:Shifts', 's', 'WITH', 'a.shiftId=s.id')			
+			->join('TimesheetHrBundle:Groups', 'g', 'WITH', 'u.groupId=g.id')
+			->leftJoin('TimesheetHrBundle:UserQualifications', 'uq', 'WITH', 'u.id=uq.userId')
+			->leftJoin('TimesheetHrBundle:Qualifications', 'q', 'WITH', 'q.id=uq.qualificationId')
+			->leftJoin('TimesheetHrBundle:QualificationLevels', 'ql', 'WITH', 'ql.id=uq.levelId')
+			->where('a.date BETWEEN :monday AND :sunday')
+			->groupBy('a.id')
+			->orderBy('u.firstName', 'ASC')
+			->addOrderBy('u.lastName', 'ASC')
+			->setParameter('monday', new \DateTime($monday))
+			->setParameter('sunday', new \DateTime($sunday));
 		
+		if ($locationId) {
+			$qb->andWhere('a.locationId=:lId')
+				->setParameter('lId', $locationId);
+		}
+// $time=microtime();
+		$query=$qb->getQuery();
+// error_log('query:'.$query->getDql());
+		$results=$query->getArrayResult();
+// error_log('time1:'.(microtime()-$time));
+// error_log('results:'.print_r($results, true));
+/*		
 		$query='SELECT'.
 			' `u`.`username`,'.
 			' `u`.`firstName`,'.
 			' `u`.`lastName`,'.
 			' `u`.`groupId`,'.
-			' GROUP_CONCAT(DISTINCT `q`.`id` ORDER BY `q`.`title` SEPARATOR "|") as `qualifications`,'.
+			' GROUP_CONCAT(DISTINCT CONCAT_WS("#", `q`.`id`, `ql`.`rank`) ORDER BY `q`.`title` SEPARATOR "|") as `qualifications`,'.
 			' `a`.`date`,'.
 			' `a`.`locationId`,'.
 			' `s`.`id` as `shiftId`,'.
@@ -2109,24 +2786,30 @@ error_log('getAllLocationDivs');
 				' JOIN `Location` `l` ON `a`.`locationId`=`l`.`id`'.
 				' JOIN `Shifts` `s` ON `a`.`shiftId`=`s`.`id`'.
 				' JOIN `Groups` `g` ON `u`.`groupId`=`g`.`id`'.
-				' LEFT JOIN (`Qualifications` `q` JOIN `UserQualifications` `uq` ON `q`.`id`=`uq`.`qualificationId`) ON `uq`.`userId`=`u`.`id`'.
+				' LEFT JOIN (`Qualifications` `q` JOIN `UserQualifications` `uq` ON `q`.`id`=`uq`.`qualificationId` LEFT JOIN `QualificationLevels` `ql` ON `uq`.`levelId`=`ql`.`id`) ON `uq`.`userId`=`u`.`id`'.
 			' WHERE `a`.`date` BETWEEN :monday AND :sunday'.
 			(($locationId)?(' AND `a`.`locationId`=:lId'):('')).
 			' GROUP BY `a`.`id`'.
 			' ORDER BY `u`.`firstName`, `u`.`lastName`';
-		
+// error_log($query);		
+$time=microtime();
+		$conn=$this->doctrine->getConnection();
 		$stmt=$conn->prepare($query);
 		if ($timestamp) {
+// error_log('monday:'.$monday.', sunday:'.$sunday);
 			$stmt->bindValue('monday', $monday);
 			$stmt->bindValue('sunday', $sunday);
 		}
 		if ($locationId) {
+// error_log('lId:'.$locationId);
 			$stmt->bindValue('lId', $locationId);
 		}
 		$stmt->execute();
 		
-		$results=$stmt->fetchAll();
-
+		$results2=$stmt->fetchAll();
+error_log('time2:'.(microtime()-$time));
+error_log('results1'.print_r($results2, true));
+*/
 		$tmp=array();
 		$ret=array();
 		$staffMembers=array(); // number of members allocated per group per day per shift
@@ -2135,7 +2818,7 @@ error_log('getAllLocationDivs');
 		if ($results && count($results)) {
 				
 			foreach ($results as $r) {
-				$day=date('w', strtotime($r['date']));
+				$day=date('w', strtotime($r['date']->format('Y-m-d')));
 				if (!isset($staffMembers[$r['groupId']][$day][$r['shiftId']])) {
 					$staffMembers[$r['groupId']][$day][$r['shiftId']]['noOfStaff']=0;
 				}
@@ -2146,10 +2829,14 @@ error_log('getAllLocationDivs');
 				$q=((strlen($r['qualifications']))?(explode('|', $r['qualifications'])):(array()));
 				if (count($q)) {
 					foreach ($q as $q1) {
-						if (!isset($qualificationMembers[$day][$r['shiftId']][$q1])) {
-							$qualificationMembers[$day][$r['shiftId']][$q1]=0;
+						$qTmp=explode('#', $q1);
+						if (!isset($qualificationMembers[$day][$r['shiftId']][$qTmp[0]]['number'])) {
+							$qualificationMembers[$day][$r['shiftId']][$qTmp[0]]['number']=0;
+							$qualificationMembers[$day][$r['shiftId']][$qTmp[0]]['rank']=0;
 						}
-						$qualificationMembers[$day][$r['shiftId']][$q1]++;
+						$qualificationMembers[$day][$r['shiftId']][$qTmp[0]]['number']++;
+						// if the level not specified, we'll use the lowest level =1
+						$qualificationMembers[$day][$r['shiftId']][$qTmp[0]]['rank']=((isset($qTmp[1]))?($qTmp[1]):(1));
 					}
 				}
 				
@@ -2160,26 +2847,26 @@ error_log('getAllLocationDivs');
 						'username'=>$r['username'],
 						'groupname'=>$r['groupname'],
 						'name'=>trim($r['firstName'].' '.$r['lastName']),
-						'AWH'=>$this->getAWH($r['userId'], $r['date']),
+						'AWH'=>$this->getAWH($r['userId'], $r['date']->format('Y-m-d')),
 						'WH'=>0
 					);
 				}
 				if ($r['finishTime'] > $r['startTime']) {
-					$tmp[$r['locationId']][$r['userId']]['WH']+=round((strtotime($r['date'].' '.$r['finishTime'])-strtotime($r['date'].' '.$r['startTime']))/60);
+					$tmp[$r['locationId']][$r['userId']]['WH']+=round((strtotime($r['date']->format('Y-m-d').' '.$r['finishTime']->format('H:i:s'))-strtotime($r['date']->format('Y-m-d').' '.$r['startTime']->format('H:i:s')))/60);
 				} else {
-					$d1=strtotime($r['date']);
+					$d1=strtotime($r['date']->format('Y-m-d'));
 					$d2=date('Y-m-d', mktime(0, 0, 0, date('m', $d1), date('d', $d1)+1, date('Y', $d1)));
-					$tmp[$r['locationId']][$r['userId']]['WH']+=round((strtotime($d2.' '.$r['finishTime'])-strtotime($r['date'].' '.$r['startTime']))/60);
+					$tmp[$r['locationId']][$r['userId']]['WH']+=round((strtotime($d2.' '.$r['finishTime']->format('H:i:s'))-strtotime($r['date']->format('Y-m-d').' '.$r['startTime']->format('H:i:s')))/60);
 				}
 			}
 		}
-// error_log('members:'.print_r($members, true));
+
 		if (count($tmp)) {
 			foreach ($tmp as $k=>$v) {
 				$ret[$k]=$this->createWeeklyDiv($v, $monday, $sunday);
-// error_log('k:'.$k.', ret:'.print_r($ret[$k], true));
 			}
 		}
+/*
 		$staff=$this->getRequiredStaffList($staffMembers, $monday, $locationId);
 		$qual=$this->getRequiredQualificationsList($qualificationMembers, $monday, $locationId);
 
@@ -2189,12 +2876,119 @@ error_log('getAllLocationDivs');
 		if (count($staff)) {
 			$ret[0]='<div class="allocation allocationHigh">Required staff:<div name="showhide" id="rq_showhidebutton" column="req_staff_div">Show</div><div class="req_staff_div" id="rq_showhide" style="display: none">'.((count($staff))?(implode('<br>', $staff)):('')).'</div></div>';
 		}
-			
+*/			
 //		error_log(print_r($ret, true));
 		
 		return $ret;
 	}
 
+
+	public function getCurrentlyRequiredStaff($locationId, $date) {
+error_log('getCurrentlyRequiredStaff');
+// error_log('locationId:'.$locationId.', date:'.$date.', day:'.date('w', strtotime($date)));
+		$em=$this->doctrine->getManager();
+		$qb=$em
+		->createQueryBuilder()
+		->select('sr.shiftId')
+		->addSelect('sr.numberOfStaff')
+		->addSelect('sr.groupId')
+		->addSelect('g.name')
+		->addSelect('sd.dayId')
+		->from('TimesheetHrBundle:StaffRequirements', 'sr')
+		->join('TimesheetHrBundle:Shifts', 's', 'WITH', 'sr.shiftId=s.id')
+		->join('TimesheetHrBundle:Groups', 'g', 'WITH', 'sr.groupId=g.id')
+		->join('TimesheetHrBundle:Location', 'l', 'WITH', 's.locationId=l.id')
+		->join('TimesheetHrBundle:ShiftDays', 'sd', 'WITH', 's.id=sd.shiftId')
+		->where('l.id=:lId')
+		->andWhere('sd.dayId=:dayId')
+		->setParameter('lId', $locationId)
+		->setParameter('dayId', date('w', strtotime($date)));
+	
+		return $qb->getQuery()->getArrayResult();
+	}
+
+	
+	public function getCurrentlyAllocatedQualifications($locationId, $date) {
+error_log('getCurrentlyAllocatedQualifications');
+// error_log('locationId:'.$locationId.', date:'.$date);
+		$em=$this->doctrine->getManager();
+		$qb=$em
+			->createQueryBuilder()
+			->select('a.userId')
+			->addSelect('a.shiftId')
+			->addSelect('uq.qualificationId')
+			->addSelect('q.title')
+			->addSelect('ql.rank')
+			->from('TimesheetHrBundle:Allocation', 'a')
+			->join('TimesheetHrBundle:Shifts', 's', 'WITH', 'a.shiftId=s.id')
+			->join('TimesheetHrBundle:Location', 'l', 'WITH', 'a.locationId=l.id')
+			->join('TimesheetHrBundle:User', 'u', 'WITH', 'u.id=a.userId')
+			->leftJoin('TimesheetHrBundle:UserQualifications', 'uq', 'WITH', 'u.id=uq.userId')
+			->leftJoin('TimesheetHrBundle:Qualifications', 'q', 'WITH', 'uq.qualificationId=q.id')
+			->leftJoin('TimesheetHrBundle:QualificationLevels', 'ql', 'WITH', 'uq.levelId=ql.id')
+			->where('l.id=:lId')
+			->andWhere('a.date=:date')
+			->setParameter('lId', $locationId)
+			->setParameter('date', new \DateTime($date));
+	
+		return $qb->getQuery()->getArrayResult();
+	}
+	
+	
+	public function getCurrentlyRequiredQualifications($locationId, $date) {
+error_log('getCurrentlyRequiredQualifications');
+// error_log('locationId:'.$locationId.', date:'.$date.', day:'.date('w', strtotime($date)));
+		$em=$this->doctrine->getManager();
+		$qb=$em
+			->createQueryBuilder()
+			->select('qr.shiftId')
+			->addSelect('qr.numberOfStaff')
+			->addSelect('q.title')
+			->addSelect('qr.levelId')
+			->addSelect('qr.qualificationId')
+			->addSelect('ql.level')
+			->addSelect('ql.rank')
+			->addSelect('sd.dayId')
+			->from('TimesheetHrBundle:QualRequirements', 'qr')
+			->join('TimesheetHrBundle:Qualifications', 'q', 'WITH', 'qr.qualificationId=q.id')
+			->join('TimesheetHrBundle:Shifts', 's', 'WITH', 'qr.shiftId=s.id')
+			->join('TimesheetHrBundle:Location', 'l', 'WITH', 's.locationId=l.id')
+			->join('TimesheetHrBundle:ShiftDays', 'sd', 'WITH', 's.id=sd.shiftId')
+			->leftJoin('TimesheetHrBundle:QualificationLevels', 'ql', 'WITH', 'qr.levelId=ql.id')
+			->where('l.id=:lId')
+			->andWhere('sd.dayId=:dayId')
+			->orderBy('q.title')
+			->setParameter('lId', $locationId)
+			->setParameter('dayId', date('w', strtotime($date)));
+		
+		return $qb->getQuery()->getArrayResult();
+	}
+	
+
+	public function getCurrentlyAllocatedStaff($locationId, $date) {
+error_log('getCurrentlyAllocatedStaff');
+// error_log('locationId:'.$locationId.', date:'.$date);
+		$em=$this->doctrine->getManager();
+		$qb=$em
+			->createQueryBuilder()
+			->select('a.userId')
+			->addSelect('a.shiftId')
+			->addSelect('u.groupId')
+			->addSelect('g.name')
+			->from('TimesheetHrBundle:Allocation', 'a')
+			->join('TimesheetHrBundle:Shifts', 's', 'WITH', 'a.shiftId=s.id')
+			->join('TimesheetHrBundle:Location', 'l', 'WITH', 'a.locationId=l.id')
+			->join('TimesheetHrBundle:User', 'u', 'WITH', 'u.id=a.userId')
+			->join('TimesheetHrBundle:Groups', 'g', 'WITH', 'u.groupId=g.id')
+			->where('l.id=:lId')
+			->andWhere('a.date=:date')
+			->groupBy('a.id')
+			->setParameter('lId', $locationId)
+			->setParameter('date', new \DateTime($date));
+	
+		return $qb->getQuery()->getArrayResult();	
+	}
+	
 	
 	public function getRequiredStaffList($members, $monday, $locationId) {
 error_log('getRequiredStaffList');
@@ -2208,47 +3002,17 @@ error_log('getRequiredStaffList');
 			->addSelect('sr.numberOfStaff')
 			->addSelect('sr.groupId')
 			->addSelect('g.name')
-//			->addSelect('GROUP_CONCAT(sd.dayId ORDER BY CASE WHEN(sd.dayId=0) THEN 7 ELSE sd.dayId END SEPARATOR \'|\') as days')
 			->addSelect('GROUP_CONCAT(sd.dayId ORDER BY sd.dayId SEPARATOR \'|\') as days')
 			->from('TimesheetHrBundle:StaffRequirements', 'sr')
 			->join('TimesheetHrBundle:Shifts', 's', 'WITH', 'sr.shiftId=s.id')
 			->join('TimesheetHrBundle:Groups', 'g', 'WITH', 'sr.groupId=g.id')
 			->join('TimesheetHrBundle:Location', 'l', 'WITH', 's.locationId=l.id')
 			->join('TimesheetHrBundle:ShiftDays', 'sd', 'WITH', 's.id=sd.shiftId')
-			->groupBy('sr.id');
-		
-		if ($locationId) {
-			$qb->where('l.id=:lId')
-				->setParameter('lId', $locationId);
-		}
+			->where('l.id=:lId')
+			->groupBy('sr.id')
+			->setParameter('lId', $locationId);
 		
 		$results=$qb->getQuery()->getArrayResult();
-/*		
-		$conn=$this->doctrine->getConnection();
-		
-		$query='SELECT'.
-			' `sr`.`shiftId`,'.
-			' `sr`.`numberOfStaff`,'.
-			' `sr`.`groupId`,'.
-			' GROUP_CONCAT(`sd`.`dayId` ORDER BY IF(`sd`.`dayId`=0, 7, `sd`.`dayId`) SEPARATOR "|") as `days`,'.
-			' `g`.`name`'.
-			' FROM `StaffRequirements` `sr`'.
-				' JOIN `Shifts` `s` ON `sr`.`shiftId`=`s`.`id`'.
-				' JOIN `Groups` `g` ON `sr`.`groupId`=`g`.`id`'.
-				' JOIN `Location` `l` ON `s`.`locationId`=`l`.`id`'.
-				' JOIN `ShiftDays` `sd` ON `s`.`id`=`sd`.`shiftId`'.
-			(($locationId)?(' WHERE `s`.`locationId`=:lId'):('')).
-			' GROUP BY `sr`.`id`';
-// error_log($query);
-		$stmt=$conn->prepare($query);
-		if ($locationId) {
-// error_log('location:'.$locationId);
-			$stmt->bindValue('lId', $locationId);
-		}
-		$stmt->execute();
-			
-		$results=$stmt->fetchAll();
-*/
 		$tmp=array();
 		
 		if ($results && count($results)) {
@@ -2427,8 +3191,7 @@ error_log('getHolidays');
 
 	
 	public function getCalendarDay($userId, $timestamp, $data=0, $domainId=null) {
-error_log('getCalendarDay');
-// error_log('userId:'.$userId.', timestamp:'.$timestamp.', data:'.$data);		
+error_log('getCalendarDay, userId:'.$userId.', timestamp:'.$timestamp.', date:'.date('Y-m-d', $timestamp).', data:'.$data);		
 //		$conn=$this->doctrine->getConnection();
 		$em=$this->doctrine->getManager();
 		$ret=array();
@@ -2613,26 +3376,26 @@ $time=microtime(true);
 			->addOrderBy('i.timestamp', 'ASC')
 			->setParameter('dId', $domainId);
 
-error_log('dId:'.$domainId);
+// error_log('dId:'.$domainId);
 		if (!$admin && $userId) {
 			$qb->andWhere('u.id=:uId')
 				->setParameter('uId', $userId);
-error_log('uId:'.$userId);
+// error_log('uId:'.$userId);
 		}
 		if ($admin && $groupId) {
 			$qb->andWhere('u.groupId=:gId')
 				->setParameter('gId', $groupId);
-error_log('gId:'.$groupId);
+// error_log('gId:'.$groupId);
 		}
 		if ($usersearch) {
 			$qb->andWhere('u.username LIKE :uSearch OR u.firstName LIKE :uSearch OR u.lastName LIKE :uSearch')
 				->setParameter('uSearch', '%'.$usersearch.'%');
-error_log('uSearch:'.$usersearch);			
+// error_log('uSearch:'.$usersearch);			
 		}
 		if ($admin && $locationId) {
 			$qb->andWhere('u.locationId=:lId')
 				->setParameter('lId', $locationId);
-error_log('lId:'.$locationId);
+// error_log('lId:'.$locationId);
 		}
 		if ($timestamp) {
 			$startTime=date('Y-m-01 00:00:00', $timestamp);
@@ -2641,14 +3404,14 @@ error_log('lId:'.$locationId);
 			$qb->andWhere('i.timestamp BETWEEN :dateStart AND :dateFinish')
 				->setParameter('dateStart', $startTime)
 				->setParameter('dateFinish', $finishTime);
-error_log('date between '.$startTime.' and '.$finishTime);
+// error_log('date between '.$startTime.' and '.$finishTime);
 		}
 		$query=$qb->getQuery();
 //error_log('query ready');
-error_log('sql:'.$query->getDql());
+// error_log('sql:'.$query->getDql());
 		$results=$query->getArrayResult();
-error_log('1st no of results:'.count($results).', time:'.(microtime(true)-$time));
-error_log('results:'.print_r($results, true));		
+// error_log('1st no of results:'.count($results).', time:'.(microtime(true)-$time));
+// error_log('results:'.print_r($results, true));		
 		if ($results) {
 
 			$lastUser=null;
@@ -2891,7 +3654,7 @@ error_log('results:'.print_r($results, true));
 		{
 			// No sign in/out data
 			// If sign in/out not required, use the allocation data
-//error_log('no sign in/out data');			
+error_log('no sign in/out data');			
 
 $time=microtime(true);
 			$em=$this->doctrine->getManager();
@@ -2969,50 +3732,66 @@ $time=microtime(true);
 					}
 					
 					while ($ts <= $d) {
-// error_log('ts:'.$ts.', d:'.$d);
+error_log('ts:'.$ts.'='.date('Y-m-d', $ts).', d:'.$d.'='.date('Y-m-d', $d));
 						$tmpTimings=$this->getTimingsForDay($userId, $ts);
-						
 						if (!isset($ret[$username][date('Y-m-d', $ts)][0])) {
 // error_log('not exists '.$username.' '.date('Y-m-d', $ts));
-							if ($tmpTimings && count($tmpTimings)) {
-								$location=$this->getLocation($tmpTimings['locationId'], true);
-								
+							if (($tmpTimings && count($tmpTimings)) || (isset($holidays[$userId][date('Y-m-d', $ts)]))) {
+								$agreedStartTime=null;
+								$agreedFinishTime=null;
+								$origStartTime=null;
+								$origFinishTime=null;
+								$actualHolidays=null;
+								$agreedOvertime=0;
+								if ($tmpTimings && count($tmpTimings)) {
+									$location=$this->getLocation($tmpTimings['locationId'], true);
+									$tmpTimings['startTime']=$tmpTimings['startTime']->setDate(date('Y', $ts), date('m', $ts), date('d', $ts));
+									$tmpTimings['finishTime']=$tmpTimings['finishTime']->setDate(date('Y', $ts), date('m', $ts), date('d', $ts));
+									$origStartTime=$tmpTimings['startTime'];
+									$origFinishTime=$tmpTimings['finishTime'];
+									$agreedStartTime=$origStartTime;
+									$agreedFinishTime=$origFinishTime;
+								}
+								if (isset($holidays[$userId][date('Y-m-d', $ts)])) {
+									$actualHolidays=$holidays[$userId][date('Y-m-d', $ts)];
+									$this->currentStartAndFinishTime($agreedStartTime, $agreedFinishTime, $agreedOvertime, $actualHolidays, $userId);
+								}
 								$arr0=array(
 									'class'=>'PunchCorrect',
 									'comment'=>'',
-									'agreedStart'=>$tmpTimings['startTime'],
-									'agreedFinish'=>$tmpTimings['finishTime'],
+									'agreedStart'=>$agreedStartTime,
+									'agreedFinish'=>$agreedFinishTime,
 									'userId'=>$userId,
 									'WorkTime'=>0,
 									'Late'=>0,
 									'Leave'=>0,
-									'Overtime'=>0,
-									'OvertimeAgreed'=>0,
-									'holidays'=>((isset($holidays[$userId][date('Y-m-d', $ts)]))?($holidays[$userId][date('Y-m-d', $ts)]):(null))
+									'Overtime'=>$agreedOvertime,
+									'OvertimeAgreed'=>$agreedOvertime,
+									'holidays'=>$actualHolidays
 								);
 								$arr1=array(
 									'userId'=>$userId,
 									'comment'=>'',
 									'day'=>date('D jS M', $ts),
-									'timestamp'=>date('Y-m-d ', mktime(8, 0, 0, date('m', $ts), date('d', $ts), date('Y', $ts))).$tmpTimings['startTime']->format('H:i:s'),
-									'agreed'=>$tmpTimings['startTime'], // date('H:i:s', mktime(8, 0, 0, date('m', $ts), date('d', $ts), date('Y', $ts))),
-									'agreedOrig'=>$tmpTimings['startTime'], // date('H:i:s', mktime(8, 0, 0, date('m', $ts), date('d', $ts), date('Y', $ts))),
-									'location'=>$location[$tmpTimings['locationId']],
+									'timestamp'=>date('Y-m-d ', mktime(8, 0, 0, date('m', $ts), date('d', $ts), date('Y', $ts))).$agreedStartTime->format('H:i:s'),
+									'agreed'=>$agreedStartTime,
+									'agreedOrig'=>$origStartTime,
+									'location'=>((isset($location[$tmpTimings['locationId']]))?($location[$tmpTimings['locationId']]):(null)),
 									'startTime'=>null,
 									'finishTime'=>null,
-									'holidays'=>((isset($holidays[$userId][date('Y-m-d', $ts)]))?($holidays[$userId][date('Y-m-d', $ts)]):(null))
+									'holidays'=>$actualHolidays
 								);
 								$arr2=array(
 									'userId'=>$userId,
 									'comment'=>'',
 									'day'=>date('D jS M', $ts),
-									'timestamp'=>date('Y-m-d ', mktime(16, 0, 0, date('m', $ts), date('d', $ts), date('Y', $ts))).$tmpTimings['finishTime']->format('H:i:s'),
-									'agreed'=>$tmpTimings['finishTime'], // date('H:i:s', mktime(16, 0, 0, date('m', $ts), date('d', $ts), date('Y', $ts))),
-									'agreedOrig'=>$tmpTimings['finishTime'], //date('H:i:s', mktime(16, 0, 0, date('m', $ts), date('d', $ts), date('Y', $ts))),
-									'location'=>$location[$tmpTimings['locationId']],
+									'timestamp'=>date('Y-m-d ', mktime(16, 0, 0, date('m', $ts), date('d', $ts), date('Y', $ts))).$agreedFinishTime->format('H:i:s'),
+									'agreed'=>$agreedFinishTime,
+									'agreedOrig'=>$origFinishTime,
+									'location'=>((isset($location[$tmpTimings['locationId']]))?($location[$tmpTimings['locationId']]):(null)),
 									'startTime'=>null,
 									'finishTime'=>null,
-									'holidays'=>((isset($holidays[$userId][date('Y-m-d', $ts)]))?($holidays[$userId][date('Y-m-d', $ts)]):(null))
+									'holidays'=>$actualHolidays
 								);
 								
 								$ret[$username][date('Y-m-d', $ts)][1]=$arr1;
@@ -3075,29 +3854,27 @@ error_log('getCorrectedTimes');
 			$d1=strtotime($data[1]['agreed']->format('H:i:s'));
 			$d2=strtotime($data[2]['agreed']->format('H:i:s'));
 			
+			if ($data[2]['agreed']->format('His') <= $data[1]['agreed']->format('His')) {
+				// finish next day
+				$data[2]['agreed']->modify('+1 day');
+			}
 			if (isset($data[2]['agreedOrig']) || isset($data[1]['agreedOrig'])) {
-// error_log('agreed original time');
 				if (isset($data[2]['agreedOrig'])) {
-					$d2=strtotime($data[2]['agreedOrig']->format('H:i:s'));
+					$d2=strtotime($data[2]['agreedOrig']->format('Y-m-d H:i:s'));
 				}	
 				if (isset($data[1]['agreedOrig'])) {
-					$d1=strtotime($data[1]['agreedOrig']->format('H:i:s'));
-				}	
+					$d1=strtotime($data[1]['agreedOrig']->format('Y-m-d H:i:s'));
+				}
 				$ret['AgreedTimeOrig']=($d2-$d1)/60;
 				if ($ret['AgreedTimeOrig'] >= $minTimeForLunch) {
 					$ret['AgreedTimeOrig'] -= $lunchtimeUnpaid;
-//					$deducted += $lunchtimeUnpaid;
 				}
 			}
-			$ret['AgreedTime']=(strtotime($data[2]['agreed']->format('H:i:s'))-strtotime($data[1]['agreed']->format('H:i:s')))/60;
+			$ret['AgreedTime']=(strtotime($data[2]['agreed']->format('Y-m-d H:i:s'))-strtotime($data[1]['agreed']->format('Y-m-d H:i:s')))/60;
 			if ($ret['AgreedTime'] >= $minTimeForLunch) {
 				$ret['AgreedTime'] -= $lunchtimeUnpaid;
 				$deducted += $lunchtimeUnpaid;
 			}
-// if ($test) {
-//	error_log('AgreedTime:'.$ret['AgreedTime']);
-// }
-// error_log('Agreed data:'.print_r($data, true));			
 			if (isset($data[1]['timestamp']) && $data[1]['timestamp'] && isset($data[2]['timestamp']) && $data[2]['timestamp']) {
 // error_log('timestamps defined');
 				$date1=date('Y-m-d', strtotime($data[1]['timestamp']));
@@ -3110,11 +3887,10 @@ error_log('getCorrectedTimes');
 // error_log('date:'.$date);
 				$d1=max(strtotime($data[1]['timestamp']), strtotime($date1.' '.$data[1]['agreed']->format('H:i:s')));
 				$d2=min(strtotime($data[2]['timestamp']), strtotime($date2.' '.$data[2]['agreed']->format('H:i:s')));
-// error_log('d1:'.date('H:i', $d1).', d2:'.date('H:i', $d2));				
+//				$d1=max(strtotime($data[1]['timestamp']), strtotime($data[1]['agreed']->format('Y-m-d H:i:s')));
+//				$d2=min(strtotime($data[2]['timestamp']), strtotime($data[2]['agreed']->format('Y-m-d H:i:s')));
 				if (date('H:i', $d1).':00' > $data[1]['agreed']->format('H:i:s')) {
-					$late=(strtotime(date('H:i:s', $d1))-strtotime($data[1]['agreed']->format('H:i:s')))/60;
-//					$late=(strtotime(date('H:i:s', $d1))-strtotime($data[1]['agreed']))/60;
-// error_log('late:'.$late);
+					$late=(strtotime(date('Y-m-d H:i:s', $d1))-strtotime($data[1]['agreed']->format('Y-m-d H:i:s')))/60;
 					if ($late < 5) {
 						$late=0;
 					} elseif ($late % 15 > 5) {
@@ -3126,7 +3902,7 @@ error_log('getCorrectedTimes');
 					$deducted+=$late;
 				}
 
-				if (date('H:i', $d2).':00' < $data[2]['agreed']) {
+				if (date('H:i', $d2).':00' < $data[2]['agreed']->format('H:i:s')) {
 					$leave=(strtotime($data[2]['agreed']->format('H:i:s'))-strtotime(date('H:i:s', $d2)))/60;
 // error_log('leave early:'.$leave);
 					if ($leave < 5) {
@@ -3296,38 +4072,6 @@ error_log('getHolidaysForMonth');
 				->setParameter('uId', $userId);
 		}
 		$results=$qb->getQuery()->getArrayResult();
-/*		
-		$query='SELECT'.
-				' `r`.`start`,'.
-				' `r`.`finish`,'.
-				' `r`.`typeId`,'.
-				' `r`.`comment`,'.
-				' `r`.`acceptedComment`,'.
-				' `rt`.`name`,'.
-				' `rt`.`fullday`,'.
-				' `rt`.`paid`,'.
-				' `rt`.`initial`,'.
-				' `rt`.`textColor`,'.
-				' `rt`.`backgroundColor`,'.
-				' `rt`.`borderColor`,'.
-				' `rt`.`bothtime`'.
-			' FROM `Requests` `r`'.
-				' JOIN `RequestType` `rt` ON `r`.`typeId`=`rt`.`id`'.
-			' WHERE `r`.`accepted`=1'.
-				(($userId)?(' AND `r`.`userId`=:uId'):('')).
-				' AND DATE(`r`.`start`)>=:date1'.
-				' AND DATE(`r`.`finish`)<=:date2';
-		
-		$stmt=$conn->prepare($query);
-		if ($userId) {
-			$stmt->bindValue('uId', $userId);
-		}
-		$stmt->bindValue('date1', $startDate);
-		$stmt->bindValue('date2', $finishDate);
-		$stmt->execute();
-		
-		$results=$stmt->fetchAll();
-*/
 		if (isset($results) && count($results)) {
 // error_log('getHolidayForMonth:'.print_r($results, true));
 			foreach ($results as $result) {
@@ -3342,21 +4086,21 @@ error_log('getHolidaysForMonth');
 					}
 					case 7 : {
 						// Late
-						$result['agreedStart']=$result['start']->format('H:i:s');
+						$result['agreedStart']=$result['start']->format('Y-m-d H:i:s');
 						break;
 					}
 					case 8 : {
 						// Leave early
-						$result['agreedFinish']=$result['finish']->format('H:i:s');
+						$result['agreedFinish']=$result['finish']->format('Y-m-d H:i:s');
 						break;
 					}
 					case 9 : {
 						// Overtime
 						if ($result['start']->format('H:i:s') != '00:00:00') {
-							$result['agreedStart']=$result['start']->format('H:i:s');
+							$result['agreedStart']=$result['start']->format('Y-m-d H:i:s');
 						}
 						if ($result['finish']->format('H:i:s') != '23:59:59') {
-							$result['agreedFinish']=$result['finish']->format('H:i:s');
+							$result['agreedFinish']=$result['finish']->format('Y-m-d H:i:s');
 						}
 						break;
 					}
@@ -3426,7 +4170,7 @@ error_log('getHolidaysForMonth');
 		$date1=date('Y-m-d', mktime(0, 0, 0, date('m', $timestamp), date('d', $timestamp)-date('N', $timestamp)+1, date('Y', $timestamp)));
 		$date2=date('Y-m-d', mktime(0, 0, 0, date('m', $timestamp), date('d', $timestamp)-date('N', $timestamp)+7, date('Y', $timestamp)));
 		
-		$query='DELETE FROM `Allocation` WHERE `locationId`=:lId AND `date` BETWEEN :date1 AND :date2';
+		$query='DELETE FROM `Allocation` WHERE !`published` AND `locationId`=:lId AND `date` BETWEEN :date1 AND :date2';
 
 		$stmt=$conn->prepare($query);
 		$stmt->bindValue('lId', $locationId);
@@ -3499,7 +4243,6 @@ error_log('getHolidaysForMonth');
 					$stmt1->bindValue('locationId', $locationId);
 					$stmt1->bindValue('shiftId', $result['shiftId']);
 					$stmt1->execute();
-// error_log($query.', result:'.print_r($result, true));
 				}
 			}
 			
@@ -3732,7 +4475,49 @@ error_log('getTimingsForDay');
 
 	
 	public function getFutureRequests($userId = null) {
-
+error_log('getFutureRequests, userId:'.$userId);
+		$em=$this->doctrine->getManager();
+		$qb=$em
+			->createQueryBuilder()
+			->select('r.id')
+			->addSelect('r.userId')
+			->addSelect('r.typeId')
+			->addSelect('r.start')
+			->addSelect('r.finish')
+			->addSelect('r.comment')
+			->addSelect('r.createdBy')
+			->addSelect('r.createdOn')
+			->addSelect('r.accepted')
+			->addSelect('r.acceptedBy')
+			->addSelect('r.acceptedOn')
+			->addSelect('r.acceptedComment')
+			->addSelect('rt.name as requestname')
+			->addSelect('rt.comment as requestcomment')
+			->addSelect('rt.fullday')
+			->addSelect('rt.paid')
+			->addSelect('rt.initial')
+			->addSelect('rt.entitlement')
+			->addSelect('u.username')
+			->addSelect('u.firstName')
+			->addSelect('u.lastName')
+//			->addSelect('(SELECT CONCAT(u1.firstName, \' \', u1.lastName) FROM Users u1 WHERE u1.id=r.createdBy) as createdByName')
+				
+			->from('TimesheetHrBundle:Requests', 'r')
+			->join('TimesheetHrBundle:RequestType', 'rt', 'WITH', 'r.typeId=rt.id')
+			->join('TimesheetHrBundle:User', 'u', 'WITH', 'r.userId=u.id')
+			->where('r.start>=:date OR r.finish>=:date')
+			->orderBy('r.start', 'ASC')
+			->addOrderBy('u.firstName', 'ASC')
+			->addOrderBy('u.lastName', 'ASC')
+			->setParameter('date', date('Y-m-d').' 00:00:00');
+		
+		if ($userId) {
+			$qb->andWhere('r.userId=:uId')
+				->setParameter('uId', $userId);
+		}
+		
+		$results=$qb->getQuery()->getArrayResult();
+/*		
 		$conn=$this->doctrine->getConnection();
 		
 		$query='SELECT'.
@@ -3763,10 +4548,18 @@ error_log('getTimingsForDay');
 		$stmt->bindValue('date', date('Y-m-d').' 00:00:00');
 		$stmt->execute();
 		$results=$stmt->fetchAll();
-		
+*/		
 		if ($results) {
+			$cbn=array();
+			$repo=$this->doctrine
+				->getRepository('TimesheetHrBundle:User');
 			foreach ($results as $k=>$result) {
 				$results[$k]['times']=$this->createHolidayDate($result['typeId'], strtotime($result['start']), strtotime($result['finish']));
+				if (!isset($cbn[$result['createdBy']])) {
+					$cbnTmp=$repo->findOneBy(array('id'=>$result['createdBy']));
+					$cbn[$result['createdBy']]=trim($cbnTmp->getFirstName().' '.$cbnTmp->getLastName());
+				}
+				$results[$k]['createdByName']=$cbn[$result['createdBy']];
 			}	
 		}
 		
@@ -3785,7 +4578,8 @@ error_log('getTimingsForDay');
 	}
 	
 
-	public function setTimezoneSession(&$session, $request) {
+	public function setTimezoneSession(&$session) {
+		$request=$this->requestStack->getCurrentRequest();
 		$session->set('timezone', $this->getTimezone($request->getHttpHost()));
 		
 		return null;
@@ -4045,7 +4839,7 @@ error_log('getMessageHeaders');
 	}
 
 	
-	public function getAverageWeeklyWorkingHours($userId, $timestamp) {
+	public function getAverageWeeklyWorkingHours($userId, $timestamp, $withLunchtime=false) {
 		// Shift workers
 error_log('getAverageWeeklyWorkingHours');
 		$monday=mktime(0, 0, 0, date('n', $timestamp), date('j', $timestamp)-date('N', $timestamp)+1, date('Y', $timestamp));
@@ -4055,7 +4849,13 @@ error_log('getAverageWeeklyWorkingHours');
 		$totalDays=0;
 		$totalWhr=0;
 		$domainId=$this->getDomainIdForUser($userId);
-		$lunchtime=$this->getConfig('lunchtimeUnpaid', $domainId);
+		if ($withLunchtime) {
+			// if we need the full working time without deducting lunch time
+			$lunchtime=0;	
+		} else {
+			// normal, paid working time
+			$lunchtime=$this->getConfig('lunchtimeUnpaid', $domainId);
+		}
 		$minhoursforlunch=$this->getConfig('minhoursforlunch');
 	
 		while ($weeks > 0 && $maxweeks > 0) {
@@ -4064,7 +4864,7 @@ error_log('getAverageWeeklyWorkingHours');
 			$whr=0;
 			while ($ts <= $sunday) {
 				$timings=$this->getTimingsForDay($userId, $ts);
-				$dhr=$this->calculateHours($timings, $domainId, $lunchtime, $minhoursforlunch);
+				$dhr=$this->calculateHours($timings, $domainId, $lunchtime, $minhoursforlunch, $withLunchtime);
 				if ($dhr>0) {
 					$whr+=$dhr;
 					$totalDays++;
@@ -4265,6 +5065,41 @@ error_log('getAverageWorkingHours');
 	}
 
 	
+	public function getReligions() {
+		$em=$this->doctrine->getManager();
+				
+		$qb=$em
+			->createQueryBuilder()
+			->select('r.id')
+			->addSelect('r.name')
+			->from('TimesheetHrBundle:Religions', 'r')
+			->orderBy('r.name', 'ASC');
+		
+		$query=$qb->getQuery();
+		$results=$query->getArrayResult();
+		$religions=array();
+		if ($results && count($results)) {
+			foreach ($results as $result) {
+				$religions[$result['id']]=$result['name'];
+			}
+		}
+
+		return $religions;
+	}
+	
+	
+	public function getMaritalStatuses() {
+		return array(
+			'Single',
+			'Married/Civil Partner',
+			'Divorced',
+			'Widowed',
+			'Separated',
+			'Not disclosed'
+		);
+	}
+	
+	
 	public function setTimesheetChecked($userId, $date, $checkedBy, $comment) {
 
 		$checked=$this->getTimesheetChecked($userId, $date->format('Y-m-d'));
@@ -4289,12 +5124,14 @@ error_log('getAverageWorkingHours');
 		
 		return (($tc->getId())?(true):(false));
 	}
+
 	
 	public function getProblems($domainId) {
 		
 		$problems=array();
 		$noContract=array();
 		$notSignedIn=array();
+		$noVisaStatus=array();
 		
 		$em=$this->doctrine->getManager();
 				
@@ -4347,9 +5184,32 @@ error_log('getAverageWorkingHours');
 				$notSignedIn[]=trim($result['title'].' '.$result['name']).' ('.$result['time'].')';
 			}
 		}
+
+		$qb=$em
+			->createQueryBuilder()
+			->select('u.title')
+			->addSelect('CONCAT_WS(\' \', u.firstName, u.lastName) as name')
+			->from('TimesheetHrBundle:User', 'u')
+			->leftJoin('TimesheetHrBundle:UserVisas', 'uv', 'WITH', 'uv.userId=u.id')
+			->where('u.isActive=1')
+			->andWhere('uv.id is null')
+			->groupBy('u.id')
+			->setParameter('dId', $domainId);
+		
+		$query=$qb->getQuery();
+		$results=$query->getArrayResult();
+		
+		if ($results && count($results)) {
+			foreach ($results as $result) {
+				$noVisaStatus[]=trim($result['title'].' '.$result['name']).' ('.$result['time'].')';
+			}
+		}
 		
 		if (count($noContract)) {
 			$problems[]='No contract: '.implode(', ', $noContract);
+		}
+		if (count($noVisaStatus)) {
+			$problems[]='No visa status entered: '.implode(', ', $noVisaStatus);
 		}
 		if (count($notSignedIn)) {
 			$problems[]='Not signed in Today: '.implode(', ', $notSignedIn);
@@ -4357,4 +5217,171 @@ error_log('getAverageWorkingHours');
 		
 		return $problems;
 	}
+	
+	
+	public function getPageTitle($title) {
+
+		$request=$this->requestStack->getCurrentRequest();
+		$result=$this->doctrine
+			->getRepository('TimesheetHrBundle:Companies')
+			->findOneBy(array('id'=>$this->getDomainId($request->getHttpHost())));
+		 
+		return $title.(($result && count($result))?(' - '.$result->getCompanyname()):(''));
+	}
+	
+	
+	public function isDailyScheduleProblem($locationId, $date) {
+error_log('isDailyScheduleProblem');
+// error_log('locationId:'.$locationId.', date:'.$date);
+		$required=$this->getCurrentlyRequiredStaff($locationId, $date);
+		$allocated=$this->getCurrentlyAllocatedStaff($locationId, $date);
+		$requiredQualifications=$this->getCurrentlyRequiredQualifications($locationId, $date);
+		$allocatedQualifications=$this->getCurrentlyAllocatedQualifications($locationId, $date);
+// error_log('required qual:'.print_r($requiredQualifications, true));
+// error_log('allocated qual:'.print_r($allocatedQualifications, true));
+
+		$noReq=true;
+		if ($required && count($required)) {
+			$noReq=false;
+			if ($allocated && count($allocated)) {
+				foreach ($required as $r) {
+					if ($r['numberOfStaff'] > 0) {
+						$groupId=$r['groupId'];
+						$shiftId=$r['shiftId'];
+						$requiredNumber=$r['numberOfStaff'];
+						$current=0;
+						foreach ($allocated as $a) {
+							if ($a['groupId'] == $groupId && $a['shiftId'] == $shiftId) {
+								$current++;
+							}
+						}
+						if ($requiredNumber > $current) {
+							return true;
+						}
+					} else {
+						return true;
+					}					
+				}
+			} else {
+				return true;
+			}
+		}
+		if ($requiredQualifications && count($requiredQualifications)) {
+			$noReq=false;
+			if ($allocatedQualifications && count($allocatedQualifications)) {
+				foreach ($requiredQualifications as $rq) {
+					if ($rq['numberOfStaff'] > 0) {
+						$qualificationId=$rq['qualificationId'];
+						$shiftId=$rq['shiftId'];
+						$minimumLevel=$rq['rank'];
+						$requiredNumber=$rq['numberOfStaff'];
+						$current=0;
+						foreach ($allocatedQualifications as $aq) {
+							if ($aq['qualificationId'] == $qualificationId && $aq['shiftId'] == $shiftId && ($aq['rank']==null || $aq['rank']>=$minimumLevel)) {
+								$current++;
+							}
+						}
+						if ($requiredNumber > $current) {
+							return true;
+						}
+					} else {
+						return true;
+					}
+				}
+			} else {
+				return true;
+			}	
+		}
+		if ($noReq) {
+// error_log('null');
+			return null;
+		} else {
+// error_log('false');
+			return false;
+		}
+	}
+	
+	public function currentStartAndFinishTime(&$startTime, &$finishTime, &$agreedOvertime, $holidays, $userId) {
+error_log('currentStartAndFinishTime');
+// error_log('startTime:'.print_r($startTime, true).', finishTime:'.print_r($finishTime, true));		
+		if ($holidays!=null && is_array($holidays) && count($holidays)) {
+// error_log('holidays list provided');
+error_log('holidays:'.print_r($holidays, true));
+			foreach ($holidays as $h) {
+				if (isset($h['typeId'])) {
+					switch ($h['typeId']) {
+						case 1 : {
+// error_log('holiday');
+							if (is_null($startTime)) {
+								$startTime=$h['start'];
+								$tmp=clone $h['start'];
+								$awwh=$this->getAverageWeeklyWorkingHours($userId, $tmp->getTimestamp(), true);
+// error_log('awwh:'.print_r($awwh, true));
+								$tmp->modify('+'.ceil($awwh['dailyhours']).' hour');
+								$finishTime=$tmp;
+							} else {
+								$startTime=$h['start'];
+								$finishTime=$h['finish'];
+							}
+							break;
+						}
+						case 2 : {
+error_log('unpaid leave');
+							$startTime=$h['start'];
+							$finishTime=$h['start'];
+							break;
+						}
+						case 3 : {
+error_log('sick leave');
+							$startTime=$h['start'];
+							$finishTime=$h['start'];
+/*
+							if (is_null($startTime)) {
+								$tmp=clone $h['start'];
+								$awwh=$this->getAverageWeeklyWorkingHours($userId, $tmp->getTimestamp(), true);
+								$tmp->modify('+'.ceil($awwh['dailyhours']).' hour');
+								$finishTime=$tmp;
+//							} else {
+//								$startTime=$h['start'];
+//								$finishTime=$h['finish'];
+//							}
+*/
+							break;
+						}
+						case 7 : {
+// error_log('late');
+							if ($h['start']->format('HHii') > 0) {
+								$startTime=$h['start'];
+							}
+							break;
+						}
+						case 8 : {
+// error_log('leave early');
+							if ($h['finish']->format('HHii') > 0) {
+								$finishTime=$h['finish'];
+							}
+							break;
+						}
+						case 9 : {
+// error_log('overtime');
+							if ($h['start']->format('HHii') > 0) {
+								$tmp=$h['start']->diff($startTime);
+								$agreedOvertime+=60*$tmp->h+$tmp->i;
+								$startTime=$h['start'];
+							}
+							if ($h['finish']->format('HHii') > 0) {
+								$tmp=$finishTime->diff($h['finish']);
+								$agreedOvertime+=60*$tmp->h+$tmp->i;
+								$finishTime=$h['finish'];
+							}
+							break;
+						}
+					}
+				}
+			}
+		}
+// error_log('overtime (min):'.$agreedOvertime, true);
+		return true;
+	}
+	
 }

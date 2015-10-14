@@ -3,9 +3,13 @@ parameters:
 services:
     timesheet.hr.functions:
         class: Timesheet\Bundle\HrBundle\Service\Functions
-        arguments: [@doctrine]
+        arguments: [@doctrine, @request_stack]
         calls:
           - [ setContainer, [ @service_container ] ]
+    timesheet.default.controller:
+        class: Timesheet\Bundle\HrBundle\Controller\DefaultController
+    timesheet.residents.controller:
+        class: Timesheet\Bundle\HrBundle\Controller\ResidentsController
     request_injector:
         class: RequestInjector
         public: false

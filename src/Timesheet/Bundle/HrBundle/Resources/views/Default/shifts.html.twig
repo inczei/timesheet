@@ -10,17 +10,17 @@
 {% if shiftForm is defined and shiftForm|length %}
 <div class="registrationList">
 <h2>Shift</h2>
-{{ include('Includes/shift_form.html.twig', { 'form': shiftForm }) }}
+{{ include('TimesheetHrBundle:Includes:shift_form.html.twig', { 'form': shiftForm }) }}
 </div>
 {% elseif staffReqForm is defined and staffReqForm|length %}
 <div class="registrationList">
 <h2>Staff Requirements</h2>
-{{ include('Includes/staffrequirements_form.html.twig', { 'form': staffReqForm, 'list': list, 'shiftTitle': shiftTitle }) }}
+{{ include('TimesheetHrBundle:Includes:staffrequirements_form.html.twig', { 'form': staffReqForm, 'list': list, 'shiftTitle': shiftTitle }) }}
 </div>
 {% elseif qualReqForm is defined and qualReqForm|length %}
 <div class="registrationList">
 <h2>Qualification Requirements</h2>
-{{ include('Includes/qualrequirements_form.html.twig', { 'form': qualReqForm, 'list': list, 'shiftTitle': shiftTitle }) }}
+{{ include('TimesheetHrBundle:Includes:qualrequirements_form.html.twig', { 'form': qualReqForm, 'list': list, 'shiftTitle': shiftTitle }) }}
 </div>
 {% else %}
 <div class="statusList">

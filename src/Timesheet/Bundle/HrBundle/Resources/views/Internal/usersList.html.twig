@@ -7,6 +7,7 @@
 		<th>Main Location</th>
 		<th>Current Status</th>
 		<th>Contract</th>
+		<th>Visa</th>
 		<th>Holidays</th>
 		<th>Timing Preference</th>
 		<th>Qualifications</th>
@@ -14,7 +15,7 @@
 	{% for u in users %}
 	<tr>
 		<td{% if u.isActive == false %} class="inactiveUser" title="Inactive"{% endif %}><a href="{{ path(base, {'action': 'edituser', 'param1': u.id }) }}" title="Click here to edit">{{ u.username }}</a> <span class="infoButton" data-url="{{ path('timesheet_ajax_userinfo', { 'id': u.id }) }}" title="{% if domainId is defined and domainId>0 %}{% else %}Domain: {{ domains[u.domainId] }}, {% endif %}Click here to get full info">i</span></td>
-		<td{% if u.isActive == false %} class="inactiveUser" title="Inactive"{% endif %}>{{ u.title ~ ' ' ~ u.firstName ~ ' ' ~ u.lastName|trim }}</td>
+		<td{% if u.isActive == false %} class="inactiveUser" title="Inactive"{% endif %}>{{ u.title ~ ' ' ~ u.firstName ~ ' ' ~ u.lastName|trim }}<br><a href="{{ path('timesheet_hr_userphotos', {'action': 'show', 'id': u.id }) }}">Photo</a>{% if u.photos is defined and u.photos|length %}{% for ph in u.photos %}<div class="photoThumbnail" data-userid="{{ u.id }}" data-photoid="{{ ph.id }}" data-func="user"><img alt="Latest photo" src="data:image/png;base64,{{ ph.photo }}" width="{{ ph.width }}" height="{{ ph.height }}"></div>{% endfor %}{% endif %}</td>
 		<td{% if u.groupAdmin %} title="Admin"{% endif %}>{{ u.groupname }}{% if u.groupAdmin %}<br><i>Admin</i>{% endif %}</td>
 		<td{% if u.locationAdmin %} title="Admin"{% endif %}>{{ u.locationname }}{% if u.locationAdmin %}<br><i>Admin</i>{% endif %}</td>
 		<td{% if u.statusname != null %} style="color: #{{ u.color }}" title="Last changed:{{ u.lastTime|date('d/m/Y H:i') }}"{% endif %}>{% if u.statusname != null %}{{ u.statusname }}{% else %} - {% endif %}</td>
@@ -31,7 +32,7 @@
 					<th title="Annual Holiday Entitlement">AHE</th>
 					<th title="Annual Holiday Entitlement (weeks)">AHEW</th>
 					<th title="Paid / Unpaid (minutes)">Lunchtime</th>
-					<th>Type</th>
+					<th>Contract Type</th>
 					<th title="Holiday Calculation">HC</th>
 					<th> </th>
 				</tr>
@@ -48,7 +49,7 @@
 						/
 						{% if c.lunchtimeUnpaid is defined and c.lunchtimeUnpaid != '' %}{{ c.lunchtimeUnpaid }}{% else %}<span title="Company Default">{{ lunchtimeUnpaid }}*</span>{% endif %}
 					</td>
-					<td>{% if c.Probation != 0 %}Probation{% else %}Permanent{% endif %}</td>
+					<td>{% if c.contractType == 1 %}Probation{% elseif c.contractType == 2 %}Temporary{% else %}Permanent{% endif %}</td>
 					<td>{% if holidaycalculations[c.hct] is defined %}{{ holidaycalculations[c.hct] }}{% else %}{{ holidaycalculations[hct] }}{% endif %}</td>
 					<td><a href="{{ path(base, {'action': 'editcontract', 'param1': u.id, 'param2': c.id }) }}">Edit</a></td>
 				</tr>
@@ -57,6 +58,28 @@
 			</div>
 			{% endif %}
 			<a href="{{ path(base, {'action': 'editcontract', 'param1': u.id, 'param2': '0' }) }}">Add Contract</a>
+		</td>
+		<td>
+			{% if u.visas is defined and u.visas|length %}
+			<div name="showhide" column="visaTable{{ u.id }}">Show</div>
+			<div name="hiddenTable" class="visaTable{{ u.id }}">
+			<table>
+				<tr>
+					<th>Type</th>
+					<th>Valid from-to</th>
+					<th> </th>
+				</tr>
+				{% for v in u.visas%}
+				<tr{% if v.notes is defined and v.notes|length %} title="{{ v.notes }}"{% endif %}>
+					<td>{{ v.title }}</td>
+					<td>{{ v.startDate|date('d/m/Y') }} - {% if v.notExpire %}{% else %}{{ v.endDate|date('d/m/Y') }}{% endif %}</td>
+					<td><a href="{{ path(base, {'action': 'editvisa', 'param1': u.id, 'param2': v.id }) }}">Edit</a></td>
+				</tr>				
+				{% endfor %}
+			</table>
+			</div>
+			{% endif %}
+			<a href="{{ path(base, {'action': 'editvisa', 'param1': u.id, 'param2': '0' }) }}">Add Visa</a>
 		</td>
 		<td>
 			{% if u.holidays.list is defined and u.holidays.list|length %}
@@ -129,6 +152,7 @@
 			<table>
 				<tr>
 					<th>Qualification</th>
+					<th>Level</th>
 					<th>Achievement Date</th>
 					<th>Expiry Date</th>
 					<th>Comments</th>
@@ -136,6 +160,7 @@
 			{% for uq in u.userqualifications %}
 				<tr>
 					<td>{{ uq.title }}</td>
+					<td>{{ uq.level }}</td>
 					<td>{{ uq.achievementDate|date('d/m/Y') }}</td>
 					<td>{{ uq.expiryDate|date('d/m/Y') }}</td>
 					<td>{{ uq.comments }}</td>
@@ -150,11 +175,12 @@
 	{% endfor %}
 	{% if found is defined and found>30 %}
 	<tr>
-		<td colspan="19"><i>more available...totally {{ found }}</i></td>
+		<td colspan="10"><i>more available...totally {{ found }}</i></td>
 	</tr>
 	{% endif %}
 </table>
 <hr>
+<input type="hidden" id="photoThumbnail" data-url="{{ path('timesheet_ajax_photo') }}">
 {% else %}
 <br><b>No user selected</b>
 <hr>

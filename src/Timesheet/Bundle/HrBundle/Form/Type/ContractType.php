@@ -38,7 +38,7 @@ class ContractType extends AbstractType
     		))
     		->add('username', 'text', array(
     			'label'=>'Username:',
-    			'required'=>true,
+    			'required'=>false,
     			'read_only'=>true,
     			'data'=>((isset($this->user))?($this->user->getUsername()):(''))
     		))
@@ -50,20 +50,14 @@ class ContractType extends AbstractType
     		))
     		->add('firstName', 'text', array(
     			'label'=>'First Name:',
+    			'required'=>false,
     			'read_only'=>true,
-    			'constraints'=>array(
-   					new NotBlank(),
-   					new Length(array('min'=>2, 'max'=>100))
-    			),
     			'data'=>((isset($this->user))?($this->user->getFirstName()):(''))
     		))
     		->add('lastName', 'text', array(
     			'label'=>'Last Name:',
+    			'required'=>false,
     			'read_only'=>true,
-    			'constraints'=>array(
-   					new NotBlank(),
-   					new Length(array('min'=>2, 'max'=>100))
-    			),
     			'data'=>((isset($this->user))?($this->user->getLastName()):(''))
     		))
     		->add('csd', 'date', array(
@@ -111,12 +105,12 @@ class ContractType extends AbstractType
     			'required'=>false,
     			'data'=>((isset($this->contract))?($this->contract->getLunchtimeUnpaid()):(''))
     		))
-    		->add('probation', 'choice', array(
-    			'label'=>'Type:',
-    			'choices'=>array('0'=>'Permanent', '1'=>'Probation'),
+    		->add('contractType', 'choice', array(
+    			'label'=>'Contract Type:',
+    			'choices'=>array('0'=>'Permanent', '1'=>'Probation', '2'=>'Temporary'),
     			'required'=>true,
     			'empty_value'=>' - Please select - ',
-    			'data'=>((isset($this->contract))?($this->contract->getProbation()):(''))
+    			'data'=>((isset($this->contract))?($this->contract->getContractType()):(''))
     		))
     		->add('hct', 'choice', array(
     			'label'=>'Holiday Calculation:',
@@ -138,7 +132,7 @@ class ContractType extends AbstractType
     			'data'=>((isset($this->contract))?($this->contract->getAHEonYS()):(''))
     		))
     		->add('initHolidays', 'number', array(
-    			'label'=>'Initial Holidays:',
+    			'label'=>'Holidays Carried Over:',
     			'required'=>false,
     			'data'=>((isset($this->contract))?($this->contract->getInitHolidays()):(0))
     		))

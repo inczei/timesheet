@@ -83,7 +83,8 @@ class LocationType extends AbstractType
     		))
     		->add('addressCountry', 'country', array(
     			'label'=>'Country:',
-    			'required'=>false,
+    			'preferred_choices'=>array('GB'),
+    			'required'=>true,
     			'data'=>((isset($this->location))?($this->location->getAddressCountry()):(''))
     		))
     		->add('addressPostcode', 'text', array(

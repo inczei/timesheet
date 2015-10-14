@@ -1,12 +1,13 @@
 {{ form_start(form) }}
 {{ form_errors(form) }}
-{% if title is defined and title|length %}
-<h3>{{ title }}</h3>
+{% if fullname is defined and fullname|length %}
+<h3>{{ fullname }}</h3>
 {% endif %}
 {% if qualifications is defined and qualifications|length %}
 <table>
 	<tr>
 		<th>Qualification</th>
+		<th>Level</th>
 		<th>Achievement Date</th>
 		<th>Expirey Date</th>
 		<th>Comments</th>
@@ -15,6 +16,7 @@
 {% for q in qualifications %}
 	<tr>
 		<td>{{ q.title }}</td>
+		<td>{% if levels[q.levelId] is defined %}{{ levels[q.levelId] }}{% else %}????{% endif %}</td>
 		<td>{{ date(q.achievementDate)|date('d/m/Y') }}</td>
 		<td>{{ date(q.expiryDate)|date('d/m/Y') }}</td>
 		<td>{{ q.comments }}</td>
@@ -37,6 +39,12 @@
 		<td></td>
 		<td>{{ form_label(form.qualificationId) }}{{ form_errors(form.qualificationId) }}</td>
 		<td>{{ form_widget(form.qualificationId) }}</td>
+		<td></td>
+	</tr>
+	<tr>
+		<td></td>
+		<td>{{ form_label(form.levelId) }}{{ form_errors(form.levelId) }}</td>
+		<td>{{ form_widget(form.levelId) }}</td>
 		<td></td>
 	</tr>
 	<tr>

@@ -18,13 +18,17 @@ class StatusType extends AbstractType
 	private $status;
 	private $colors;
 	private $levels;
+	private $companies;
+	private $selectedCompanies;
 	
 	
-	public function __construct($status, $colors, $levels)
+	public function __construct($status, $colors, $levels, $companies, $selectedCompanies)
 	{
 		$this->status = $status;
 		$this->colors = $colors;
 		$this->levels = $levels;
+		$this->companies = $companies;
+		$this->selectedCompanies = $selectedCompanies;
 	}
 	
     public function buildForm(FormBuilderInterface $builder, array $options)
@@ -78,6 +82,17 @@ class StatusType extends AbstractType
    				'attr'=>array('formnovalidate'=>true),
     			'validation_groups'=>false
     		));
+   			
+   		if (isset($this->companies) && count($this->companies)) {
+			$builder->add('companies', 'choice', array(
+				'choices'=>$this->companies,
+				'label'=>'Companies:',
+				'multiple'=>true,
+				'expanded'=>true,
+				'required'=>false,
+				'data'=>$this->selectedCompanies
+			));
+   		}
     }
 
     public function getName()

@@ -1,0 +1,16 @@
+{% extends 'TimesheetHrBundle:Default:base.html.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<div class="message">
+{% if message is defined and message|length %}
+<div class="loginMessage">{{ message }}</div>
+{% endif %}
+</div>
+{% if moveForm is defined and moveForm|length %}
+<div class="registrationList">
+<h2>Resident move to...</h2>
+{{ include('TimesheetHrBundle:Includes:residentmove_form.html.twig', {'form': moveForm}) }}
+</div>
+{% endif %}
+{% endblock %}

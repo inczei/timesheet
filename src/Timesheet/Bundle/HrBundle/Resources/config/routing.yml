@@ -16,9 +16,9 @@ timesheet_hr_login:
 timesheet_hr_registration:
     path:     /registration
     defaults: { _controller: TimesheetHrBundle:Default:registration }
-timesheet_hr_status:
-    path:     /status
-    defaults: { _controller: TimesheetHrBundle:Default:status }
+timesheet_hr_dashboard:
+    path:     /dashboard
+    defaults: { _controller: TimesheetHrBundle:Default:dashboard }
 timesheet_hr_timesheet:
     path:     /timesheet/{userId}/{timestamp}/{usersearch}
     defaults: { _controller: TimesheetHrBundle:Default:timesheet, userId: '0', timestamp: '0', usersearch: '' }
@@ -61,6 +61,28 @@ timesheet_hr_sysadmin:
 timesheet_hr_forgotpassword:
     path:     /forgotpassword
     defaults: { _controller: TimesheetHrBundle:Default:forgotpassword }
+timesheet_hr_userphotos:
+    path:     /userphotos/{action}/{id}
+    defaults: { _controller: TimesheetHrBundle:Default:userphotos, action: '', id: '' }
+
+residents_hr_dashboard:
+    path:     /residentshome
+    defaults: { _controller: TimesheetHrBundle:Residents:index }
+residents_hr_list:
+    path:     /residents/{action}/{id}
+    defaults: { _controller: TimesheetHrBundle:Residents:residentlist, action: '', id: '' }
+residents_hr_residentphotos:
+    path:     /residentphotos/{action}/{id}
+    defaults: { _controller: TimesheetHrBundle:Residents:residentphotos, action: '', id: '' }
+residents_hr_residentcontacts:
+    path:     /residentcontacts/{action}/{residentid}/{contactid}
+    defaults: { _controller: TimesheetHrBundle:Residents:residentcontacts, action: '', residentid: '', contactid: '' }
+residents_hr_rooms:
+    path:     /rooms/{action}/{param1}/{param2}
+    defaults: { _controller: TimesheetHrBundle:Residents:rooms, action: '', param1: '', param2: '' }
+residents_hr_move:
+    path:     /residentmove/{id}
+    defaults: { _controller: TimesheetHrBundle:Residents:residentmove, id: '' }
 
 fos_user_security:
     resource: "@FOSUserBundle/Resources/config/routing/security.xml"
@@ -146,6 +168,9 @@ timesheet_ajax_usershift:
 timesheet_ajax_showrequests:
     path:     /ajax/showrequests/{userid}
     defaults: { _controller: TimesheetHrBundle:Ajax:showrequests, userid: '' }
+timesheet_ajax_showdailyproblems:
+    path:     /ajax/showdailyproblems
+    defaults: { _controller: TimesheetHrBundle:Ajax:showdailyproblems }
 timesheet_ajax_getmessage:
     path:     /ajax/getmessage/{id}
     defaults: { _controller: TimesheetHrBundle:Ajax:getmessage, id: '' }
@@ -155,4 +180,17 @@ timesheet_ajax_sysadmin:
 timesheet_ajax_timesheetcheck:
     path:     /ajax/timesheetcheck
     defaults: { _controller: TimesheetHrBundle:Ajax:timesheetcheck }
+timesheet_ajax_photo:
+    path:     /ajax/photo
+    defaults: { _controller: TimesheetHrBundle:Ajax:photo }
+timesheet_ajax_userphoto:
+    path:     /ajax/userphoto
+    defaults: { _controller: TimesheetHrBundle:Ajax:userphoto }
+
+timesheet_ajax_residentphoto:
+    path:     /ajax/residentphoto
+    defaults: { _controller: TimesheetHrBundle:Ajax:residentphoto }
+timesheet_ajax_residenthistory:
+    path:     /ajax/residenthistory
+    defaults: { _controller: TimesheetHrBundle:Ajax:residenthistory }
     

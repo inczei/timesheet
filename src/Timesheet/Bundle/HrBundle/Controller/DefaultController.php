@@ -25,6 +25,7 @@ use Timesheet\Bundle\HrBundle\Form\Type\ContractType;
 use Timesheet\Bundle\HrBundle\Form\Type\GroupType;
 use Timesheet\Bundle\HrBundle\Form\Type\HolidayRequestType;
 use Timesheet\Bundle\HrBundle\Form\Type\MessageType;
+use Timesheet\Bundle\HrBundle\Form\Type\PhotoType;
 use Timesheet\Bundle\HrBundle\Form\Type\QualificationType;
 use Timesheet\Bundle\HrBundle\Form\Type\ResetPasswordType;
 use Timesheet\Bundle\HrBundle\Form\Type\ShiftType;
@@ -33,6 +34,8 @@ use Timesheet\Bundle\HrBundle\Form\Type\QualRequirementsType;
 use Timesheet\Bundle\HrBundle\Form\Type\StatusType;
 use Timesheet\Bundle\HrBundle\Form\Type\TimingType;
 use Timesheet\Bundle\HrBundle\Form\Type\UserQualificationType;
+use Timesheet\Bundle\HrBundle\Form\Type\UserVisaType;
+use Timesheet\Bundle\HrBundle\Entity\Constants;
 use Timesheet\Bundle\HrBundle\Entity\Allocation;
 use Timesheet\Bundle\HrBundle\Entity\Companies;
 use Timesheet\Bundle\HrBundle\Entity\Config;
@@ -49,9 +52,11 @@ use Timesheet\Bundle\HrBundle\Entity\StaffRequirements;
 use Timesheet\Bundle\HrBundle\Entity\Shifts;
 use Timesheet\Bundle\HrBundle\Entity\ShiftDays;
 use Timesheet\Bundle\HrBundle\Entity\Status;
+use Timesheet\Bundle\HrBundle\Entity\StatusToDomain;
 use Timesheet\Bundle\HrBundle\Entity\Timing;
 use Timesheet\Bundle\HrBundle\Entity\User;
 use Timesheet\Bundle\HrBundle\Entity\UserQualifications;
+use Timesheet\Bundle\HrBundle\Entity\UserVisas;
 use Symfony\Component\Validator\Constraints\Length;
 use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Serializer\Encoder\JsonEncode;
@@ -67,41 +72,11 @@ use Symfony\Component\HttpFoundation;
 use Ps\PdfBundle\Annotation\Pdf;
 use Zend\Math\Rand;
 use Zend\Stdlib\Message;
-
-
+use Timesheet\Bundle\HrBundle\Entity\UserPhotos;
+use \DateTime;
 
 class DefaultController extends Controller
 {
-
-	
-	const MENU_HOMEPAGE = 1;
-	const MENU_LOGIN = 2;
-	const MENU_REGISTER = 3;
-	const MENU_STATUS = 4;
-	const MENU_TIMESHEET = 5;
-	const MENU_SCHEDULE = 6;
-	const MENU_HOLIDAY = 7;
-	const MENU_ADMIN = 8;
-	const MENU_CONFIG = 9;
-	const MENU_MESSAGES = 10;
-	const MENU_SYSADMIN = 11;
-	
-	const MENU_ITEMS = 11;
-
-	private $adminActions=array(
-		'edituser',
-		'editlocation',
-		'editcontract',
-		'edittiming',
-		'editgroup',
-		'editqualification',
-		'edituserqualification',
-		'editstatus',
-		'editshift',
-		'editsreq',
-		'editqreq'
-	);
-	
 
     public function indexAction() {
 
@@ -110,13 +85,13 @@ class DefaultController extends Controller
     	
     	$session=$this->get('session');
     	
-   		$session->set('menu', self::MENU_HOMEPAGE);
+   		$session->set('menu', Constants::MENU_HOMEPAGE);
    		$request=$this->getRequest();
    		$functions=$this->get('timesheet.hr.functions');
    		$domainId=$functions->getDomainId($this->getRequest()->getHttpHost());
    		$functions->setTimezoneSession($session, $request);
 
-   		$form=$this->createForm(new PunchType($this->getStatus()));
+   		$form=$this->createForm(new PunchType($this->getStatus(null, true, $domainId)));
     	$form->handleRequest($request);
 
 		if ($request->isMethod('POST') && $form->isSubmitted()) {
@@ -184,7 +159,7 @@ class DefaultController extends Controller
         return $this->render('TimesheetHrBundle:Default:index.html.twig', array(
         	'form'		=> $form->createView(),
         	'message'	=> $message,
-        	'title'		=> $this->getPageTitle('Home')
+        	'title'		=> $functions->getPageTitle('Home')
         ));
     }
     
@@ -193,7 +168,7 @@ class DefaultController extends Controller
     	
     	$message='';
     	$session = $this->get('session');
-    	$session->set('menu', self::MENU_LOGIN);
+    	$session->set('menu', Constants::MENU_LOGIN);
     	$request=$this->getRequest();
     	
     	$form=$this->createForm(new LoginType());
@@ -229,7 +204,7 @@ class DefaultController extends Controller
 	    			$session->getFlashBag()->set('login', $message);
 	    			
 	    			error_log($message);
-	    			return $this->redirect($this->generateUrl('timesheet_hr_status'));
+	    			return $this->redirect($this->generateUrl('timesheet_hr_dashboard'));
 	    			
 	    		} else {
 	    			$message.='Wrong password for '.$data['uname'];
@@ -250,7 +225,7 @@ class DefaultController extends Controller
     
     public function resetpasswordAction($link) {
 error_log('resetpasswordAction');
-error_log('link:'.$link);
+// error_log('link:'.$link);
 		$request=$this->getRequest();
 		$session = $this->get('session');
 		$functions=$this->get('timesheet.hr.functions');
@@ -270,7 +245,7 @@ error_log('link:'.$link);
 		} else {
 			if ($session->has('resetpassword')) {
 				$link=$session->get('resetpassword');
-error_log('session link:'.$link);
+// error_log('session link:'.$link);
 
 				$passwordReset=$this->getDoctrine()
 					->getRepository('TimesheetHrBundle:PasswordReset')
@@ -373,11 +348,11 @@ error_log('forgotpasswordAction');
 	    		
 	    		if ($passwordReset && count($passwordReset)) {
 	    			$link=$passwordReset->getLink();
-error_log('old link:'.$link);
+// error_log('old link:'.$link);
 					$dt1=$passwordReset->getLastSent();
 					$interval=$dt1->diff(new \DateTime('now'));
 					$minutes=60*24*$interval->format('%d')+60*$interval->format('%h')+$interval->format('%i');
-error_log('minutes:'.$minutes);
+// error_log('minutes:'.$minutes);
 					if ($minutes <= 10) {
 						// if less than 10 minutes ago requested a link, only show a message to wait...
 						$canSend=false;
@@ -397,7 +372,7 @@ error_log('minutes:'.$minutes);
 	    		if ($canSend) {
 	    			if ($new) {
 	    				$link=$functions->createUniqueId();
-error_log('new link:'.$link);
+// error_log('new link:'.$link);
 	    				$passwordReset=new PasswordReset();
 		    			 
 		    			$passwordReset->setCreatedOn(new \DateTime('now'));
@@ -455,7 +430,7 @@ error_log('new link:'.$link);
     }
     
     
-    public function statusAction() {
+    public function dashboardAction() {
 
     	$securityContext = $this->container->get('security.context');
     	if (!$securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
@@ -465,11 +440,12 @@ error_log('not allowed...redirect to homepage');
     	 
     	$message='';
     	$session=$this->get('session');
-    	$session->set('menu', self::MENU_STATUS);
-
+    	$session->set('menu', Constants::MENU_DASHBOARD);
+    	$functions=$this->get('timesheet.hr.functions');
+    	
     	return $this->render('TimesheetHrBundle:Default:status.html.twig', array(
     			'message'	=> $message,
-    			'title'		=> $this->getPageTitle('Status')
+    			'title'		=> $functions->getPageTitle('Dashboard')
     	));
     	 
     }
@@ -479,13 +455,13 @@ error_log('not allowed...redirect to homepage');
     	 
     	$securityContext = $this->container->get('security.context');
     	if (!$securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED') || (TRUE !== $securityContext->isGranted('ROLE_ADMIN') && TRUE !== $securityContext->isGranted('ROLE_MANAGER'))) {
-    		error_log('not allowed...redirect to homepage');
+error_log('not allowed...redirect to homepage');
     		return $this->redirect($this->generateUrl('timesheet_hr_homepage'));
     	}
     	$base=$this->getRequest()->attributes->get('_route');
     
     	$session=$this->get('session');
-    	$session->set('menu', self::MENU_CONFIG);
+    	$session->set('menu', Constants::MENU_CONFIG);
 
     	$request=$this->getRequest();
     	
@@ -545,7 +521,7 @@ error_log('not allowed...redirect to homepage');
     	return $this->render('TimesheetHrBundle:Default:config.html.twig', array(
     			'base'		=> $base,
     			'form'		=> $form->createView(),
-    			'title'		=> $this->getPageTitle('Config'),
+    			'title'		=> $functions->getPageTitle('Config'),
     	));
     }
 
@@ -554,7 +530,7 @@ error_log('not allowed...redirect to homepage');
     	 
     	$securityContext = $this->container->get('security.context');
     	if (!$securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
-    		error_log('not allowed...redirect to homepage');
+error_log('not allowed...redirect to homepage');
     		return $this->redirect($this->generateUrl('timesheet_hr_homepage'));
     	}
 
@@ -567,7 +543,7 @@ error_log('not allowed...redirect to homepage');
     	$base=$this->getRequest()->attributes->get('_route');
     	$user=$this->getUser();
     	$session=$this->get('session');
-    	$session->set('menu', self::MENU_MESSAGES);
+    	$session->set('menu', Constants::MENU_MESSAGES);
 
     	$folders=array('Inbox', 'Draft', 'Sent');
     	$actions=array('New', 'Reply', 'Forward', 'Delete');
@@ -770,7 +746,7 @@ error_log('not allowed...redirect to homepage');
     	
         return $this->render('TimesheetHrBundle:Default:messages.html.twig', array(
     		'base'		=> $base,
-    		'title'		=> $this->getPageTitle('Messages'),
+    		'title'		=> $functions->getPageTitle('Messages'),
         	'form'		=> ((isset($form))?($form->createView()):(null)),
         	'folder'	=> $action,
         	'folders'	=> $folders,
@@ -793,7 +769,7 @@ error_log('not allowed...redirect to homepage');
     	
     	$base=$this->getRequest()->attributes->get('_route');
     	$session=$this->get('session');
-    	$session->set('menu', self::MENU_SCHEDULE);
+    	$session->set('menu', Constants::MENU_SCHEDULE);
 
     	if (strlen($locationId) || $timestamp) {
     		if ($session->get('schedule')) {
@@ -849,7 +825,8 @@ error_log('not allowed...redirect to homepage');
     	} else {
     		$qualificationSearch='';
     	}
-    	 
+    	$functions=$this->get('timesheet.hr.functions');
+    	
     	return $this->render('TimesheetHrBundle:Default:schedule.html.twig', array(
     		'base'		=> $base,
     		'locationId'=> $locationId,
@@ -857,7 +834,7 @@ error_log('not allowed...redirect to homepage');
     		'usersearch'=> $userSearch,
     		'groupsearch'=> $groupSearch,
     		'qualificationsearch'=> $qualificationSearch,
-    		'title'		=> $this->getPageTitle('Schedule'),
+    		'title'		=> $functions->getPageTitle('Schedule'),
     	));
     }
     
@@ -867,7 +844,7 @@ error_log('not allowed...redirect to homepage');
     	$session=$this->get('session');
     	
     	$base=$this->getRequest()->attributes->get('_route');
-   		$session->set('menu', self::MENU_REGISTER);
+   		$session->set('menu', Constants::MENU_REGISTER);
     	
    		$message='';
     	 
@@ -957,8 +934,6 @@ error_log('not allowed...redirect to homepage');
 			}
     	}
     	 
-    	 
-    	 
     	return $this->render('TimesheetHrBundle:Default:register.html.twig', array(
    			'form'	=> $form->createView(),
    			'message'=> $message
@@ -980,7 +955,7 @@ error_log('not allowed...redirect to homepage');
     	$base=$this->getRequest()->attributes->get('_route');
     	$user=$this->getUser();
     	
-    	$session->set('menu', self::MENU_TIMESHEET);
+    	$session->set('menu', Constants::MENU_TIMESHEET);
     	if ($userId || $timestamp || $usersearch) {
     		$session->set('timesheet', array('userId'=>$userId, 'timestamp'=>$timestamp, 'usersearch'=>$usersearch));
     		
@@ -1018,11 +993,12 @@ error_log('not allowed...redirect to homepage');
     			$session->set('timesheet', $calendar);
     		}
     	}    	
-
+    	$functions=$this->get('timesheet.hr.functions');
+    	
     	return $this->render('TimesheetHrBundle:Default:timesheet.html.twig', array(
     		'base'		=> $base,
     		'userId'	=> $userId,
-    		'title'		=> $this->getPageTitle('Timesheet'),
+    		'title'		=> $functions->getPageTitle('Timesheet'),
     		'timestamp'	=> $timestamp,
     		'usersearch'=> $usersearch,
    			'message'	=> $message
@@ -1042,7 +1018,7 @@ error_log('not allowed...redirect to homepage');
     	$message='';
     	$session=$this->get('session');
     	 
-    	$session->set('menu', self::MENU_HOLIDAY);
+    	$session->set('menu', Constants::MENU_HOLIDAY);
 
     	$message='';
     	$base=$this->getRequest()->attributes->get('_route');
@@ -1079,17 +1055,18 @@ error_log('not allowed...redirect to homepage');
     			$session->set('calendar', $calendar);
     		}
     	}    	
+    	$functions=$this->get('timesheet.hr.functions');
     	
     	return $this->render('TimesheetHrBundle:Default:holiday.html.twig', array(
     		'base'		=> $base,
     		'userId'	=> $userId,
     		'timestamp'	=> $timestamp,
-			'title'		=> $this->getPageTitle('Holiday'),
+			'title'		=> $functions->getPageTitle('Holiday'),
    			'message'	=> $message
     	));
     }
-    
-    
+
+
     public function resetAction() {
     	
     	$session=$this->get('session');
@@ -1098,6 +1075,153 @@ error_log('not allowed...redirect to homepage');
     	return $this->redirect($this->generateUrl('timesheet_hr_homepage'));
     }
 
+
+    public function userphotosAction($action, $id) {
+    	$securityContext = $this->container->get('security.context');
+    	if (!$securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
+error_log('not allowed...redirect to homepage');
+    		return $this->redirect($this->generateUrl('timesheet_hr_homepage'));
+    	}
+    	
+    	$session=$this->get('session');
+        if ($id) {
+    		$session->set('userPhotos', $id);
+    		return $this->redirect($this->generateUrl('timesheet_hr_userphotos', array('action'=>$action)));
+    	}
+    	if ($session->get('userPhotos')) {
+    		$userId=$session->get('userPhotos');
+    	} else {
+    		$userId=null;
+    	}
+
+    	if ($userId) {
+    		$functions=$this->get('timesheet.hr.functions');
+    		$request=$this->getRequest();
+			$domainId=$functions->getDomainId($request->getHttpHost());
+		
+			$userManager = $this->container->get('fos_user.user_manager');
+			$user=$userManager->findUserBy(array('id'=>$userId));
+			$photos=array();
+			$images=array();
+			
+			switch ($action) {
+				case 'new': {
+			    	$form=$this->createForm(new PhotoType($user->getId(), trim($user->getTitle().' '.$user->getFirstName().' '.$user->getLastName()), ''));
+			    	
+			    	if ($request->getMethod() == 'POST') {
+//			    	$form->bindRequest($request);
+			    	$form->handleRequest($request);
+	    				if ($form->isValid()) {
+	    					if ($form->get('cancel')->isClicked()) {
+	    						$session->remove('admin');
+	    						return $this->redirect($this->generateUrl('timesheet_hr_userphotos'));
+	    					} else { // if ($userForm->get('submit')->isClicked()) {
+	
+		    					$data=$form->getData();
+		    					
+								$filepath=$data['file']->getPathname();
+	
+// error_log('data:'.print_r($data, true));								
+							
+								$phototype=$data['file']->getMimeType();
+// error_log('phototype:'.$phototype);
+								$photosize=$data['file']->getClientSize();
+// error_log('file size:'.$photosize);							
+								if ($photosize>1024*1024) {
+									$session->getFlashBag()->set('notice', 'Please upload smallest file. The limit is 1M');
+									return $this->redirect($this->generateUrl('timesheet_hr_userphotos'));
+								}
+	
+								if (false === array_search($phototype, array('image/jpeg', 'image/png', 'image/gif'))) {
+									$session->getFlashBag()->set('notice', 'Wrong file type');
+									return $this->redirect($this->generateUrl('timesheet_hr_userphotos'));
+								} else {
+									$phototype=str_replace('image/', '', $phototype);
+								}
+								
+								if (file_exists($filepath) && is_readable($filepath)) {
+									
+									
+									$photodata=file_get_contents($filepath);
+	
+									unlink($filepath);
+									$notes=$data['notes'];
+									try {
+				    					$currentUser=$this->getUser();
+				    					
+				    					$userPhotos=new UserPhotos();
+				    					$userPhotos->setCreatedOn(new \DateTime());
+				    					$userPhotos->setCreatedBy($currentUser->getId());
+				    					$userPhotos->setUserId($userId);
+				    					$userPhotos->setPhoto($photodata);
+				    					$userPhotos->setType($phototype);
+				    					$userPhotos->setNotes(''.$notes);
+				    					$em=$this->getDoctrine()->getManager();
+				    					$em->persist($userPhotos);
+				    					$em->flush($userPhotos);
+			    					} catch (\Exception $e) {
+			    						error_log('Database error:'.$e->getMessage());
+			    						$message='Database error, could not save';
+			    						$session->getFlashBag()->set('notice', $message);
+			    						return $this->redirect($this->generateUrl('timesheet_hr_userphotos'));
+			    					}
+error_log('6');			    					
+				    				if ($userPhotos->getId()) {
+	
+				    					$tmp=$functions->getUserPhotos($userId, $domainId, false, true, 600, $userPhotos->getId());
+				    					$photodata=reset($tmp);
+// error_log('photodata:'.print_r($photodata, true));
+// error_log('orig dim: '.$photodata['origWidth'].'x'.$photodata['origHeight']);
+// error_log('dim: '.$photodata['width'].'x'.$photodata['height']);
+										$tmpPhoto=$this->getDoctrine()
+											->getRepository('TimesheetHrBundle:UserPhotos')
+											->findOneBy(array('id'=>$userPhotos->getId()));
+										
+				    					$tmpPhoto->setPhoto(base64_decode($photodata['photo']));
+				    					$em->flush($tmpPhoto);
+				    					
+				    					$message='Photo uploaded';
+				    				} else {
+				    					$message='Error occured';
+				    				}
+			    					
+			    					$session->getFlashBag()->set('notice', $message);
+			    					return $this->redirect($this->generateUrl('timesheet_hr_userphotos'));
+			    					 
+								}
+	    					}
+    					}
+    				}
+			    	break;
+				}
+				default: {
+					$photos=$functions->getUserPhotos($userId, $domainId, true, true, 200);
+					if ($photos && count($photos)) {
+						foreach ($photos as $k=>$photo) {
+							$images[$k]=$photo;
+						}
+					}
+					break;
+				}
+			}
+			
+    		return $this->render('TimesheetHrBundle:Default:userPhotos.html.twig', array(
+    			'title'		=> $functions->getPageTitle('Photos'),
+    			'form'		=> ((isset($form))?($form->createView()):(null)),
+    			'user'		=> $user,
+    			'photos'	=> $photos,
+    			'images'	=> $images
+    		));
+
+    		
+    	} else {
+    		error_log('no userId...redirect to homepage');
+    		return $this->redirect($this->generateUrl('timesheet_hr_homepage'));
+    	}
+    	 
+    	 
+    }
+    
     
     public function usermenuAction($base, $domainId) {
     	
@@ -1117,7 +1241,7 @@ error_log('not allowed...redirect to homepage');
     		$userSearch='';
     	}
     	 
-		$users=$functions->getUsersList(null, ((strlen($userSearch))?($userSearch):(null)), false, null, null, null, true, $domainId, $this->getRequest());
+		$users=$functions->getUsersList(null, ((strlen($userSearch))?($userSearch):(null)), false, null, null, null, true, $domainId);
 		if (isset($users[-1]['found'])) {
 			$found=$users[-1]['found'];
 			unset($users[-1]);
@@ -1134,7 +1258,7 @@ error_log('not allowed...redirect to homepage');
     		'userSearch'	=> $userSearch,
     		'AHE'			=> $functions->getConfig('ahe', $dId),
     		'AHEW'			=> $functions->getConfig('ahew', $dId),
-    		'holidaycalculations'			=> $functions->getHolidayCalculations($dId),
+    		'holidaycalculations'	=> $functions->getHolidayCalculations($dId),
 			'hct'			=> $functions->getConfig('hct', $dId),
    			'lunchtime'		=> $functions->getConfig('lunchtime', $dId),
    			'lunchtimeUnpaid'	=> $functions->getConfig('lunchtimeUnpaid', $dId),
@@ -1170,28 +1294,28 @@ error_log('not allowed...redirect to homepage');
 error_log('not allowed...redirect to homepage');
     		return $this->redirect($this->generateUrl('timesheet_hr_homepage'));
     	}
-    	 
-    	$conn=$this->getDoctrine()->getConnection();
-    	 
-	    $query='SELECT'.
-	    	' `g`.*'.
-	    	' FROM `Groups` `g`'.
-	    	(($domainId)?(' WHERE `g`.`domainId`=:dId'):('')).
-	    	' ORDER BY `g`.`Name`';
-	    	
-	    $stmt=$conn->prepare($query);
-	    if ($domainId) {
-	    	$stmt->bindValue('dId', $domainId);
-	    }
-	    $stmt->execute();
-	    	 
-	    $groups=$stmt->fetchAll();
+		$em=$this->getDoctrine()->getManager();
+		
+		$qb=$em
+			->createQueryBuilder()
+			->select('g')
+			->from('TimesheetHrBundle:Groups', 'g')
+			->orderBy('g.name', 'ASC');
+
+		if ($domainId) {
+			$qb->where('g.domainId=:dId')
+				->setParameter('dId', $domainId);
+		}
+		
+		
+		$query=$qb->getQuery();
+		$groups=$query->getArrayResult();
 	    $functions=$this->get('timesheet.hr.functions');
 	    
     	return $this->render('TimesheetHrBundle:Internal:groupmenu.html.twig', array(
     		'groups'	=> $groups,
     		'domainId'	=> $domainId,
-    		'domains'	=> (($domainId)?(null):($functions->getDomains())),
+    		'domains'	=> (($domainId)?(null):($functions->getCompanies())),
     		'base'		=> $base
     	));
     }
@@ -1204,44 +1328,48 @@ error_log('not allowed...redirect to homepage');
 error_log('not allowed...redirect to homepage');
     		return $this->redirect($this->generateUrl('timesheet_hr_homepage'));
     	}
+    	$em=$this->getDoctrine()->getManager();
+    	
+    	$qb=$em
+    		->createQueryBuilder()
+    		->select('q')
+    		->from('TimesheetHrBundle:Qualifications', 'q')
+    		->orderBy('q.title', 'ASC');
+    	
+    	if ($domainId) {
+    		$qb->where('q.domainId=:dId')
+    			->setParameter('dId', $domainId);
+    	}
+    	
+    	
+    	$query=$qb->getQuery();
+    	$qualifications=$query->getArrayResult();
     	 
-    	$conn=$this->getDoctrine()->getConnection();
-    	 
-	    $query='SELECT'.
-	    	' `q`.*'.
-	    	' FROM `Qualifications` `q`'.
-	    	(($domainId)?(' WHERE `q`.`domainId`=:dId'):('')).
-	    	' ORDER BY `q`.`Title`';
-	    	
-	    $stmt=$conn->prepare($query);
-	    if ($domainId) {
-	    	$stmt->bindValue('dId', $domainId);
-	    }
-	    $stmt->execute();
-	    	 
-	    $qualifications=$stmt->fetchAll();
 	    $functions=$this->get('timesheet.hr.functions');
     	    	 
     	return $this->render('TimesheetHrBundle:Internal:qualificationmenu.html.twig', array(
     		'qualifications'	=> $qualifications,
-    		'domainId'	=> $domainId,
-    		'domains'	=> (($domainId)?(null):($functions->getDomains())),
+    		'domainId'			=> $domainId,
+    		'domains'			=> (($domainId)?(null):($functions->getCompanies())),
     		'base'				=> $base
     	));
     }
     
     
-    public function statusmenuAction($base) {
+    public function statusmenuAction($domainId, $base) {
     	
         $securityContext = $this->container->get('security.context');
     	if (!$securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
 error_log('not allowed...redirect to homepage');
     		return $this->redirect($this->generateUrl('timesheet_hr_homepage'));
     	}
+    	$functions=$this->get('timesheet.hr.functions');
     	
     	return $this->render('TimesheetHrBundle:Internal:statusmenu.html.twig', array(
-    		'statuses'	=> $this->getStatuses(),
-    		'base'		=> $base
+    		'statuses'	=> $functions->getStatuses(),
+    		'base'		=> $base,
+    		'companies'	=> (($domainId)?(null):($functions->getCompanies())),
+    		'domainId'	=> $domainId
     	));
     }
     	 
@@ -1257,7 +1385,7 @@ error_log('not allowed...redirect to homepage');
     	$functions=$this->get('timesheet.hr.functions');
     	$domainId=$functions->getDomainId($this->getRequest()->getHttpHost());
     	$shifts=$functions->getShift(null, $domainId);
-error_log('shifts:'.print_r($shifts, true));
+
     	return $this->render('TimesheetHrBundle:Internal:shiftmenu.html.twig', array(
     		'base'		=> $base,
     		'locations'	=> $functions->getLocation(null, true, $domainId),
@@ -1279,10 +1407,10 @@ error_log('not allowed...redirect to homepage');
     	$domainId=$functions->getDomainId($this->getRequest()->getHttpHost());
     	$base=$this->getRequest()->attributes->get('_route');
     	$session=$this->get('session');
-    	$session->set('menu', self::MENU_ADMIN);
+    	$session->set('menu', Constants::MENU_ADMIN);
     	$message='';
 
-    	if (in_array($action, $this->adminActions) && $param1!=null) {
+    	if (in_array($action, Constants::userActions) && $param1!=null) {
     	
     		$session->set('admin', array(
     			'action'=>$action,
@@ -1321,12 +1449,12 @@ error_log('not allowed...redirect to homepage');
     					$user=new User();
     				} else {
     					$user=$this->getDoctrine()
-    					->getRepository('TimesheetHrBundle:User')
-    					->findOneBy(array('id'=>$admin['param1']));
+	    					->getRepository('TimesheetHrBundle:User')
+	    					->findOneBy(array('id'=>$admin['param1']));
     				}
 
     				$currentUser=$this->getUser();
-    				$userForm=$this->createForm(new RegisterType($functions->getGroups($domainId), $functions->getLocation(), $functions->getAvailableRoles($currentUser->getRoles()), $functions->getTitles(), $user, $new, (($sysadmin)?($functions->getCompanies()):(null))));
+    				$userForm=$this->createForm(new RegisterType($functions->getGroups($domainId), $functions->getLocation(null, true, $domainId), $functions->getAvailableRoles($currentUser->getRoles()), $functions->getTitles(), $user, $new, (($sysadmin)?($functions->getCompanies()):(null))));
 
     				$userForm->handleRequest($this->getRequest());
     	
@@ -1410,7 +1538,7 @@ error_log('not allowed...redirect to homepage');
 							}
 	    					if ($user->getId()) {
 	    						$session->remove('admin');
-	    						$session->getFlashBag()->set('notice', 'User ('.$user->getUsername().') '.(($new)?('saved'):('updated')).(($generatedUsername!='')?(', new username: '.$generatedUsername):('')));
+	    						$session->getFlashBag()->set('notice', 'User '.trim($user->getTitle().' '.$user->getFirstName().' '.$user->getLastName()).' ('.$user->getUsername().') '.(($new)?('saved'):('updated')).(($generatedUsername!='')?(', new username: '.$generatedUsername):('')));
 	    						return $this->redirect($this->generateUrl($base));
 	    					}
     					}
@@ -1478,7 +1606,7 @@ error_log('not allowed...redirect to homepage');
 										$em->flush($r);
 									}
 									
-									$session->getFlashBag()->set('notice', 'Timings for '.$user->getUsername().' is deleted');
+									$session->getFlashBag()->set('notice', 'Timings for '.trim($user->getTitle().' '.$user->getFirstName().' '.$user->getLastName()).' ('.$user->getUsername().') is deleted');
 									
 								}
 							} else {
@@ -1505,7 +1633,7 @@ error_log('not allowed...redirect to homepage');
 								}
 							}
 							if ($timing->getId()) {
-				    			$session->getFlashBag()->set('notice', 'Timings for '.$user->getUsername().' added');
+				    			$session->getFlashBag()->set('notice', 'Timings for '.trim($user->getTitle().' '.$user->getFirstName().' '.$user->getLastName()).' ('.$user->getUsername().') added');
 				    		}
 				    		return $this->redirect($this->generateUrl('timesheet_hr_users'));
 		    			}
@@ -1556,7 +1684,7 @@ error_log('not allowed...redirect to homepage');
 						$contract->setLunchtimeUnpaid($data['lunchtimeUnpaid']);
 						$contract->setHCT($data['hct']);
 						$contract->setWDpW($data['wdpw']);
-						$contract->setProbation($data['probation']?true:false);
+						$contract->setContractType($data['contractType']);
 						$contract->setAHEonYS($data['AHEonYS']?true:false);
 						$contract->setInitHolidays($data['initHolidays']);
 						
@@ -1570,7 +1698,7 @@ error_log('not allowed...redirect to homepage');
 		    			if ($contract->getId()) {
 		    				
 		    				$session->remove('admin');
-		    				$session->getFlashBag()->set('notice', 'Contract for '.$user->getUsername().' '.(($new2)?('saved'):('updated')));
+		    				$session->getFlashBag()->set('notice', 'Contract for '.trim($user->getTitle().' '.$user->getFirstName().' '.$user->getLastName()).' ('.$user->getUsername().') '.(($new2)?('saved'):('updated')));
 		    		
 		    				return $this->redirect($this->generateUrl($base));
 		    			}
@@ -1578,6 +1706,67 @@ error_log('not allowed...redirect to homepage');
     				break;
     			}
 
+    			case 'editvisa' : {
+
+    				if ($new) {
+		    			$session->remove('admin');
+		    			return $this->redirect($this->generateUrl($base));
+    				} else {
+	    				$user=$this->getDoctrine()
+			    			->getRepository('TimesheetHrBundle:User')
+			    			->findOneBy(array('id'=>$admin['param1']));
+
+	    				if ($new2) {
+	    					$uservisa=new UserVisas();
+	    				} else {
+		    				$uservisa=$this->getDoctrine()
+				    			->getRepository('TimesheetHrBundle:UserVisas')
+				    			->findOneBy(array('id'=>$admin['param2']));
+	    				}
+    				}
+		    		
+		    		$uservisaForm=$this->createForm(new UserVisaType($uservisa, $user, $functions->getVisaList($domainId)));
+		    		
+		    		$uservisaForm->handleRequest($this->getRequest());
+		
+		    		if ($uservisaForm->isValid()) {
+		
+		    			if ($uservisaForm->get('cancel')->isClicked()) {
+		    				$session->remove('admin');
+		    				return $this->redirect($this->generateUrl($base));
+		    			}
+		    			 
+		    			$message='Valid';
+		    		
+		    			$data=$uservisaForm->getData();
+
+						$uservisa->setUserId($data['userId']);
+						$uservisa->setVisaId($data['visaId']);
+						$uservisa->setStartDate($data['startDate']);
+						$uservisa->setEndDate($data['endDate']);
+						$uservisa->setNotExpire($data['notExpire']);
+						$uservisa->setNotes(''.$data['notes']);
+						
+						if ($new2) {
+							$currentUser=$this->getUser();
+							$uservisa->setCreatedBy($currentUser->getId());
+							$uservisa->setCreatedOn(new \DateTime('now'));
+							
+							$em->persist($uservisa);
+						}
+						$em->flush($uservisa);
+		    		
+		    			if ($uservisa->getId()) {
+		    				
+		    				$session->remove('admin');
+		    				$session->getFlashBag()->set('notice', 'Visa for '.trim($user->getTitle().' '.$user->getFirstName().' '.$user->getLastName()).' ('.$user->getUsername().') '.(($new2)?('saved'):('updated')));
+		    		
+		    				return $this->redirect($this->generateUrl($base));
+		    			}
+		    		}
+    				break;
+    			}
+    			
     			case 'edituserqualification' : {
 
     				if ($new) {
@@ -1589,9 +1778,10 @@ error_log('not allowed...redirect to homepage');
 			    			->findOneBy(array('id'=>$admin['param1']));
     				}
 
-    				$title=trim($user->getFirstName().' '.$user->getLastName().' ('.$user->getUsername().')');
+    				$fullname=trim($user->getFirstName().' '.$user->getLastName().' ('.$user->getUsername().')');
     				$list=$functions->getQualifications($admin['param1'], true, $domainId);
-		    		$userqualificationForm=$this->createForm(new UserQualificationType($functions->getQualifications(null, false, $domainId), $user, $list));
+    				$levels=$functions->getQualificationLevels();
+		    		$userqualificationForm=$this->createForm(new UserQualificationType($functions->getQualifications(null, false, $domainId), $levels, $user, $list));
 		    		$userqualificationForm->handleRequest($this->getRequest());
 		    		if ($userqualificationForm->isValid()) {
 		
@@ -1611,6 +1801,7 @@ error_log('not allowed...redirect to homepage');
 				    			$userqualification=new UserQualifications();
 				    			$userqualification->setUserId($admin['param1']);
 				    			$userqualification->setQualificationId($data['qualificationId']);
+				    			$userqualification->setLevelId($data['levelId']);
 								$userqualification->setComments((($data['comments'])?($data['comments']):('')));
 								$userqualification->setAchievementDate($data['achievementDate']);
 								$userqualification->setExpiryDate($data['expiryDate']);
@@ -1626,7 +1817,7 @@ error_log('not allowed...redirect to homepage');
 							}
 							
 			    			if ($userqualification->getId()) {
-			    				$session->getFlashBag()->set('notice', 'Qualification for '.$user->getUsername().' is '.(($new2)?('added'):('updated')));
+			    				$session->getFlashBag()->set('notice', 'Qualification for '.trim($user->getTitle().' '.$user->getFirstName().' '.$user->getLastName()).' ('.$user->getUsername().') is '.(($new2)?('added'):('updated')));
 			    				return $this->redirect($this->generateUrl('timesheet_hr_users'));
 			    			}
 		    			} elseif ($userqualificationForm->has('delete') && $userqualificationForm->get('delete')->isClicked()) {
@@ -1649,7 +1840,7 @@ error_log('not allowed...redirect to homepage');
 										$em->flush($r);
 									}
 									
-									$session->getFlashBag()->set('notice', 'Qualification for '.$user->getUsername().' is deleted');
+									$session->getFlashBag()->set('notice', 'Qualification for '.trim($user->getTitle().' '.$user->getFirstName().' '.$user->getLastName()).' ('.$user->getUsername().') is deleted');
 									
 								}
 							} else {
@@ -1667,14 +1858,16 @@ error_log('not allowed...redirect to homepage');
     	return $this->render('TimesheetHrBundle:Default:users.html.twig', array(
     		'base'			=> $base,
     		'message'		=> $message,
-    		'title'			=> $this->getPageTitle('Users'),
+    		'title'			=> $functions->getPageTitle('Users'),
     		'userForm'		=> ((isset($userForm))?($userForm->createView()):(null)),
     		'contractForm'	=> ((isset($contractForm))?($contractForm->createView()):(null)),
     		'timingForm'	=> ((isset($timingForm))?($timingForm->createView()):(null)),
     		'timingList'	=> ((isset($timingForm))?($functions->getTimings($admin['param1'], $domainId)):(null)),
     		'userqualificationForm'	=> ((isset($userqualificationForm))?($userqualificationForm->createView()):(null)),
+    		'uservisaForm'	=> ((isset($uservisaForm))?($uservisaForm->createView()):(null)),
     		'qualifications' => ((isset($userqualificationForm))?($functions->getQualifications($admin['param1'], true, $domainId)):(null)),
-			'title' 		=> ((isset($userqualificationForm))?($title):(null)),
+    		'levels'		=> ((isset($levels))?($levels):(null)),
+			'fullname' 		=> ((isset($userqualificationForm))?($fullname):(null)),
     		'domainId'		=> (($sysadmin)?(null):($domainId))
     	));
     }
@@ -1692,11 +1885,11 @@ error_log('not allowed...redirect to homepage');
 		$functions = $this->get('timesheet.hr.functions');
 		$domainId=$functions->getDomainId($this->getRequest()->getHttpHost());
     	$session=$this->get('session');
-    	$session->set('menu', self::MENU_ADMIN);
+    	$session->set('menu', Constants::MENU_ADMIN);
     	$message='';
     	$ipaddresses=array();
 
-    	if (in_array($action, $this->adminActions) && $param1!=null) {
+    	if (in_array($action, Constants::adminActions) && $param1!=null) {
     	
     		$session->set('admin', array('action'=>$action, 'param1'=>$param1, 'param2'=>$param2));
     	
@@ -1847,7 +2040,7 @@ error_log('not allowed...redirect to homepage');
     	return $this->render('TimesheetHrBundle:Default:locations.html.twig', array(
     		'base'			=> $base,
     		'message'		=> $message,
-    		'title'			=> $this->getPageTitle('Locations'),
+    		'title'			=> $functions->getPageTitle('Locations'),
 			'locationForm'	=> ((isset($locationForm))?($locationForm->createView()):(null)),
     		'locations'		=> $functions->getLocation(null, true, $domainId),
     		'members'		=> ((isset($admin['param1']) && $admin['param1'])?($functions->getMembers($admin['param1'])):(null))
@@ -1871,9 +2064,9 @@ error_log('not allowed...redirect to homepage');
     	$message='';
     	$session=$this->get('session');
 
-    	$session->set('menu', self::MENU_ADMIN);
+    	$session->set('menu', Constants::MENU_ADMIN);
     	
-    	if (in_array($action, $this->adminActions) && $param1!=null) {
+    	if (in_array($action, Constants::adminActions) && $param1!=null) {
 
     		$session->set('admin', array('action'=>$action, 'param1'=>$param1, 'param2'=>$param2));
     		
@@ -1910,20 +2103,14 @@ error_log('not allowed...redirect to homepage');
 			    			->findOneBy(array('id'=>$admin['param1']));
 	    				
     				}
-		    		
 		    		$groupForm=$this->createForm(new GroupType($group, null));
-		    		
 		    		$groupForm->handleRequest($this->getRequest());
-		
 		    		if ($groupForm->isValid()) {
-		
 		    			if ($groupForm->get('cancel')->isClicked()) {
 		    				$session->remove('admin');
 		    				return $this->redirect($this->generateUrl($base));
 		    			}
-		    			 
 		    			$message='Valid';
-		    		
 		    			$data=$groupForm->getData();
 
 		    			$group->setName(''.$data['name']);
@@ -1955,20 +2142,15 @@ error_log('not allowed...redirect to homepage');
 			    			->findOneBy(array('id'=>$admin['param1']));
 	    				
     				}
-		    		
 		    		$qualificationForm=$this->createForm(new QualificationType($qualification));
-		    		
 		    		$qualificationForm->handleRequest($this->getRequest());
-		
 		    		if ($qualificationForm->isValid()) {
-		
 		    			if ($qualificationForm->get('cancel')->isClicked()) {
 		    				$session->remove('admin');
 		    				return $this->redirect($this->generateUrl($base));
 		    			}
 		    			 
 		    			$message='Valid';
-		    		
 		    			$data=$qualificationForm->getData();
 
 		    			$qualification->setTitle(''.$data['title']);
@@ -2002,7 +2184,7 @@ error_log('not allowed...redirect to homepage');
     		'groupForm'		=> ((isset($groupForm))?($groupForm->createView()):(null)),
     		'qualificationForm'	=> ((isset($qualificationForm))?($qualificationForm->createView()):(null)),
     		'message'		=> $message,
-    		'title'			=> $this->getPageTitle('Administration'),
+    		'title'			=> $functions->getPageTitle('Administration'),
     		'problems'		=> ((isset($problems))?($problems):(null)),
     		'domainId'		=> $domainId
     	));
@@ -2029,9 +2211,9 @@ error_log('not allowed...redirect to homepage');
     	$message='';
     	$session=$this->get('session');
 
-    	$session->set('menu', self::MENU_ADMIN);
+    	$session->set('menu', Constants::MENU_ADMIN);
     	
-    	if (in_array($action, $this->adminActions) && $param1!=null) {
+    	if (in_array($action, Constants::adminActions) && $param1!=null) {
 
     		$session->set('admin', array('action'=>$action, 'param1'=>$param1, 'param2'=>$param2));
     		
@@ -2234,7 +2416,7 @@ error_log('not allowed...redirect to homepage');
 	    						$session->getFlashBag()->set('notice', 'Staff Requirements '.(($new2)?('saved'):('updated')));
 	    						return $this->redirect($this->generateUrl('timesheet_hr_shifts'));
 	    					}
-	    				} elseif ($staffReqForm->get('delete')->isClicked()) {
+	    				} elseif ($staffReqForm->has('delete') && $staffReqForm->get('delete')->isClicked()) {
 // error_log('staff requirement delete...');
 							$gIds=array();
 							$data=$staffReqForm->getData();
@@ -2268,12 +2450,13 @@ error_log('not allowed...redirect to homepage');
 //					$locations=$functions->getLocation();
 					$list=$functions->getQualRequirementsForShift($admin['param1']);
 					$qualifications=$functions->getQualifications(null, false, $domainId);
+					$levels=$functions->getQualificationLevels();
+					// remove all already selected qualifications to show only which can be added
 					foreach ($list as $l) {
 						if (isset($qualifications[$l['qualificationId']])) {
 							unset($qualifications[$l['qualificationId']]);
 						}
 					}
-					
     				$shifts_tmp=$functions->getShift();
     				if (count($shifts_tmp)) {
     					$shiftTitle=$shifts_tmp[$admin['param1']]['locationName'].' '.$shifts_tmp[$admin['param1']]['startTime']->format('H:i').'-'.$shifts_tmp[$admin['param1']]['finishTime']->format('H:i');
@@ -2292,29 +2475,18 @@ error_log('not allowed...redirect to homepage');
     					
     				}
    					$qualReq=new QualRequirements();
-    				$qualReqForm=$this->createForm(new QualRequirementsType($qualReq, $qualifications, $list, $admin['param1']));
+    				$qualReqForm=$this->createForm(new QualRequirementsType($qualReq, $qualifications, $levels, $list, $admin['param1']));
     				$qualReqForm->handleRequest($this->getRequest());
-    				if ($qualReqForm->isValid()) {
+//    				$validator = $this->get('validator');
+//    				$errors = $validator->validate($qualReqForm);
+					if ($qualReqForm->isSubmitted() && $qualReqForm->isValid()) {
+						$data=$qualReqForm->getData();
     					if ($qualReqForm->get('cancel')->isClicked()) {
     						$session->remove('admin');
     						return $this->redirect($this->generateUrl($base));
-    					} elseif ($qualReqForm->get('submit')->isClicked()) {
-	    					$message='Valid';
-	    					$data=$qualReqForm->getData();
-	    			
-	    					$qualReq->setShiftId($data['shiftId']);
-	    					$qualReq->setQualificationId($data['qualificationId']);
-	    					$qualReq->setNumberOfStaff($data['numberOfStaff']);
-    						$em->persist($qualReq);
-	    					$em->flush($qualReq);
-	    					if ($qualReq->getId()) {
-	    						$session->getFlashBag()->set('notice', 'Qualification Requirements '.(($new2)?('saved'):('updated')));
-	    						return $this->redirect($this->generateUrl('timesheet_hr_shifts'));
-	    					}
-	    				} elseif ($qualReqForm->get('delete')->isClicked()) {
-// error_log('qualification requirement delete...');
+	    				} elseif ($qualReqForm->has('delete') && $qualReqForm->get('delete')->isClicked()) {
 							$qIds=array();
-							$data=$qualReqForm->getData();
+							
 								
 	    					foreach ($data as $k=>$v) {
 								if (substr($k, 0, 7)=='delete_' && (int)substr($k, 7, strlen($k)) > 0 && $v) {
@@ -2335,7 +2507,22 @@ error_log('not allowed...redirect to homepage');
 							}			
 	    			
 	    					return $this->redirect($this->generateUrl('timesheet_hr_shifts'));
-    					}
+	    				} else {
+error_log('else');
+	    					$message='Valid';
+	    					$data=$qualReqForm->getData();
+	    			
+	    					$qualReq->setShiftId($data['shiftId']);
+	    					$qualReq->setQualificationId($data['qualificationId']);
+	    					$qualReq->setLevelId($data['levelId']);
+	    					$qualReq->setNumberOfStaff($data['numberOfStaff']);
+    						$em->persist($qualReq);
+	    					$em->flush($qualReq);
+	    					if ($qualReq->getId()) {
+	    						$session->getFlashBag()->set('notice', 'Qualification Requirements '.(($new2)?('saved'):('updated')));
+	    						return $this->redirect($this->generateUrl('timesheet_hr_shifts'));
+	    					}
+	    				}
     					 
     				}
     				break;
@@ -2352,7 +2539,7 @@ error_log('not allowed...redirect to homepage');
     		'list'			=> $list,
     		'shiftTitle'	=> $shiftTitle,
     		'message'		=> $message,
-    		'title'			=> $this->getPageTitle('Shifts')
+    		'title'			=> $functions->getPageTitle('Shifts')
     	));
     	
     }
@@ -2361,36 +2548,34 @@ error_log('not allowed...redirect to homepage');
     public function menuAction() {
 
     	$links=array();
-    	$submenu=array();
+    	$adminSubmenu=array();
+    	$sysadminSubmenu=array();
+    	$residentsSubmenu=array();
     	
     	$session=$this->get('session');
     	$securityContext = $this->container->get('security.context');
 
    		$active=$session->get('menu');
-   		if ($active < 1 || $active > self::MENU_ITEMS) {
+   		if ($active < 1 || $active > Constants::MENU_ITEMS) {
    			$active = 1;
    		}
     	
-    	$links[]=array('url'=>$this->generateUrl('timesheet_hr_homepage'), 'name'=>'Home', 'active'=>($active == self::MENU_HOMEPAGE));
-
     	if ($securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
     		// authenticated REMEMBERED, FULLY will imply REMEMBERED (NON anonymous)
     		$currentUser=$this->getUser();
     		$functions=$this->get('timesheet.hr.functions');
     		$domainId=$functions->getDomainId($this->getRequest()->getHttpHost());
-    		$unread=$functions->getNumberOfUnreadMessages($currentUser->getId());
-// error_log('unread:'.print_r($unread, true));
+			$links[]=array('url'=>$this->generateUrl('timesheet_hr_dashboard'), 'name'=>'Dashboard', 'active'=>($active == Constants::MENU_DASHBOARD));
     		if (TRUE === $securityContext->isGranted('ROLE_USER') && TRUE !== $securityContext->isGranted('ROLE_SYSADMIN')) {
-    			$links[]=array('url'=>$this->generateUrl('timesheet_hr_status'), 'name'=>'Status', 'active'=>($active == self::MENU_STATUS));
-    			$links[]=array('url'=>$this->generateUrl('timesheet_hr_messages'), 'name'=>'Messages'.(($unread)?(' ('.$unread.')'):('')), 'active'=>($active == self::MENU_MESSAGES));
-    			$links[]=array('url'=>$this->generateUrl('timesheet_hr_timesheet'), 'name'=>'Timesheet', 'active'=>($active == self::MENU_TIMESHEET));
-	    		$links[]=array('url'=>$this->generateUrl('timesheet_hr_holiday'), 'name'=>'Holiday', 'active'=>($active == self::MENU_HOLIDAY));
+    			$links[]=array('url'=>$this->generateUrl('timesheet_hr_timesheet'), 'name'=>'Timesheet', 'active'=>($active == Constants::MENU_TIMESHEET));
+	    		$links[]=array('url'=>$this->generateUrl('timesheet_hr_holiday'), 'name'=>'Holiday', 'active'=>($active == Constants::MENU_HOLIDAY));
+    			$residentsSubmenu[]=array('url'=>$this->generateUrl('residents_hr_list'), 'name'=>'Residents List', 'active'=>false);
+	    		$links[]=array('sub'=>$residentsSubmenu, 'url'=>$this->generateUrl('residents_hr_dashboard'), 'name'=>'Residents', 'active'=>($active == Constants::MENU_RESIDENTS));
     		} else {
-//    			$links[]=array('url'=>$this->generateUrl('timesheet_hr_sysadmin'), 'name'=>'Sysadmin', 'active'=>false);
-    			$submenu[]=array('url'=>$this->generateUrl('timesheet_hr_users'), 'name'=>'Users', 'active'=>false);
-    			$submenu[]=array('url'=>$this->generateUrl('timesheet_hr_reset'), 'name'=>'Reset', 'active'=>false);
-				$links[]=array('sub'=>$submenu, 'url'=>$this->generateUrl('timesheet_hr_sysadmin'), 'name'=>'Sysadmin', 'active'=>($active == self::MENU_SYSADMIN));    		}
-//				unset($submenu);
+    			$sysadminSubmenu[]=array('url'=>$this->generateUrl('timesheet_hr_users'), 'name'=>'Users', 'active'=>false);
+    			$sysadminSubmenu[]=array('url'=>$this->generateUrl('residents_hr_list'), 'name'=>'Residents List', 'active'=>false);
+    			$sysadminSubmenu[]=array('url'=>$this->generateUrl('timesheet_hr_reset'), 'name'=>'Reset', 'active'=>false);
+    			$links[]=array('sub'=>$sysadminSubmenu, 'url'=>$this->generateUrl('timesheet_hr_sysadmin'), 'name'=>'Sysadmin', 'active'=>($active == Constants::MENU_SYSADMIN));    		}
     		if (TRUE === $securityContext->isGranted('ROLE_ADMIN') || TRUE === $securityContext->isGranted('ROLE_MANAGER')) {
 
     			$locationId=null;
@@ -2410,24 +2595,23 @@ error_log('not allowed...redirect to homepage');
     				}
 					
     				if (count($locationSubmenu)) {
-    					$links[]=array('sub'=>$locationSubmenu, 'url'=>$this->generateUrl('timesheet_hr_schedule', array('locationId'=>0)), 'name'=>'Schedule', 'active'=>($active == self::MENU_SCHEDULE));
+    					$links[]=array('sub'=>$locationSubmenu, 'url'=>$this->generateUrl('timesheet_hr_schedule', array('locationId'=>0)), 'name'=>'Schedule', 'active'=>($active == Constants::MENU_SCHEDULE));
     				}
 				}
     		}
 	    	
 	    	if (TRUE === $securityContext->isGranted('ROLE_ADMIN')) {
 			// only for ADMIN
-//    			$links[]=array('url'=>$this->generateUrl('timesheet_hr_registration'), 'name'=>'Registration', 'active'=>($active == self::MENU_REGISTER));
-
-    			$submenu[]=array('url'=>$this->generateUrl('timesheet_hr_users'), 'name'=>'Users', 'active'=>false);
-    			$submenu[]=array('url'=>$this->generateUrl('timesheet_hr_locations'), 'name'=>'Locations', 'active'=>false);
-    			$submenu[]=array('url'=>$this->generateUrl('timesheet_hr_shifts'), 'name'=>'Shifts', 'active'=>false);
-				$submenu[]=array('url'=>$this->generateUrl('timesheet_hr_config'), 'name'=>'Config', 'active'=>false);
-	    		$links[]=array('sub'=>$submenu, 'url'=>$this->generateUrl('timesheet_hr_admin'), 'name'=>'Administration', 'active'=>($active == self::MENU_ADMIN));
+    			$adminSubmenu[]=array('url'=>$this->generateUrl('timesheet_hr_users'), 'name'=>'Users', 'active'=>false);
+    			$adminSubmenu[]=array('url'=>$this->generateUrl('timesheet_hr_locations'), 'name'=>'Locations', 'active'=>false);
+    			$adminSubmenu[]=array('url'=>$this->generateUrl('residents_hr_rooms'), 'name'=>'Rooms', 'active'=>false);
+    			$adminSubmenu[]=array('url'=>$this->generateUrl('timesheet_hr_shifts'), 'name'=>'Shifts', 'active'=>false);
+				$adminSubmenu[]=array('url'=>$this->generateUrl('timesheet_hr_config'), 'name'=>'Config', 'active'=>false);
+	    		$links[]=array('sub'=>$adminSubmenu, 'url'=>$this->generateUrl('timesheet_hr_admin'), 'name'=>'Administration', 'active'=>($active == Constants::MENU_ADMIN));
 			} 
-			$links[]=array('url'=>$this->generateUrl('fos_user_security_logout'), 'name'=>'Logout', 'active'=>0);
     	} else {
-    		$links[]=array('url'=>$this->generateUrl('fos_user_security_login'), 'name'=>'Login', 'active'=>($active== self::MENU_LOGIN));
+    		$links[]=array('url'=>$this->generateUrl('timesheet_hr_homepage'), 'name'=>'Home', 'active'=>($active == Constants::MENU_HOMEPAGE));
+    		$links[]=array('url'=>$this->generateUrl('fos_user_security_login'), 'name'=>'Login', 'active'=>($active== Constants::MENU_LOGIN));
     	}
     	 
     	return $this->render('TimesheetHrBundle:Default:menu.html.twig', array(
@@ -2506,7 +2690,7 @@ error_log('not allowed...redirect to homepage');
    					$group=new Groups();
    				}
 		    		
-	    		$groupForm=$this->createForm(new GroupType($group, $functions->getDomains()));
+	    		$groupForm=$this->createForm(new GroupType($group, $functions->getCompanies()));
 		    		
 	    		$groupForm->handleRequest($this->getRequest());
 		
@@ -2548,7 +2732,7 @@ error_log('not allowed...redirect to homepage');
     				$qualification=new Qualifications();
     			}
 		    		
-		    	$qualificationForm=$this->createForm(new QualificationType($qualification, $functions->getDomains()));
+		    	$qualificationForm=$this->createForm(new QualificationType($qualification, $functions->getCompanies()));
 		    	$qualificationForm->handleRequest($this->getRequest());
 		
 	    		if ($qualificationForm->isValid()) {
@@ -2584,7 +2768,8 @@ error_log('not allowed...redirect to homepage');
    			
 			case 'editstatus' : {
     			if ($param1) {
-    				$status=$this->getStatuses($param1);    				
+    				$status=$functions->getStatuses($param1);
+    				$selectedCompanies=$functions->getSelectedCompanies($param1);
     			} else {
     				$status=array(
     					'id'=>null,
@@ -2595,9 +2780,10 @@ error_log('not allowed...redirect to homepage');
     					'color'=>null,
     					'active'=>null
     				);
+    				$selectedCompanies=array();
     			}
 		    		
-		    	$statusForm=$this->createForm(new StatusType($status, $this->getStatusColors(), $this->getStatusLevels()));
+		    	$statusForm=$this->createForm(new StatusType($status, $functions->getStatusColors(), $functions->getStatusLevels(), $functions->getCompanies(), $selectedCompanies));
 	    		$statusForm->handleRequest($this->getRequest());
 		
 	    		if ($statusForm->isValid()) {
@@ -2667,9 +2853,52 @@ error_log('not allowed...redirect to homepage');
 							
 						$em->flush($status1);
 							
-					}		    			
+					}
 
 	    			if ($status1->getId()) {
+						$companies=((isset($data['companies']))?($data['companies']):(array()));
+						$st=array($status1->getId(), $status2->getId());
+						$em=$this->getDoctrine()->getManager();
+								
+						$qb=$em->createQueryBuilder();
+						$qb->delete('TimesheetHrBundle:StatusToDomain', 'std')
+							->where($qb->expr()->in('std.statusId', $st));
+						if (count($companies)) {
+							$qb->andWhere($qb->expr()->notIn('std.domainId', $companies));
+						}
+								
+						$qb->getQuery()->execute();
+						if (count($companies)) {
+							foreach ($companies as $c1) {
+								foreach ($st as $st1) {
+									try {
+										$std=new StatusToDomain();
+										$std->setDomainId($c1);
+										$std->setStatusId($st1);
+										$em->persist($std);
+										$em->flush();
+									} catch (\Exception $e) {
+										if (strpos($e->getMessage(), '1062') === false) {
+											if (strpos($e->getMessage(), 'EntityManager is closed') !== false) {
+												if (!$em->isOpen()) {
+//													error_log('Entity manager is closed');
+													$em = $em->create($em->getConnection(), $em->getConfiguration());
+												}
+												if ($em->isOpen()) {
+//													error_log('Entity manager is reopened');
+												} else {
+													error_log('Entity manager is closed');
+												}
+											} else {
+												error_log('Database error:'.$e->getMessage());
+											}
+										} else {
+error_log('already in the database, not inserted');
+										}
+									}
+								}
+							}
+						}
 		    				
 	    				$session->remove('admin');
 	    				$session->getFlashBag()->set('notice', 'Status "'.$status1->getName().' / '.$status2->getName().'" '.(($data['id'])?('updated'):('saved')));
@@ -2713,19 +2942,17 @@ error_log('not allowed...redirect to homepage');
 
     	$securityContext = $this->container->get('security.context');
     	if (!$securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
-    		error_log('not allowed...redirect to homepage');
+error_log('not allowed...redirect to homepage');
     		return $this->redirect($this->generateUrl('timesheet_hr_homepage'));
     	}
     	 
     	$user=$this->getUser();
 
     	if ($user) {
-// error_log('user exists');
-// error_log('userId:'.$user->getId());
     		$base=$this->getRequest()->attributes->get('_route');
     		
 	    	$functions = $this->get('timesheet.hr.functions');
-	    	$holidays=$functions->getHolidayEntitlement($user->getId(), $this->getRequest());
+	    	$holidays=$functions->getHolidayEntitlement($user->getId());
 	    	$workinghours=$functions->getWorkingHours($user->getId(), time());
 	    	
 	    	$data=array(
@@ -2744,7 +2971,8 @@ error_log('not allowed...redirect to homepage');
 	    		'timestampnextmonth'=>$workinghours['monthly']['next']['first'],
 	    		'swaprequests'=>$functions->getFutureSwapRequests($user->getId()),
 	    		'todayshift'=>$functions->getTodayShift($user->getId()),
-	    		'nextshift'=>$functions->getNextShift($user->getId())
+	    		'nextshift'=>$functions->getNextShift($user->getId()),
+	    		'unread'=>$functions->getNumberOfUnreadMessages($user->getId())
 	    	);
 	    	
 	    	return $this->render('TimesheetHrBundle:Internal:usersummary.html.twig', array(
@@ -2851,15 +3079,13 @@ error_log('not allowed...redirect to homepage');
     
     public function weeklylocationreportAction($timestamp, $location, $type='') {
 error_log('weeklylocationreportAction');
-error_log('type:'.$type);
 
 		$securityContext = $this->container->get('security.context');
 		if (!$securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
-			error_log('not allowed...redirect to homepage');
+error_log('not allowed...redirect to homepage');
 			return $this->redirect($this->generateUrl('timesheet_hr_homepage'));
 		}
 
-    
     	$monday=mktime(0, 0, 0, date('n', $timestamp), date('j', $timestamp)-date('N', $timestamp)+1, date('Y', $timestamp));
     	$sunday=mktime(0, 0, 0, date('n', $timestamp), date('j', $timestamp)-date('N', $timestamp)+7, date('Y', $timestamp));
     
@@ -2873,7 +3099,7 @@ error_log('type:'.$type);
 		switch ($type) {
 			case 'Default' : {
 				$report2=$functions->getWeeklyLocationSchedule2($location, $monday);
-error_log('Default report:'.print_r($report2, true));
+// error_log('Default report:'.print_r($report2, true));
 				$shifts=array();
 				$users=array();
 
@@ -2898,18 +3124,19 @@ error_log('Default report:'.print_r($report2, true));
 				}
 				
 				$this->render('TimesheetHrBundle:Pdf:WeeklyLocationReportDefault.pdf.twig', array(
-						'name' => trim($locationData['name']),
-						'date1'=>date('Y-m-d', $monday),
-						'date2'=>date('Y-m-d', $sunday),
-						'week'=> date('W', $monday),
-						'report'=>$report2,
-						'shifts'=>$shifts,
-						'users'=>$users,
-						'footer' => 'Created on '.date('d/m/Y H:i:s'),
+					'name' => trim($locationData['name']),
+					'date1'=>date('Y-m-d', $monday),
+					'date2'=>date('Y-m-d', $sunday),
+					'week'=> date('W', $monday),
+					'report'=>$report2,
+					'shifts'=>$shifts,
+					'users'=>$users,
+					'footer' => 'Created on '.date('d/m/Y H:i:s'),
 				), $response);
 				
 				break;
 			}
+			
 			default : {
 				$report=$functions->getWeeklyLocationSchedule($location, $monday);
 				$timings=array();
@@ -2960,35 +3187,58 @@ error_log('Default report:'.print_r($report2, true));
 
     
     
-    private function getStatus($id=null, $nameOnly=true) {
+    private function getStatus($statusId=null, $nameOnly=true, $domainId=null) {
     	/*
     	 * read the status table by name
     	 */
-    	$results=$this->getDoctrine()
-    		->getRepository('TimesheetHrBundle:Status')
-    		->findBy(
-    			(($id)?(array('id'=>$id)):(array('active'=>1))),
-    			array('start'=>'DESC', 'pair'=>'ASC')
-    		);
-    	 
-    	$arr=array();
+		$em=$this->getDoctrine()->getManager();
+		$qb=$em
+			->createQueryBuilder()
+			->select('s.id')
+			->addSelect('s.name')
+			->from('TimesheetHrBundle:Status', 's')
+			->where('s.id>0')
+			->orderBy('s.start', 'DESC')
+			->addOrderBy('s.pair', 'ASC');
+		
+		if ($statusId) {
+			$qb->andWhere('s.id=:sId')
+				->setParameter('sId', $statusId);
+		} else {
+			$qb->andWhere('s.active=1');
+		}
+		if ($domainId) {
+			$qb->join('TimesheetHrBundle:StatusToDomain', 'std', 'WITH', 's.id=std.statusId')
+				->andWhere('std.domainId=:dId')
+				->setParameter('dId', $domainId);
+		}
+		if (!$nameOnly) {
+			$qb->addSelect('s.level')
+				->addSelect('s.start')
+				->addSelect('s.pair');
+		
+		}
+		$query=$qb->getQuery();
+		$results=$query->getArrayResult();
+
+		$ret=array();
     	if ($results) {
     		foreach ($results as $result) {
     			if ($nameOnly) {
-    				$arr[$result->getId()]=$result->getName();
+    				$ret[$result['id']]=$result['name'];
     			} else {
-    				$arr=array(
-    					'id'=>$result->getId(),
-    					'name'=>$result->getName(),
-    					'level'=>$result->getLevel(),
-    					'start'=>$result->getStart(),
-    					'pair'=>$result->getPair()
+    				$ret=array(
+    					'id'=>$result['id'],
+    					'name'=>$result['name'],
+    					'level'=>$result['level'],
+    					'start'=>$result['start'],
+    					'pair'=>$result['pair']
     				);
     			}
     		}
     	}
     
-    	return $arr;
+    	return $ret;
     }
     
     
@@ -3091,8 +3341,8 @@ error_log('Default report:'.print_r($report2, true));
     	}
     	
     	return '';
-    	
     }
+    
     
     private function generateUsername($firstname, $lastname) {
     	
@@ -3107,8 +3357,8 @@ error_log('Default report:'.print_r($report2, true));
     		$username=$uname.(($i)?($i):(''));
     		error_log('username check:'.$username);
     		$u=$this->getDoctrine()
-    		->getRepository('TimesheetHrBundle:User')
-    		->findOneBy(array('username'=>$username));
+    			->getRepository('TimesheetHrBundle:User')
+    			->findOneBy(array('username'=>$username));
     		 
     		if (!$u) {
     			$ok=true;
@@ -3118,105 +3368,6 @@ error_log('Default report:'.print_r($report2, true));
     	
     	return $username;
     }
-
-
+        
     
-    private function getStatusColors() {
-    	 
-    	$arr=array();
-    	$arr['000000']='Black';
-    	$arr['ff0000']='Light Red';
-    	$arr['880000']='Red';
-    	$arr['00ff00']='Light Green';
-    	$arr['008800']='Green';
-    	$arr['0000ff']='Light Blue';
-    	$arr['000088']='Blue';
-    	$arr['800080']='Purple';
-    	$arr['ff00ff']='Magenta';
-    	$arr['ffd700']='Gold';
-    	$arr['ffff00']='Yellow';
-    	$arr['ffa500']='Orange';
-    	 
-    	return $arr;
-    }
-    
-    private function getStatusLevels() {
-    	 
-    	$arr=array();
-    	$arr[0]='Punch in/out';
-    	$arr[1]='Other';
-    	 
-    	return $arr;
-    }
-
-    private function getStatuses($id=null) {
-    	
-    	$statuses=array();
-    	$first=null;
-    	
-		$em=$this->getDoctrine()->getManager();
-		$qb=$em
-			->createQueryBuilder()
-			->select('s.id')
-			->addSelect('s.start')
-			->addSelect('s.name')
-			->addSelect('s.active')
-			->addSelect('s.level')
-			->addSelect('s.multi')
-			->addSelect('s.color')
-			->addSelect('s.pair')
-			->from('TimesheetHrBundle:Status', 's')
-			->orderBy('s.id', 'ASC');
-			
-		if ($id) {
-			$qb->where('s.id=:id OR s.pair=:id')
-				->setParameter('id', $id);
-		}
-		$query=$qb->getQuery();
-
-		$results=$query->getArrayResult();
-		
-    	if ($results) {
-    		$statusColors=$this->getStatusColors();
-    		$statusLevels=$this->getStatusLevels();
-    		 
-    		foreach ($results as $result) {
-    			if ($result['start']) {
-    				$first=$result['id'];
-    				$statuses[$result['id']]=array(
-    					'id'=>$result['id'],
-    					'nameStart'=>$result['name'],
-    					'nameFinish'=>'',
-    					'active'=>$result['active'],
-    					'activeName'=>$result['active']?'Active':'Inactive',
-    					'level'=>$result['level'],
-    					'levelName'=>$statusLevels[$result['level']],
-    					'multi'=>$result['multi'],
-    					'color'=>$result['color'],
-    					'colorName'=>$statusColors[$result['color']]
-    				);
-    			} else {
-    				$statuses[$result['pair']]['nameFinish']=$result['name'];
-    			}
-    		}
-    	}
-    	
-    	if ($id) {
-    		return $statuses[$first];
-    	}
-
-    	return $statuses;
-    }
-    
-    
-    public function getPageTitle($title) {
-
-    	$request=$this->getRequest();
-    	$functions=$this->get('timesheet.hr.functions');
-    	$result=$this->getDoctrine()
-    		->getRepository('TimesheetHrBundle:Companies')
-    		->findOneBy(array('id'=>$functions->getDomainId($request->getHttpHost())));
-    	
-    	return $title.(($result && count($result))?(' - '.$result->getCompanyname()):(''));
-    }    
 }

@@ -52,7 +52,7 @@ class GroupType extends AbstractType
    		if (isset($this->domains) && count($this->domains)) {
    			$builder
    				->add('domainId', 'choice', array(
-   					'label'=>'Domain:',
+   					'label'=>'Company:',
    					'choices'=>$this->domains,
    					'data'=>((isset($this->group))?($this->group->getDomainId()):(''))
    				));

@@ -52,7 +52,7 @@ class Info
     /**
      * @var string
      *
-     * @ORM\Column(name="Comment", type="string", length=255)
+     * @ORM\Column(name="Comment", type="text")
      */
     private $comment = '';
 
@@ -185,7 +185,7 @@ class Info
     /**
      * Set comment
      *
-     * @param string $comment
+     * @param text $comment
      * @return Info
      */
     public function setComment($comment)
@@ -198,7 +198,7 @@ class Info
     /**
      * Get comment
      *
-     * @return string 
+     * @return text
      */
     public function getComment()
     {

@@ -38,6 +38,13 @@ class UserQualifications
     private $qualificationId;
 
     /**
+     * @var integer
+     *
+     * @ORM\Column(name="levelId", type="integer", nullable=true)
+     */
+    private $levelId;
+    
+    /**
      * @var string
      *
      * @ORM\Column(name="comments", type="string", length=255)
@@ -127,6 +134,29 @@ class UserQualifications
     public function getQualificationId()
     {
         return $this->qualificationId;
+    }
+    
+    /**
+     * Set levelId
+     *
+     * @param integer $levelId
+     * @return UserQualifications
+     */
+    public function setLevelId($levelId)
+    {
+        $this->levelId = $levelId;
+
+        return $this;
+    }
+
+    /**
+     * Get levelId
+     *
+     * @return integer 
+     */
+    public function getLevelId()
+    {
+        return $this->levelId;
     }
 
     /**

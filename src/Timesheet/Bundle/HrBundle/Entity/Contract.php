@@ -95,9 +95,9 @@ class Contract
     /**
      * @var boolean
      *
-     * @ORM\Column(name="Probation", type="boolean")
+     * @ORM\Column(name="contractType", type="integer")
      */
-    private $probation = true;
+    private $contractType = 0;
 
     /**
      * @var boolean
@@ -310,26 +310,26 @@ class Contract
     }
     
     /**
-     * Set probation
+     * Set contractType
      *
-     * @param boolean $probation
+     * @param integer $contractType
      * @return Contract
      */
-    public function setProbation($probation)
+    public function setContractType($contractType)
     {
-        $this->probation = $probation;
+        $this->contractType = $contractType;
 
         return $this;
     }
 
     /**
-     * Get probation
+     * Get contractType
      *
-     * @return boolean 
+     * @return integer
      */
-    public function getProbation()
+    public function getContractType()
     {
-        return $this->probation;
+        return $this->contractType;
     }
     
     /**

@@ -15,12 +15,14 @@ jQuery.fn.center = function () {
 
 //jQuery plugin to prevent double submission of forms
 jQuery.fn.preventDoubleSubmission = function() {
-  $(this).on('submit',function(e){
+  $(this).on('submit', function(e){
     var $form = $(this);
 
     if ($form.data('submitted') === true) {
-      // Previously submitted - don't submit again
-      e.preventDefault();
+    	// Previously submitted - don't submit again, but only when using ajax
+    	if ($(this).attr('action').indexOf('ajax') != -1) {
+    		e.preventDefault();
+    	}
     } else {
       // Mark it so that the next submit can be ignored
       $form.data('submitted', true);
@@ -202,7 +204,9 @@ $(document).ready(function(){
     });
 
 	$('body').delegate('form', 'submit', function( e ){
+//		alert('submit');
 		if ($(this).attr('action').indexOf('ajax') != -1) {
+//			alert('ajax');
 			e.preventDefault();
 			$('#popupDiv').fadeOut(250);
 			postForm( $(this), function( response ){
@@ -218,6 +222,13 @@ $(document).ready(function(){
 					alert(response.cause);
 				}
 			});
+		} else {
+//			var act=$(this).attr('action');
+//			postForm( $(this), function( response ){
+//				window.location=act;
+//			}, 'ajax');
+//			alert('post');
+			return true;
 		}
 	});
 	           
@@ -360,29 +371,52 @@ $(document).ready(function(){
 	});
 
 	$('body').delegate('input[name=userSearch],select[name=groupSearch],select[name=qualificationSearch]', 'keyup change', function () {
-		$.ajax({
-			url: $(this).attr('data-url'),
-			method: 'POST',
-			dataType: 'json',
-			data: {
-				name: $('input[name=userSearch]').val(),
-				group: $('select[name=groupSearch]').val(),
-				qualification: $('select[name=qualificationSearch]').val(),
-				base: $(this).attr('base-url'),
-				listType: $(this).attr('data-type')
-			},
-			beforeSend: function() {
-				$('#usersList').css({ opacity: 0.5 });
+		var url=$(this).attr('data-url');
+		var name=$('input[name=userSearch]').val();
+		var group=$('select[name=groupSearch]').val();
+		var qualification=$('select[name=qualificationSearch]').val();
+		var base=$(this).attr('base-url');
+		var listType=$(this).attr('data-type');
+		var delay=0;
+		if ($(this).attr('name') == 'userSearch') {
+			if ($('#lastSearch').val() != name) {
+				var delay=1500;
+				$('#lastSearch').val(name);
 			}
-		})
-		.error(function(jqXHR, status, errorThrown) {
-//			alert('ajax error...');
-		})
-		.done(function(data) {
-			$('#usersList').html(data.content)
-				.css({ opacity: 1 });
-			
-		});
+		} else {
+			var delay=100;
+		}
+		if (delay > 0) {
+			window.clearTimeout($(this).data('timeout'));
+			$(this).data('timeout', setTimeout(function() {
+				$.ajax({
+					url: url,
+					method: 'POST',
+					dataType: 'json',
+					data: {
+						name: name,
+						group: group,
+						qualification: qualification,
+						base: base,
+						listType: listType
+					},
+					beforeSend: function() {
+//						$('#usersList').css({ opacity: 0.5 });
+						$('body').css('cursor', 'pointer');
+					}
+				})
+				.error(function(jqXHR, status, errorThrown) {
+//					alert('ajax error...');
+				})
+				.done(function(data) {
+					if (data.content != $('#usersList').html()) {
+						$('#usersList').html(data.content);
+					}
+//				$('#usersList').css({ opacity: 1 });
+				$('body').css('cursor', 'auto');
+				});
+			}, delay));
+		}
 	});
 	
 	$('body').delegate('span[class^="addRequest"]', 'click', function () {
@@ -590,6 +624,80 @@ $(document).ready(function(){
 		   	});
 	});
 
+	$('body').delegate('div[class=photoThumbnail]', 'click', function () {
+		$.ajax({
+			url: $('#photoThumbnail').attr('data-url'),
+			method: 'POST',
+			dataType: 'json',
+			data: {
+				photoid: $(this).attr('data-photoid'),
+				func: $(this).attr('data-func'),
+				userid: $(this).attr('data-userid')
+			},
+		})
+		.error(function(jqXHR, status, errorThrown) {
+			alert('ajax error');
+		})
+		.done(function(data) {
+			if (data.content.length > 0) {
+				$('<div id="dialog" title="'+data.title+'"></div>').appendTo('body')
+				.html('<div id="container">'+data.content+'</div>')
+				.dialog({
+					modal: true,
+					zIndex: 2000,
+					autoOpen: true,
+					width: 'auto',
+					height: 'auto',
+					minHeight: 'auto',
+					position: ['center', 20],
+					resizable: false,
+					close: function (event, ui) {
+						$(this).remove();
+					}
+				});
+			} else {
+				$('#popupDiv').fadeOut(250);
+				$('#container').html('');
+			}
+		});
+	});
+
+	$('body').delegate('div[class=residentHistory]', 'click', function () {
+		$.ajax({
+			url: $(this).attr('data-url'),
+			method: 'POST',
+			dataType: 'json',
+			data: {
+				id: $(this).attr('data-id')
+			},
+		})
+		.error(function(jqXHR, status, errorThrown) {
+			alert('ajax error');
+		})
+		.done(function(data) {
+			if (data.content.length > 0) {
+				$('<div id="dialog" title="'+data.title+'"></div>').appendTo('body')
+				.html('<div id="container">'+data.content+'</div>')
+				.dialog({
+					modal: true,
+					zIndex: 2000,
+					autoOpen: true,
+					width: 'auto',
+					height: 'auto',
+					minHeight: 'auto',
+					position: ['center', 20],
+					resizable: false,
+					close: function (event, ui) {
+						$(this).remove();
+					}
+				});
+			} else {
+				$('#popupDiv').fadeOut(250);
+				$('#container').html('');
+			}
+		});
+	});
+
 	$('body').delegate('a[class=showRequest]', 'click', function () {
 		$.ajax({
 			url: $(this).attr('data-url'),
@@ -644,6 +752,43 @@ $(document).ready(function(){
 		ajaxRefresh($(this).attr('data-div'), $(this).attr('name'), '');
 	});
 
+	$('body').delegate('span.dayInfoProblem,span.noProblem', 'click', function () {
+		var dataUrl=$(this).attr('data-url');
+		var dataDate=$(this).attr('data-date');
+		var dataLocation=$(this).attr('data-location');
+
+		$.ajax({
+			url: dataUrl,
+			method: 'POST',
+			dataType: 'json',
+			data: {
+				date: dataDate,
+				location: dataLocation
+			},
+		})
+		.error(function(jqXHR, status, errorThrown) {
+			alert('ajax error');
+		})
+		.done(function(data) {
+
+			$('<div id="dialog" title="'+data.title+'"></div>').appendTo('body')
+			.html('<div id="container">'+data.content+'</div>')
+			.dialog({
+				modal: true,
+				zIndex: 2000,
+				autoOpen: true,
+				width: 'auto',
+				height: 'auto',
+				minHeight: 'auto',
+				position: ['center', 20],
+				resizable: false,
+				close: function (event, ui) {
+					$(this).remove();
+				}
+			});
+		});
+	});
+
 	$('body').delegate('button[name=onclickmenu]', 'click', function () {
 		if ($(this).attr('question')) {
 			if (!confirm($(this).attr('question'))) {
@@ -681,9 +826,35 @@ $(document).ready(function(){
 							ajaxAddRequest(data.url, data.base, data.action, data.date, '');
 						}
 						case 'self' : {
-//							alert(data.url);
 							$('#popupDiv').html('<iframe id="myIframe"></iframe>');
 							document.getElementById('myIframe').src=data.url;
+						}
+						case 'editphoto' : {
+							if (data.content.length > 0) {
+								$('<div id="dialog" title="'+data.title+'"></div>').appendTo('body')
+								.html('<div id="container">'+data.content+'</div>')
+								.dialog({
+									modal: true,
+									zIndex: 2000,
+									autoOpen: true,
+									width: 'auto',
+									height: 'auto',
+									minHeight: 'auto',
+									position: ['center', 20],
+									resizable: false,
+									close: function (event, ui) {
+										$(this).remove();
+									}
+								});
+							} else {
+								$('#popupDiv').fadeOut(250);
+								$('#container').html('');
+							}
+							break;
+						}
+						case 'redirect' : {
+							window.location=data.url;
+							break;
 						}
 					}
 				} else {
@@ -784,6 +955,14 @@ function ajaxSchedule(action, targetId, date, locationId, shiftId, userId) {
 			}
 			
 			$('#loc'+locationId).css({ opacity: 1 });
+//			alert('dayId:'+data.dayId);
+			if (data.dayProblem==true) {
+				$('#dayInfo'+data.dayId).removeClass('noProblem');
+//				alert('visible');
+			} else {
+				$('#dayInfo'+data.dayId).addClass('noProblem');
+//				alert('hidden');
+			}
 		});
 	}
 }
@@ -837,7 +1016,6 @@ function postForm( $form, callback ){
 	$.each( $form.serializeArray(), function(i, field) {
 		values[field.name] = field.value;
 	});
-	 
 	/*
 	 * Throw the form values to the server!
 	 */

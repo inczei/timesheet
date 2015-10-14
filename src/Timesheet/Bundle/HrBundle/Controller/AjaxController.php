@@ -21,6 +21,7 @@ use Timesheet\Bundle\HrBundle\Entity\SwapRequest;
 use Timesheet\Bundle\HrBundle\Entity\Timing;
 use Timesheet\Bundle\HrBundle\Entity\User;
 use Timesheet\Bundle\HrBundle\Form\Type\HolidayRequestType;
+use Timesheet\Bundle\HrBundle\Form\Type\PhotoNotesType;
 use Timesheet\Bundle\HrBundle\Form\Type\SwapRequestType;
 use Timesheet\Bundle\HrBundle\Form\Type\TimesheetCheckType;
 use Symfony\Component\Validator\Validator;
@@ -108,7 +109,7 @@ class AjaxController extends Controller
     		$base=$params['base'];
     		$listType=$params['listType'];
     		
-    		$users=$functions->getUsersList(null, (strlen($name)?$name:null), false, (strlen($group)?$group:null), (strlen($qualification)?$qualification:null), null, true, $domainId, $request);
+    		$users=$functions->getUsersList(null, (strlen($name)?$name:null), false, (strlen($group)?$group:null), (strlen($qualification)?$qualification:null), null, true, $domainId);
     		if (isset($users[-1]['found'])) {
     			$found=$users[-1]['found'];
     			unset($users[-1]);
@@ -197,6 +198,8 @@ class AjaxController extends Controller
 		    		$data['content']=$functions->getAllocationList($date, $locationId, $shiftId);
 		    		$data['location']=$functions->getAllocationForLocation($locationId, $date);
 		    		$data['showhide']='rs_showhide|rq_showhide';
+		    		$data['dayId']=date('w', strtotime($date));
+		    		$data['dayProblem']=$functions->isDailyScheduleProblem($locationId, $date);
     				break;
     			}
     			case 'remove' : {
@@ -209,7 +212,9 @@ class AjaxController extends Controller
 		    		$data['content']=$functions->getAllocationList($date, $locationId, $shiftId);
 		    		$data['location']=$functions->getAllocationForLocation($locationId, $date);
 		    		$data['showhide']='rs_showhide|rq_showhide';
-	   				break;
+		    		$data['dayId']=date('w', strtotime($date));
+		    		$data['dayProblem']=$functions->isDailyScheduleProblem($locationId, $date);
+		    		break;
     			}
     		    case 'clean' : {
 		    		$locationId=$params['locationId'];
@@ -223,6 +228,13 @@ class AjaxController extends Controller
 		    		$timestamp=$params['timestamp'];
     		
 		    		$data['error']=$functions->copySchedule($locationId, $timestamp, '-7');
+	   				break;
+    			}
+    			case 'copyback' : {
+		    		$locationId=$params['locationId'];
+		    		$timestamp=$params['timestamp'];
+    		
+		    		$data['error']=$functions->copySchedule($locationId, $timestamp, '+7');
 	   				break;
     			}
     			case 'fill' : {
@@ -436,7 +448,7 @@ error_log('add');
 error_log('admin');
 						$domainId=$functions->getDomainId($request->getHttpHost());
 error_log('domainId:'.$domainId);
-						$users=$functions->getUsersList(null, null, true, $groupId, $qualificationId, $locationId, false, $domainId, $request);
+						$users=$functions->getUsersList(null, null, true, $groupId, $qualificationId, $locationId, false, $domainId);
 			    		if ($users) {
 			    			foreach ($users as $k=>$v) {
 								if ($k>=0) {
@@ -908,7 +920,7 @@ error_log('Database error:'.$e->getMessage());
 	    		
 	   		$holiday->setStart(new \DateTime('now'));
 	   		$holiday->setFinish(new \DateTime('now'));
-    	    $users=$functions->getUsersList($userId, null, true, null, null, null, false, $functions->getDomainId($request->getHttpHost()), $this->getRequest());
+    	    $users=$functions->getUsersList($userId, null, true, null, null, null, false, $functions->getDomainId($request->getHttpHost()));
     		$usernames=array();
     		if ($users) {
     			foreach ($users as $v) {
@@ -1399,16 +1411,19 @@ error_log('scheduleListAction');
     	
     	$thisMonday=mktime(0, 0, 0, date('n', $timestamp), date('j', $timestamp)-date('N', $timestamp)+1, date('Y', $timestamp));
     	for ($i=0; $i<7; $i++) {
-    		$week[date('Ymd', $thisMonday+24*60*60*$i)]=array(
-    			'dayOfWeek'=>date('w', $thisMonday+24*60*60*$i),
-    			'day'=>date('l', $thisMonday+24*60*60*$i),
-    			'date'=>date('jS M', $thisMonday+24*60*60*$i)
+    		$d=$thisMonday+24*60*60*$i;
+    		$week[date('Ymd', $d)]=array(
+    			'dayOfWeek'=>date('w', $d),
+    			'day'=>date('l', $d),
+    			'date'=>date('jS M', $d),
+    			'fulldate'=>date('Y-m-d', $d),
+    			'problem'=> $functions->isDailyScheduleProblem($locationId, date('Y-m-d', $d))
     		);
     	}
     	$weekNo=sprintf('Week %d, %d', date('W', $thisMonday), date('Y', $thisMonday));
     	$dateRange=date('jS M', $thisMonday).' - '.date('jS M', $thisMonday+24*60*60*6);
     	
-    	$users=$functions->getUsersList(null, (strlen($usersearch)?$usersearch:null), false, (strlen($groupsearch)?$groupsearch:null), (strlen($qualificationsearch)?$qualificationsearch:null), null, true, $functions->getDomainId($request->getHttpHost()), $this->getRequest());
+    	$users=$functions->getUsersList(null, (strlen($usersearch)?$usersearch:null), false, (strlen($groupsearch)?$groupsearch:null), (strlen($qualificationsearch)?$qualificationsearch:null), null, true, $functions->getDomainId($request->getHttpHost()));
     	if (isset($users['-1']['found'])) {
     		$found=$users['-1']['found'];
     		unset($users['-1']);
@@ -1441,25 +1456,25 @@ error_log('scheduleListAction');
     	}
     	 
     	$content=$this->renderView('TimesheetHrBundle:Internal:scheduleList.html.twig', array(
-			'base'				=> $base,
-    		'locationId'		=> $locationId,
-    		'timestamp'			=> $timestamp,
-    		'usersearch'		=> $usersearch,
-    		'groupsearch'		=> $groupsearch,
-    		'groups'			=> $functions->getGroups($domainId),
-    		'qualificationsearch'		=> $qualificationsearch,
-    		'qualifications'	=> $functions->getQualifications(null, false, $domainId),
-    		'week'				=> $week,
-    		'locations'			=> $locations,
-    		'locationsUrl'		=> $locationsUrl,
-    		'shifts'			=> $functions->getShifts(),
-			'users'				=> $users,
-    		'allocationDivs'	=> $allocationDivs,
-    		'locationDivs'		=> $locationDivs,
-    		'found'				=> $found,
-    		'weekNo'			=> $weekNo,
-    		'dateRange'			=> $dateRange,
-    		'isManager'			=> $functions->isManager()
+			'base'					=> $base,
+    		'locationId'			=> $locationId,
+    		'timestamp'				=> $timestamp,
+    		'usersearch'			=> $usersearch,
+    		'groupsearch'			=> $groupsearch,
+    		'groups'				=> $functions->getGroups($domainId),
+    		'qualificationsearch'	=> $qualificationsearch,
+    		'qualifications'		=> $functions->getQualifications(null, false, $domainId),
+    		'week'					=> $week,
+    		'locations'				=> $locations,
+    		'locationsUrl'			=> $locationsUrl,
+    		'shifts'				=> $functions->getShifts(),
+			'users'					=> $users,
+    		'allocationDivs'		=> $allocationDivs,
+    		'locationDivs'			=> $locationDivs,
+    		'found'					=> $found,
+    		'weekNo'				=> $weekNo,
+    		'dateRange'				=> $dateRange,
+    		'isManager'				=> $functions->isManager()
     	));
     	
     	if ($request->isXmlHttpRequest()) {
@@ -1835,6 +1850,391 @@ error_log('timesheetcheckAction');
 				}
 			}
     		
+       		return new JsonResponse($data);
+    	} else {
+    		error_log('not ajax request...');
+    		 
+    		return $this->redirect($this->generateUrl('timesheet_hr_homepage'), 302);
+    	}
+    }
+
+
+    public function photoAction() {
+error_log('photoAction');
+    	$request=$this->getRequest();
+    	if ($request->isXmlHttpRequest()) {
+    		$data=array(
+    			'error'=>'',
+    			'title'=>'Photo',
+    			'content'=>''
+    		);
+			$functions = $this->get('timesheet.hr.functions');
+			$domainId=$functions->getDomainId($request->getHttpHost());
+			
+    		$params=$request->request->all();
+error_log('params:'.print_r($params, true));
+    		$photoId=((isset($params['photoid']))?($params['photoid']):(''));
+    		$func=((isset($params['func']))?($params['func']):(''));
+    		switch ($func) {
+    			case 'user' : {
+    				$title='User photo';
+					$userId=((isset($params['userid']))?($params['userid']):(''));
+		
+					$photos=$functions->getUserPhotos($userId, $domainId, false, true, 500, $photoId);
+    				break;
+    			}
+    			case 'resident' : {
+    				$title='Resident photo';
+    				$residentId=((isset($params['userid']))?($params['userid']):(''));
+    				
+    				$photos=$functions->getResidentPhotos($residentId, $domainId, false, true, 500, $photoId);
+    				break;
+    			}
+    		}
+    		if ($photos && count($photos)) {
+error_log('no of photos:'.count($photos));			
+				$photo=reset($photos);
+// error_log('photo:'.print_r($photo, true));
+				$data['content']=$this->renderView('TimesheetHrBundle:Ajax:photo.html.twig', array(
+					'alt' 	=> $title,
+					'photo'	=> $photo['photo'],
+					'type'	=> $photo['type'],
+					'width'	=> $photo['width'],
+					'height'=> $photo['height']
+			    ));
+    		}
+			
+       		return new JsonResponse($data);
+    	} else {
+    		error_log('not ajax request...');
+    		 
+    		return $this->redirect($this->generateUrl('timesheet_hr_homepage'), 302);
+    	}
+    }
+
+    public function userphotoAction() {
+error_log('userphotoAction');
+    	$request=$this->getRequest();
+    	if ($request->isXmlHttpRequest()) {
+    		$data=array(
+    			'error'=>'',
+    			'title'=>'Photo',
+    			'content'=>'',
+    			'js'=>'editphoto'
+    		);
+			$functions = $this->get('timesheet.hr.functions');
+			$domainId=$functions->getDomainId($request->getHttpHost());
+//			$currentUser=$this->getUser();
+						
+    		$params=$request->request->all();
+    		$photoId=(isset($params['locationId'])?($params['locationId']):(null)); // locationId == photoId
+// error_log('params:'.print_r($params, true));
+
+			$action=((isset($params['action']))?($params['action']):(''));
+			if (!$action) {
+				// if the form submitted, the action forwarded in the form
+				if (isset($params['photonotes']['action'])) {
+					$action=$params['photonotes']['action'];
+				}
+			}
+			switch ($action) {
+				case 'delete' : {
+// error_log('delete');
+					$photo=$this->getDoctrine()
+						->getRepository('TimesheetHrBundle:UserPhotos')
+						->findOneBy(array('id'=>$photoId));
+					
+					$em=$this->getDoctrine()->getManager();
+					$em->remove($photo);
+					$em->flush($photo);
+					$data['js']='redirect';
+					$data['url']=$this->generateUrl('timesheet_hr_userphotos');
+					break;
+				}
+				case 'edit' : {
+// error_log('edit');
+					$formSubmit=false;
+					if (!$photoId) {
+						if (isset($params['photonotes']['photoid'])) {
+							$photoId=$params['photonotes']['photoid'];
+							$formSubmit=true;
+						}	
+					}
+		
+					if ($photoId) {
+						$photos=$functions->getUserPhotos(null, $domainId, false, true, 200, $photoId);
+						if ($photos && count($photos)) {
+							$photo=reset($photos);
+			
+							$form=$this->createForm(new PhotoNotesType($photo['id'], $photo['notes'], $photo['createdOn'], $action, $this->generateUrl('timesheet_ajax_userphoto')));
+							if ($formSubmit) {
+// error_log('submit');
+								$form->handleRequest($request);
+					    		if ($form->isValid()) {
+// error_log('valid');
+									if ($form->isSubmitted()) {
+// error_log('submitted');
+										$notes=$params['photonotes']['notes'];
+								
+										$photo=$this->getDoctrine()
+											->getRepository('TimesheetHrBundle:UserPhotos')
+											->findOneBy(array('id'=>$photoId));
+								
+										$photo->setNotes(''.$notes);
+										$em=$this->getDoctrine()->getManager();
+										$em->flush($photo);
+										$data['redirect']=$this->generateUrl('timesheet_hr_userphotos');
+									} else {
+										$formSubmit=false;
+									}
+					    		} else {
+					    			$formSubmit=false;
+					    		}
+							}
+
+							if (!$formSubmit) {
+								$data['content']=$this->renderView('TimesheetHrBundle:Ajax:userphoto.html.twig', array(
+									'title'	=>'Edit Photo',
+									'form'	=> $form->createView(),
+									'alt'	=>'Photo '.$params['locationId'],
+									'photo'	=>$photo,
+								));
+							}
+						}
+					} else {
+error_log('no photo id');
+					}
+					break;
+				}
+				default : {
+					$data['error']='Wrong action';
+					break;
+				}
+			}
+			
+       		return new JsonResponse($data);
+    	} else {
+    		error_log('not ajax request...');
+    		 
+    		return $this->redirect($this->generateUrl('timesheet_hr_homepage'), 302);
+    	}
+    }
+
+
+    public function residentphotoAction() {
+error_log('residentphotoAction');
+    	$request=$this->getRequest();
+    	if ($request->isXmlHttpRequest()) {
+    		$data=array(
+    			'error'=>'',
+    			'title'=>'Photo',
+    			'content'=>'',
+    			'js'=>'editphoto'
+    		);
+			$functions = $this->get('timesheet.hr.functions');
+			$domainId=$functions->getDomainId($request->getHttpHost());
+//			$currentUser=$this->getUser();
+						
+    		$params=$request->request->all();
+    		$photoId=(isset($params['locationId'])?($params['locationId']):(null)); // locationId == photoId
+// error_log('params:'.print_r($params, true));
+
+			$action=((isset($params['action']))?($params['action']):(''));
+			if (!$action) {
+				// if the form submitted, the action forwarded in the form
+				if (isset($params['photonotes']['action'])) {
+					$action=$params['photonotes']['action'];
+				}
+			}
+			switch ($action) {
+				case 'delete' : {
+// error_log('delete');
+					$photo=$this->getDoctrine()
+						->getRepository('TimesheetHrBundle:ResidentPhotos')
+						->findOneBy(array('id'=>$photoId));
+					
+					$em=$this->getDoctrine()->getManager();
+					$em->remove($photo);
+					$em->flush($photo);
+					$data['js']='redirect';
+					$data['url']=$this->generateUrl('residents_hr_residentphotos');
+					break;
+				}
+				case 'edit' : {
+// error_log('edit');
+					$formSubmit=false;
+					if (!$photoId) {
+						if (isset($params['photonotes']['photoid'])) {
+							$photoId=$params['photonotes']['photoid'];
+							$formSubmit=true;
+						}	
+					}
+		
+					if ($photoId) {
+						$photos=$functions->getResidentPhotos(null, $domainId, false, true, 200, $photoId);
+						if ($photos && count($photos)) {
+							$photo=reset($photos);
+			
+							$form=$this->createForm(new PhotoNotesType($photo['id'], $photo['notes'], $photo['createdOn'], $action, $this->generateUrl('timesheet_ajax_residentphoto')));
+							if ($formSubmit) {
+// error_log('submit');
+								$form->handleRequest($request);
+					    		if ($form->isValid()) {
+// error_log('valid');
+									if ($form->isSubmitted()) {
+// error_log('submitted');
+										$notes=$params['photonotes']['notes'];
+								
+										$photo=$this->getDoctrine()
+											->getRepository('TimesheetHrBundle:ResidentPhotos')
+											->findOneBy(array('id'=>$photoId));
+								
+										$photo->setNotes(''.$notes);
+										$em=$this->getDoctrine()->getManager();
+										$em->flush($photo);
+										$data['redirect']=$this->generateUrl('residents_hr_residentphotos');
+									} else {
+										$formSubmit=false;
+									}
+					    		} else {
+					    			$formSubmit=false;
+					    		}
+							}
+
+							if (!$formSubmit) {
+								$data['content']=$this->renderView('TimesheetHrBundle:Ajax:userphoto.html.twig', array(
+									'title'	=>'Edit Resident Photo',
+									'form'	=> $form->createView(),
+									'alt'	=>'Photo '.$params['locationId'],
+									'photo'	=>$photo,
+								));
+							}
+						}
+					} else {
+error_log('no photo id');
+					}
+					break;
+				}
+				default : {
+					$data['error']='Wrong action';
+					break;
+				}
+			}
+			
+       		return new JsonResponse($data);
+    	} else {
+    		error_log('not ajax request...');
+    		 
+    		return $this->redirect($this->generateUrl('timesheet_hr_homepage'), 302);
+    	}
+    }
+
+
+    public function residenthistoryAction() {
+error_log('residenthistoryAction');
+    	$request=$this->getRequest();
+    	if ($request->isXmlHttpRequest()) {
+    		$data=array(
+    			'error'=>'',
+    			'title'=>'Resident Room History',
+    			'content'=>''
+    		);
+			$functions = $this->get('timesheet.hr.functions');
+			$domainId=$functions->getDomainId($request->getHttpHost());
+						
+    		$params=$request->request->all();
+    		$residentId=(isset($params['id'])?($params['id']):(null));
+
+			if ($residentId) {
+				$resident=$this->getDoctrine()
+					->getRepository('TimesheetHrBundle:Residents')
+					->findOneBy(array('id'=>$residentId, 'domainId'=>$domainId));
+				if ($resident && count($resident)) {
+					$history=$functions->getResidentHistory($residentId, $domainId);
+					$data['content']=$this->renderView('TimesheetHrBundle:Ajax:residenthistory.html.twig', array(
+						'resident'	=> $resident,
+						'history'	=> $history
+					));
+				}
+			}
+			
+       		return new JsonResponse($data);
+    	} else {
+    		error_log('not ajax request...');
+    		 
+    		return $this->redirect($this->generateUrl('timesheet_hr_homepage'), 302);
+    	}
+    }
+
+
+    public function showdailyproblemsAction() {
+error_log('showdailyproblemsAction');
+    	$request=$this->getRequest();
+    	if ($request->isXmlHttpRequest()) {
+    		$data=array(
+    			'error'=>'',
+    			'title'=>'Requirements',
+    			'content'=>''
+    		);
+			$functions = $this->get('timesheet.hr.functions');
+			$domainId=$functions->getDomainId($request->getHttpHost());
+						
+    		$params=$request->request->all();
+    		$date=(isset($params['date'])?(new \DateTime($params['date'])):(null));
+    		$locationTmp=(isset($params['location'])?($params['location']):(null));
+
+			if ($locationTmp) {
+				$locations=explode('|', $locationTmp);
+				$usersRepo=$this->getDoctrine()
+					->getRepository('TimesheetHrBundle:User');
+				if (count($locations)) {
+					foreach ($locations as $locationId) {
+						$location=$this->getDoctrine()
+							->getRepository('TimesheetHrBundle:Location')
+							->findOneBy(array('domainId'=>$domainId, 'id'=>$locationId));
+						
+						$required=$functions->getCurrentlyRequiredStaff($locationId, $date->format('Y-m-d'));
+						$allocated=$functions->getCurrentlyAllocatedStaff($locationId, $date->format('Y-m-d'));
+						$requiredQualifications=$functions->getCurrentlyRequiredQualifications($locationId, $date->format('Y-m-d'));
+						$allocatedQualifications=$functions->getCurrentlyAllocatedQualifications($locationId, $date->format('Y-m-d'));
+						$notrequired=array();
+						$users=array();
+						$tmpGroups=array();
+						if ($allocated && count($allocated)) {
+							foreach ($allocated as $a) {
+								unset($tmpGroups);
+								$tmpGroups=array();
+								$tmpShiftId=$a['shiftId'];
+								foreach ($required as $r) {
+									if ($tmpShiftId==$r['shiftId']) {
+										$tmpGroups[$r['groupId']]=$r['groupId'];
+									}
+								}
+								if (!in_array($a['groupId'], $tmpGroups)) {
+									$notrequired[]=$a;
+								}
+								if (!isset($users[$a['userId']])) {
+									$users[$a['userId']]=$usersRepo->findOneBy(array('id'=>$a['userId']));
+								}
+							}
+						}
+
+						$data['content'].=$this->renderView('TimesheetHrBundle:Ajax:showdailyproblems.html.twig', array(
+							'location'	=> $location,
+							'shifts'	=> $functions->getShifts(null, null, $locationId, $domainId),
+							'date'		=> $date,
+							'required'	=> $required,
+							'notrequired' => $notrequired,
+							'allocated'	=> $allocated,
+							'requiredQualifications'=>$requiredQualifications,
+							'allocatedQualifications'=>$allocatedQualifications,
+							'users'		=> $users
+						));
+						$data['title'].=' at '.$location->getName().' on '.$date->format('l jS M Y');
+					}
+				}
+			}
+			
        		return new JsonResponse($data);
     	} else {
     		error_log('not ajax request...');
