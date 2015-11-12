@@ -21,8 +21,8 @@
 	</tr>
 	<tr class="normal">
 	{% for day,t1 in t %}
-		<td class="{{ t1.class }}"{% if t1.day!='' %}{% if t1.date >= 'now'|date('Y-m-d') or admin %} name="calendarCell"{% endif %} data-date="{{ t1.date }}" data-url="{{ path('timesheet_ajax_addrequest') }}" base-url="{{ base }}"{% endif %}>
-			{% if t1.content is defined and t1.content|length %}{{ t1.content|raw }}{% endif %}
+		<td class="{{ t1.class }}"{% if t1.day!='' %}{% if t1.date >= 'now'|date('Y-m-d') or admin %} name="calendarCell"{% endif %} data-action="confirm" data-refresh="holidayDiv" data-date="{{ t1.date }}" data-url="{{ path('timesheet_ajax_addrequest') }}" base-url="{{ base }}"{% endif %}>
+			{% if t1.content is defined and t1.content|length %}<a href="javascript:void(0)">{{ t1.content|raw }}</a>{% endif %}
 		</td>
 	{% endfor %}
 	</tr>

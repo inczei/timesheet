@@ -20,14 +20,14 @@
 		<td> </td>
 		<td>Remaining holidays until Today : <b>{{ data.holidays|number_format(1) }}</b></td>
 		<td> </td>
-		<td><a class="showRequest" data-userid="{{ userId }}" data-url="{{ path('timesheet_ajax_showrequests') }}" base-url="{{ base }}" href="#" title="Click here to see your request">Your requests</a></td>
+		<td><a class="showRequest" data-userid="{{ userId }}" data-url="{{ path('timesheet_ajax_showrequests') }}" base-url="{{ base }}" href="javascript:void(0)" title="Click here to see your request">Your requests</a></td>
 	</tr>
 	<tr>
 		<td><a href="{{ path('timesheet_hr_messages') }}">Messages{% if data.unread is defined and data.unread > 0 %} ({{ data.unread }}){% endif %}</a></td>
 		<td> </td>
 		<td> </td>
 		<td> </td>
-		<td> </td>
+		<td data-date="" data-action="confirmnew" data-refresh="{{ base }}" name="calendarCell" base-url="" data-url="{{ path('timesheet_ajax_addrequest') }}"><a href="javascript:void(0)">{% if data.requests is defined and data.requests|length %}You have {{ data.requests }} request{% if data.requests != 1 %}s{% endif %} to reply{% endif %}</a></td>
 	</tr>
 	<tr>
 		<td>

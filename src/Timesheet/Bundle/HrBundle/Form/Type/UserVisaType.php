@@ -96,6 +96,10 @@ class UserVisaType extends AbstractType
     		->add('notes', 'textarea', array(
     			'label'=>'Notes:',
     			'required'=>false,
+        		'attr'=>array(
+        			'rows'=>3,
+        			'cols'=>70
+        		),
     			'data'=>((isset($this->uservisa))?($this->uservisa->getNotes()):(''))
     		))
     		->add('submit', 'submit', array(

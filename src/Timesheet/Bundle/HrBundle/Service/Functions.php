@@ -16,6 +16,7 @@ use Symfony\Component\Serializer\Encoder\JsonEncode;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\DependencyInjection\ContainerAware;
 use Timesheet\Bundle\HrBundle\Entity\Allocation;
+use Timesheet\Bundle\HrBundle\Entity\AWWH;
 use Timesheet\Bundle\HrBundle\Entity\Companies;
 use \DateTime;
 use \DateTimeZone;
@@ -68,7 +69,7 @@ class Functions extends ContainerAware
 	
 	public function getUsersList($userId=null, $name=null, $all=false, $groupId=null, $qualificationId=null, $locationId=null, $extra=true, $domainId=null) {
 		
-		$request=$this->requestStack->getCurrentRequest();
+//		$request=$this->requestStack->getCurrentRequest();
 		$users=array();
 		$em=$this->doctrine->getManager();
 		$qb=$em
@@ -156,6 +157,27 @@ class Functions extends ContainerAware
 		}
 		
 		return $users;
+	}
+	
+	
+	public function getUserFullNameById($userId) {
+		if ($userId) {
+			$em=$this->doctrine->getManager();
+			$qb=$em
+				->createQueryBuilder()
+				->select('u.title')
+				->addSelect('u.firstName')
+				->addSelect('u.lastName')
+				->from('TimesheetHrBundle:User', 'u')
+				->where('u.id=:uId')
+				->setParameter('uId', $userId);
+		
+			$query=$qb->getQuery();
+			$result=$query->getArrayResult();
+			$currentUser=reset($result);
+			return trim($currentUser['title'].' '.$currentUser['firstName'].' '.$currentUser['lastName']);
+		}
+		return null;
 	}
 	
 	
@@ -1407,23 +1429,17 @@ error_log('getMembers');
 	
 	
 	public function getContracts($userId) {
-		 
-		$conn=$this->doctrine->getConnection();
-		 
-		$query='SELECT'.
-				' `c`.*'.
-				' FROM `Contract` `c`'.
-				' WHERE `c`.`userId`=:uId'.
-				' ORDER BY `c`.`CSD`';
-		 
-		$stmt=$conn->prepare($query);
-		$stmt->bindValue('uId', $userId);
-		$stmt->execute();
-	
-		$contracts=$stmt->fetchAll();
-		 
-		return $contracts;
-	
+
+		$em=$this->doctrine->getManager();
+		$qb=$em
+			->createQueryBuilder()
+			->select('c')
+			->from('TimesheetHrBundle:Contract', 'c')
+			->where('c.userId=:uId')
+			->orderBy('c.csd', 'ASC')
+			->setParameter('uId', $userId);
+
+		return $qb->getQuery()->getArrayResult();	
 	}
 	
 	
@@ -1508,7 +1524,7 @@ error_log('getMembers');
 	
 	
 	public function getHolidayEntitlement($userId = null) {
-// error_log('getHolidayEntitlement');
+error_log('getHolidayEntitlement, userId:'.$userId);
 		$request=$this->requestStack->getCurrentRequest();
 		$ret=array(
 			'yearstart'=>null,
@@ -1532,7 +1548,7 @@ error_log('getMembers');
 		
 			if ($result && count($result)) {
 				if ($result->getYearstart() != null) {
-					$ret['yearstart']=$result->getYearstart()->format('Y-m-d');
+					$ret['yearstart']=$result->getYearstart();
 					$ret['annualholidays']=$result->getAHE();
 				}
 			}
@@ -1543,12 +1559,13 @@ error_log('getMembers');
 					$ts=strtotime(date('Y').'-'.$t[0].'-'.$t[1]);
 				}
 			} else {
-				$ts=strtotime($ret['yearstart']);	
+				$ts=strtotime($ret['yearstart']->format('Y-m-d H:i:s'));	
 			}
 			if (date('Y-m-d', $ts) > date('Y-m-d')) {
 				$ts=mktime(0, 0, 0, date('m', $ts), date('d', $ts), date('Y')-1);
 			}
-			$ret['yearstart']=date('Y-m-d', $ts);
+			$ret['yearstart']=new \DateTime();
+			$ret['yearstart']->setTimestamp($ts);
 			$ret['csd']=$ret['yearstart'];
 			
 			if (!$ret['annualholidays']) {
@@ -1569,9 +1586,9 @@ error_log('getMembers');
 				 * anyway use Contract Start Date
 				 */
 				$ret['untilToday']+=$lastContract['initHolidays'];
-				$ret['csd']=$lastContract['CSD'];				
+				$ret['csd']=$lastContract['csd'];				
 				if (!$lastContract['AHEonYS']) {
-					$ret['yearstart']=$lastContract['CSD'];
+					$ret['yearstart']=$lastContract['csd'];
 				}
 //				if ($lastContract['AHE']) {
 //					$ret['annualholidays']=$lastContract['AHE'];
@@ -1582,7 +1599,7 @@ error_log('getMembers');
 				 * from contract start date or year start which is later
 				 * until end of contract or today which is earlier 
 				 */
-				$ret['list']=$this->getHolidaysList($userId, max($ret['yearstart'], $ret['csd']), (($lastContract['CED'])?(min($lastContract['CED'], date('Y-m-d'))):(date('Y-m-d'))));
+				$ret['list']=$this->getHolidaysList($userId, max($ret['yearstart'], $ret['csd']), (($lastContract['ced'])?(min($lastContract['ced'], date('Y-m-d'))):(date('Y-m-d'))));
 				if (count($ret['list'])) {
 					foreach ($ret['list'] as $l) {
 						if ($l['entitlement']) {
@@ -1608,11 +1625,11 @@ error_log('getMembers');
 		 */
 		if ($ret['annualholidays'] && date('Y-m-d', $ts)<=date('Y-m-d')) {
 			$ret['daysOfYear']=floor((mktime(0, 0, 0, date('m', $ts), date('d', $ts), date('Y', $ts)+1)-mktime(0, 0, 0, date('m', $ts), date('d', $ts), date('Y', $ts)))/(60*60*24));
-			$ts=strtotime(max($ret['yearstart'], $ret['csd']));
+			$ts=strtotime(max($ret['yearstart']->format('Y-m-d H:i:s'), $ret['csd']->format('Y-m-d H:i:s')));
 			$ret['currentDay']=floor((mktime(0, 0, 0, date('m'), date('d'), date('Y'))-mktime(0, 0, 0, date('m', $ts), date('d', $ts), date('Y', $ts)))/(60*60*24));
 			$ret['untilToday']+=$ret['annualholidays']/$ret['daysOfYear']*$ret['currentDay'];
 		}
-// error_log('ret:'.print_r($ret, true));
+
 		return $ret;
 	}
 	
@@ -1899,7 +1916,7 @@ error_log('getWeeklyLocationSchedule');
 	public function getHolidaysList($userId, $startDate, $finishDate) {
 error_log('getHolidaysList');
 //		$ret=array();
-error_log('userId:'.$userId.', start:'.$startDate.', finish:'.$finishDate);
+error_log('userId:'.$userId.', start:'.print_r($startDate, true).', finish:'.print_r($finishDate, true));
 
 		$em=$this->doctrine->getManager();
 		
@@ -3367,48 +3384,37 @@ $time=microtime(true);
 			->leftJoin('TimesheetHrBundle:Shifts', 'sh', 'WITH', 'sh.id=a.shiftId AND sh.locationId=a.locationId')
 			->leftJoin('TimesheetHrBundle:Location', 'l', 'WITH', 'l.id=a.locationId')
 			->where('u.domainId=:dId')
-//			->andWhere('c.csd<=DATE(i.timestamp)')
-//			->andWhere('c.ced>=DATE(i.timestamp) OR c.ced IS NULL')
-//			->andWhere('a.date=DATE(i.timestamp)')
-//			->andWhere('a.locationId=sh.locationId')
 			->groupBy('i.id')
-			->orderBy('i.userId', 'ASC')
+			->orderBy('u.firstName', 'ASC')
+			->orderBy('u.lastName', 'ASC')
 			->addOrderBy('i.timestamp', 'ASC')
 			->setParameter('dId', $domainId);
 
-// error_log('dId:'.$domainId);
 		if (!$admin && $userId) {
 			$qb->andWhere('u.id=:uId')
 				->setParameter('uId', $userId);
-// error_log('uId:'.$userId);
 		}
 		if ($admin && $groupId) {
 			$qb->andWhere('u.groupId=:gId')
 				->setParameter('gId', $groupId);
-// error_log('gId:'.$groupId);
 		}
 		if ($usersearch) {
 			$qb->andWhere('u.username LIKE :uSearch OR u.firstName LIKE :uSearch OR u.lastName LIKE :uSearch')
 				->setParameter('uSearch', '%'.$usersearch.'%');
-// error_log('uSearch:'.$usersearch);			
 		}
 		if ($admin && $locationId) {
 			$qb->andWhere('u.locationId=:lId')
 				->setParameter('lId', $locationId);
-// error_log('lId:'.$locationId);
 		}
 		if ($timestamp) {
 			$startTime=date('Y-m-01 00:00:00', $timestamp);
 			$finishTime=date('Y-m-t 23:59:59', $timestamp);
-// error_log('dates:'.$startTime.'-'.$finishTime);
 			$qb->andWhere('i.timestamp BETWEEN :dateStart AND :dateFinish')
 				->setParameter('dateStart', $startTime)
 				->setParameter('dateFinish', $finishTime);
-// error_log('date between '.$startTime.' and '.$finishTime);
 		}
 		$query=$qb->getQuery();
-//error_log('query ready');
-// error_log('sql:'.$query->getDql());
+error_log('sql:'.$query->getDql());
 		$results=$query->getArrayResult();
 // error_log('1st no of results:'.count($results).', time:'.(microtime(true)-$time));
 // error_log('results:'.print_r($results, true));		
@@ -3418,22 +3424,32 @@ $time=microtime(true);
 			$lastDate=null;
 			$otherId=0;
 			$holidays=array();
+			$userLastSignIn=array();
 
 			$timezone=$session->get('timezone');
 			
 			foreach ($results as $result) {
-
+// error_log('result:'.print_r($result, true));
+				
 				// Overwrite timestamp with local time as string				
 				$d=new \DateTime($result['timestamp']->format('Y-m-d H:i:s'), new \DateTimeZone('UTC'));
 				$d->setTimezone(new \DateTimeZone($timezone));
 				$result['timestamp']=$d->format('Y-m-d H:i:s');
-
+				if ($result['startTime'] && is_object($result['startTime'])) {
+					$d->setTime($result['startTime']->format('H'), $result['startTime']->format('i'), $result['startTime']->format('s'));
+					$result['startTime']=clone $d;
+				}
+				if ($result['finishTime'] && is_object($result['finishTime'])) {
+					$d->setTime($result['finishTime']->format('H'), $result['finishTime']->format('i'), $result['finishTime']->format('s'));
+					$result['finishTime']=clone $d;
+				}
+				
 				if (!isset($holidays[$result['userId']])) {
 					$holidays[$result['userId']]=$this->getHolidaysForMonth($conn, $result['userId'], $startTime, $finishTime);
 				}
 				
-				$date=date('Y-m-d', strtotime($result['timestamp']));
-				
+				$date=$d->format('Y-m-d');
+// error_log('date:'.$date.', d:'.$d->format('Y-m-d'));				
 				if (isset($ret[$result['username']][$date][$result['statusId']])) {
 					// Data already exists, check the time
 					// if start, check the first
@@ -3458,10 +3474,11 @@ $time=microtime(true);
 						} else {
 							$ret[$result['username']][$date][$result['statusId']]['multi'][1][$otherId]=$result['timestamp'];
 						}
-// error_log('multi entry data:'.print_r($ret[$result['username']][$date][$result['StatusId']]['multi'], true));
 					} else {
 						// Single entry allowed per day
+// error_log('single entry');
 						if ($result['start']) {
+// error_log('start');
 							if (isset($ret[$result['username']][$date][$result['statusId']]['timestamp'])) {
 								$ret[$result['username']][$date][$result['statusId']]['timestamp']=min($ret[$result['username']][$date][$result['statusId']]['timestamp'], $result['timestamp']);
 							} else {
@@ -3469,7 +3486,32 @@ $time=microtime(true);
 							}
 						} else {
 							if (isset($ret[$result['username']][$date][$result['statusId']]['timestamp'])) {
+								$tmp=$ret[$result['username']][$date][$result['statusId']]['timestamp'];
 								$ret[$result['username']][$date][$result['statusId']]['timestamp']=max($ret[$result['username']][$date][$result['statusId']]['timestamp'], $result['timestamp']);
+								if ($ret[$result['username']][$date][$result['statusId']]['timestamp'] != $tmp) {
+									if (isset($userLastSignIn[$result['username']])) {
+										// if signed out next day, we note it
+										// and if corrected, add the corrected date and time and a note
+										end($userLastSignIn[$result['username']]);
+										$tmpDate=date('Y-m-d', strtotime(prev($userLastSignIn[$result['username']])));
+										$tmpTime=date('H:i', strtotime($tmp));
+										if (isset($ret[$result['username']][$tmpDate][2]['comment'])) {
+											$ret[$result['username']][$tmpDate][2]['comment'].=', ';
+										} else {
+											$ret[$result['username']][$tmpDate][2]['comment']='';
+										}
+										if (count($userLastSignIn[$result['username']])==2) {
+											$ret[$result['username']][$tmpDate][2]['timestamp']=$tmp;
+											$ret[$result['username']][$tmpDate][2]['comment'].='Next day signed out ('.$tmpTime.')';
+											$ret[$result['username']][$tmpDate][0]['class']='PunchMissing';
+											// if signed out next day, we give option to correct it
+											$ret[$result['username']][$tmpDate][2]['changeable']=true;
+										} elseif (count($userLastSignIn[$result['username']]) > 2) {
+											// if already corrected, note only
+											$ret[$result['username']][$tmpDate][2]['comment'].='Next day signed out ('.$tmpTime.')';
+										}
+									}
+								}
 							} else {
 								$ret[$result['username']][$date][$result['statusId']]['timestamp']=$result['timestamp'];
 							}
@@ -3481,6 +3523,24 @@ $time=microtime(true);
 				} else {
 					// new data
 // error_log('new data, id:'.$result['id'].', username:'.$result['username'].', timestamp:'.$result['timestamp']);
+					if ($result['start'] && $result['statusId'] == 1) {
+						$userLastSignIn[$result['username']][]=$result['timestamp'];
+					}
+					$tmpAgreed=null;
+					$tmpAgreedOrig=null;
+					if ($result['start']) {
+						if (!is_null($result['startTime'])) {
+							$tmpAgreed=new \DateTime($date.' '.$result['startTime']->format('H:i:s'));
+							$tmpAgreedOrig=clone $tmpAgreed;
+						}
+					} else {
+						if (!is_null($result['finishTime'])) {
+							$tmpAgreed=new \DateTime($date.' '.$result['finishTime']->format('H:i:s'));
+							$tmpAgreedOrig=clone $tmpAgreed;
+						}
+					}
+					$tmpHolidays=((isset($holidays[$result['userId']][$date]))?($holidays[$result['userId']][$date]):(null));
+					
 					$ret[$result['username']][$date][$result['statusId']]=array(
 						'userId'=>$result['userId'],
 						'comment'=>$result['comment'],
@@ -3489,10 +3549,12 @@ $time=microtime(true);
 						'status'=>$result['name'],
 						'day'=>date('D jS M', strtotime($result['timestamp'])),
 						'timestamp'=>$result['timestamp'],
-						'agreed'=>(($result['start'])?($result['startTime']):($result['finishTime'])),
+						'agreed'=>$tmpAgreed,
+						'agreedOrig'=>$tmpAgreedOrig,
 						'location'=>$result['locationName'],
-						'holidays'=>((isset($holidays[$result['userId']][$date]))?($holidays[$result['userId']][$date]):(null))
+						'holidays'=>$tmpHolidays
 					);
+
 					$ret[$result['username']][$date][0]=array(
 						'checked'=>$this->getTimesheetChecked($result['userId'], $date),
 						'userId'=>$result['userId'],
@@ -3502,7 +3564,7 @@ $time=microtime(true);
 						'name'=>trim($result['firstName'].' '.$result['lastName']),
 						'day'=>date('D jS M', strtotime($result['timestamp'])),
 						'location'=>$result['locationName'],
-						'holidays'=>((isset($holidays[$result['userId']][$date]))?($holidays[$result['userId']][$date]):(null))
+						'holidays'=>$tmpHolidays
 					);
 
 					if (isset($holidays[$result['userId']][$date]) && count($holidays[$result['userId']][$date])) {
@@ -3523,25 +3585,40 @@ $time=microtime(true);
 					$class='';
 					switch ($result['statusId']) {
 						case 1 : {
+/*
+error_log('sign in');
+error_log('startTime:'.print_r($result['startTime'], true));
+error_log('timestamp:'.print_r($result['timestamp'], true));
+*/
 							// Signing in
-							if ($result['startTime'] && $result['startTime'] >= date('H:i:s', strtotime($result['timestamp']))) {
+							if ($result['startTime'] && $result['startTime']->format('H:i:s') >= date('H:i:s', strtotime($result['timestamp']))) {
 								$class='PunchCorrect';
-							} else {
+							} else {								
 								$class='PunchIncorrect'; // .$result['startTime'];
 							}
+// error_log('punch:'.$class);
 							break;
 						}
 						case 2 : {
+/*
+error_log('sign out');
+error_log('finishTime:'.print_r($result['finishTime'], true));
+error_log('timestamp:'.print_r($result['timestamp'], true));
+*/
 							// Signing out
-							if ($result['finishTime'] && $result['finishTime'] <= date('H:i:s', strtotime($result['timestamp']))) {
+							if ($result['finishTime'] && $result['finishTime']->format('H:i:s') <= date('H:i:s', strtotime($result['timestamp']))) {
 								$class='PunchCorrect';
 							} else {
 								$class='PunchIncorrect'; // .$result['finishTime'];
 							}
+// error_log('punch:'.$class);
 							break;
 						}
 					}
 					$ret[$result['username']][$date][$result['statusId']]['class']=$class;
+//					if (!$class) {
+//						error_log('class:'.$class.' on '.$date);
+//					}
 					
 				}
 				$lastUser=$result['username'];
@@ -3557,12 +3634,28 @@ $time=microtime(true);
 					$ts=mktime(0, 0, 0, date('m', $timestamp), $i, date('Y', $timestamp));
 // error_log('ts:'.date('Y-m-d', $ts));
 					if (isset($v[date('Y-m-d', $ts)])) {
-// error_log('data setted');
-						$this->getCorrectedTimes($ret[$k][date('Y-m-d', $ts)], $domainId);
+// error_log('data setted on '.date('Y-m-d', $ts));
+						if (!isset($ret[$k][date('Y-m-d', $ts)][1]['agreed']) || !isset($ret[$k][date('Y-m-d', $ts)][2]['agreed'])) {
+// error_log('no agreed time in or out');
+							$ret[$k][date('Y-m-d', $ts)][0]['class']='PunchMissing';
+							$ret[$k][date('Y-m-d', $ts)][0]['comment']='No allocated shift';
+						}
+//						$this->getCorrectedTimes($ret[$k][date('Y-m-d', $ts)], $domainId);
 					} else {
 						if ($loginRequired[$k]) {
 							// Login required, here something missing, not logged in even the shift allocated
-// error_log('login required:'.$k);
+							$uId=$this->getUserId($k);
+/*
+error_log('login required:'.$k);
+error_log('logged in:'.((isset($ret[$k][date('Y-m-d', $ts)][1]))?('true'):('false')));
+error_log('logged out:'.((isset($ret[$k][date('Y-m-d', $ts)][2]))?('true'):('false')));
+if (isset($ret[$k][date('Y-m-d', $ts)][0])) {
+	error_log('data:'.print_r($ret[$k][date('Y-m-d', $ts)][0], true));
+} else {
+	error_log('no data');
+}
+error_log('is allocated? '.(($this->isAllocatedShift($uId, date('Y-m-d', $ts)))?('yes'):('no')));
+*/
 							$arr=array(
 								'userId'=>$k,
 								'comment'=>'',
@@ -3574,9 +3667,30 @@ $time=microtime(true);
 							
 							$ret[$k][date('Y-m-d', $ts)][1]=$arr;
 							$ret[$k][date('Y-m-d', $ts)][2]=$arr;
-							$ret[$k][date('Y-m-d', $ts)][0]['class']='PunchDayoff';
-							$ret[$k][date('Y-m-d', $ts)][0]['comment']='Dayoff';
+							if ($ts<time() && $this->isAllocatedShift($uId, date('Y-m-d', $ts))) {
+								$tmpTimings=$this->getTimingsForDay($uId, $ts);
+								$ret[$k][date('Y-m-d', $ts)][1]['agreed']=$tmpTimings['startTime'];
+								$ret[$k][date('Y-m-d', $ts)][1]['agreedOrig']=$tmpTimings['startTime'];
+								$ret[$k][date('Y-m-d', $ts)][2]['agreed']=$tmpTimings['finishTime'];
+								$ret[$k][date('Y-m-d', $ts)][2]['agreedOrig']=$tmpTimings['finishTime'];
+								
+								$ret[$k][date('Y-m-d', $ts)][0]['agreedStart']=$tmpTimings['startTime'];
+								$ret[$k][date('Y-m-d', $ts)][0]['agreedFinish']=$tmpTimings['finishTime'];
+								$ret[$k][date('Y-m-d', $ts)][0]['class']='PunchMissing';
+								$ret[$k][date('Y-m-d', $ts)][0]['comment']='Missing sign in/out';
+							} else {
+//if (isset($ret[$k][date('Y-m-d', $ts)][0]['class'])) {
+//	error_log('class:'.$ret[$k][date('Y-m-d', $ts)][0]['class'].' on '.date('Y-m-d', $ts));
+//} else {
+//	error_log('no class on '.date('Y-m-d', $ts));
+//}
+								if ($ts < time()) {
+									$ret[$k][date('Y-m-d', $ts)][0]['class']='PunchDayoff';
+									$ret[$k][date('Y-m-d', $ts)][0]['comment']='Dayoff';
+								}
+							}
 							$ret[$k][date('Y-m-d', $ts)][0]['userId']=$k;
+//							$this->getCorrectedTimes($ret[$k][date('Y-m-d', $ts)], $domainId);
 						} else {
 							// Login not required, we add the shift details to sign in/out
 // error_log('login not required:'.$k);
@@ -3625,7 +3739,7 @@ $time=microtime(true);
 								$ret[$k][date('Y-m-d', $ts)][2]=$arr2;
 								$ret[$k][date('Y-m-d', $ts)][0]=$arr0;
 								
-								$this->getCorrectedTimes($ret[$k][date('Y-m-d', $ts)], $domainId);
+								
 							} else {
 								$arr=array(
 										'userId'=>$k,
@@ -3643,9 +3757,9 @@ $time=microtime(true);
 //								$ret[$k][date('Y-m-d', $ts)][0]['userId']=$k;
 								
 							}
-							
 						}
 					}
+					$this->getCorrectedTimes($ret[$k][date('Y-m-d', $ts)], $domainId);
 				}
 				ksort($ret[$k]);
 			}
@@ -3674,21 +3788,27 @@ $time=microtime(true);
 				->orderBy('u.id', 'ASC')
 				->setParameter('dId', $domainId);
 			
+error_log('dId:'.$domainId);
+				
 			if (!$admin && $userId) {
 				$qb->andWhere('u.id=:uId')
 					->setParameter('uId', $userId);
+error_log('uId:'.$userId);
 			}
 			if ($admin && $groupId) {
 				$qb->andWhere('u.groupId=:gId')
 					->setParameter('gId', $groupId);
+error_log('gId:'.$groupId);
 			}
 			if ($usersearch) {
 				$qb->andWhere('u.username LIKE :uSearch OR u.firstName LIKE :uSearch OR u.lastName LIKE :uSearch')
 					->setParameter('uSearch', '%'.$usersearch.'%');
+error_log('uSearch:'.$usersearch);
 			}
 			if ($admin && $locationId) {
 				$qb->andWhere('u.locationId=:lId')
 					->setParameter('lId', $locationId);
+error_log('lId:'.$locationId);
 			}
 			if ($timestamp) {
 				$startTime=date('Y-m-01', $timestamp);
@@ -3698,19 +3818,42 @@ $time=microtime(true);
 					->andWhere('c.ced>=:dateStart OR c.ced IS NULL')
 					->setParameter('dateStart', $startTime)
 					->setParameter('dateFinish', $finishTime);
+error_log('dateStart:'.print_r($startTime, true));
+error_log('dateFinish:'.print_r($finishTime, true));
 			}
 			$query=$qb->getQuery();
-//error_log('sql:'.$query->getDql());
+error_log('sql:'.$query->getDql());
 			$users=$query->getArrayResult();
-//error_log('1st results:'.count($users).', time:'.(microtime(true)-$time));
+error_log('1st results:'.count($users).', time:'.(microtime(true)-$time));
 			if (!count($users)) {
-				$user=$this->doctrine
+				$find=array();
+				$find+=array('domainId'=>$domainId);
+				if ($admin) {
+					if ($locationId) {
+						$find+array('locationId'=>$locationId);
+					}
+					if ($groupId) {
+						$find+array('groupId'=>$groupId);
+					}
+				} else {
+					$find+=array('id'=>$userId);
+				}
+				$findUsers=$this->doctrine
 					->getRepository('TimesheetHrBundle:User')
-					->findOneBy(array('id'=>$userId));
+					->findBy($find, array('firstName'=>'ASC', 'lastName'=>'ASC'));
 
+error_log('find:'.print_r($find, true));
+error_log('findUsers:'.print_r($findUsers, true));
 				unset($users);
 				$users=array();
-				$users[]=array('id'=>$userId, 'username'=>$user->getUsername());
+				if ($findUsers) {
+					foreach ($findUsers as $fu) {
+						if (count($users) < 20) {
+							$users[]=array('id'=>$fu->getId(), 'username'=>$fu->getUsername());
+						}
+					}
+				}
+				
 			}
 
 			$holidays=array();
@@ -3720,28 +3863,29 @@ $time=microtime(true);
 			//
 				$userId=$uTmp['id'];
 				$username=$uTmp['username'];
-// error_log('userId:'.$userId.', login:'.(($this->isLoginRequired($username))?'yes':'no'));
-				if ($userId && !$this->isLoginRequired($username, $domainId)) {
-					// but we have userId
-					$ts=strtotime($startTime);
-					$d=strtotime($finishTime);
-					
-					if (!isset($holidays[$userId])) {
-						$holidays[$userId]=$this->getHolidaysForMonth($conn, $userId, $startTime, $finishTime);
+				$ts=strtotime($startTime);
+				$d=strtotime($finishTime);
+				if ($userId && !isset($holidays[$userId])) {
+					$holidays[$userId]=$this->getHolidaysForMonth($conn, $userId, $startTime, $finishTime);
 // error_log('holidays:'.count($holidays[$userId]));
-					}
+				}
+				// error_log('userId:'.$userId.', login:'.(($this->isLoginRequired($username))?'yes':'no'));
+				if ($userId && !$this->isLoginRequired($username, $domainId)) {
+//				if ($userId) {
+					// but we have userId
 					
 					while ($ts <= $d) {
 error_log('ts:'.$ts.'='.date('Y-m-d', $ts).', d:'.$d.'='.date('Y-m-d', $d));
 						$tmpTimings=$this->getTimingsForDay($userId, $ts);
 						if (!isset($ret[$username][date('Y-m-d', $ts)][0])) {
-// error_log('not exists '.$username.' '.date('Y-m-d', $ts));
+error_log('not exists '.$username.' '.date('Y-m-d', $ts));
 							if (($tmpTimings && count($tmpTimings)) || (isset($holidays[$userId][date('Y-m-d', $ts)]))) {
 								$agreedStartTime=null;
 								$agreedFinishTime=null;
 								$origStartTime=null;
 								$origFinishTime=null;
 								$actualHolidays=null;
+								$overtime=0;
 								$agreedOvertime=0;
 								if ($tmpTimings && count($tmpTimings)) {
 									$location=$this->getLocation($tmpTimings['locationId'], true);
@@ -3765,7 +3909,7 @@ error_log('ts:'.$ts.'='.date('Y-m-d', $ts).', d:'.$d.'='.date('Y-m-d', $d));
 									'WorkTime'=>0,
 									'Late'=>0,
 									'Leave'=>0,
-									'Overtime'=>$agreedOvertime,
+									'Overtime'=>$overtime,
 									'OvertimeAgreed'=>$agreedOvertime,
 									'holidays'=>$actualHolidays
 								);
@@ -3820,10 +3964,196 @@ error_log('ts:'.$ts.'='.date('Y-m-d', $ts).', d:'.$d.'='.date('Y-m-d', $d));
 						}
 						$ts=mktime(0, 0, 0, date('n', $ts), date('j', $ts)+1, date('Y', $ts));
 					}
+
+				} else {
+error_log('login not required');					
+					while ($ts <= $d) {
+// error_log('ts:'.$ts.'='.date('Y-m-d', $ts).', d:'.$d.'='.date('Y-m-d', $d));
+						$agreedStartTime=null;
+						$agreedFinishTime=null;
+						$overtime=0;
+						$agreedOvertime=0;
+						$actualHolidays=null;
+						$origStartTime=null;
+						$origFinishTime=null;
+						$tmpTimings=$this->getTimingsForDay($userId, $ts);
+						if (!isset($ret[$username][date('Y-m-d', $ts)][0]['holidays']) && isset($holidays[$userId][date('Y-m-d', $ts)]) && !isset($ret[$username][date('Y-m-d', $ts)][1]['timestamp'])) {
+error_log('holidays but not signed in');
+							if ($tmpTimings && count($tmpTimings)) {
+								$location=$this->getLocation($tmpTimings['locationId'], true);
+								$tmpTimings['startTime']=$tmpTimings['startTime']->setDate(date('Y', $ts), date('m', $ts), date('d', $ts));
+								$tmpTimings['finishTime']=$tmpTimings['finishTime']->setDate(date('Y', $ts), date('m', $ts), date('d', $ts));
+								$origStartTime=$tmpTimings['startTime'];
+								$origFinishTime=$tmpTimings['finishTime'];
+								$agreedStartTime=$origStartTime;
+								$agreedFinishTime=$origFinishTime;
+							}
+							if (isset($holidays[$userId][date('Y-m-d', $ts)])) {
+								$actualHolidays=$holidays[$userId][date('Y-m-d', $ts)];
+								$this->currentStartAndFinishTime($agreedStartTime, $agreedFinishTime, $agreedOvertime, $actualHolidays, $userId);
+							}
+							$arr0=array(
+									'class'=>'PunchCorrect',
+									'comment'=>'',
+									'agreedStart'=>$agreedStartTime,
+									'agreedFinish'=>$agreedFinishTime,
+									'userId'=>$userId,
+									'WorkTime'=>0,
+									'Late'=>0,
+									'Leave'=>0,
+									'Overtime'=>$overtime,
+									'OvertimeAgreed'=>$agreedOvertime,
+									'holidays'=>$actualHolidays
+							);
+							$arr1=array(
+									'userId'=>$userId,
+									'comment'=>'',
+									'day'=>date('D jS M', $ts),
+									'timestamp'=>((isset($agreedStartTime))?(date('Y-m-d ', mktime(8, 0, 0, date('m', $ts), date('d', $ts), date('Y', $ts))).$agreedStartTime->format('H:i:s')):(null)),
+									'agreed'=>$agreedStartTime,
+									'agreedOrig'=>$origStartTime,
+									'location'=>((isset($location[$tmpTimings['locationId']]))?($location[$tmpTimings['locationId']]):(null)),
+									'startTime'=>null,
+									'finishTime'=>null,
+									'holidays'=>$actualHolidays
+							);
+							$arr2=array(
+									'userId'=>$userId,
+									'comment'=>'',
+									'day'=>date('D jS M', $ts),
+									'timestamp'=>((isset($agreedFinishTime))?(date('Y-m-d ', mktime(16, 0, 0, date('m', $ts), date('d', $ts), date('Y', $ts))).$agreedFinishTime->format('H:i:s')):(null)),
+									'agreed'=>$agreedFinishTime,
+									'agreedOrig'=>$origFinishTime,
+									'location'=>((isset($location[$tmpTimings['locationId']]))?($location[$tmpTimings['locationId']]):(null)),
+									'startTime'=>null,
+									'finishTime'=>null,
+									'holidays'=>$actualHolidays
+							);
+							
+							$ret[$username][date('Y-m-d', $ts)][1]=$arr1;
+							$ret[$username][date('Y-m-d', $ts)][2]=$arr2;
+							$ret[$username][date('Y-m-d', $ts)][0]=$arr0;
+// error_log('2');							
+							$this->getCorrectedTimes($ret[$username][date('Y-m-d', $ts)], $domainId);
+/*
+						} else {
+error_log('no holidays...');
+							if ($tmpTimings && count($tmpTimings)) {
+								$arr=array(
+										'userId'=>$userId,
+										'comment'=>'',
+										'day'=>'',
+										'timestamp'=>null,
+										'startTime'=>null,
+										'finishTime'=>null
+								);
+								
+								$ret[$username][date('Y-m-d', $ts)][1]=$arr;
+								$ret[$username][date('Y-m-d', $ts)][2]=$arr;
+								$ret[$username][date('Y-m-d', $ts)][0]['class']='PunchMissing';
+								$ret[$username][date('Y-m-d', $ts)][0]['comment']='';
+								$ret[$username][date('Y-m-d', $ts)][0]['userId']=$userId;
+								
+								
+							} else {
+								$arr=array(
+									'userId'=>$userId,
+									'comment'=>'',
+									'day'=>'',
+									'timestamp'=>null,
+									'startTime'=>null,
+									'finishTime'=>null
+								);
+										
+								$ret[$username][date('Y-m-d', $ts)][1]=$arr;
+								$ret[$username][date('Y-m-d', $ts)][2]=$arr;
+								$ret[$username][date('Y-m-d', $ts)][0]['class']='PunchDayoff';
+								$ret[$username][date('Y-m-d', $ts)][0]['comment']='Dayoff';
+								$ret[$username][date('Y-m-d', $ts)][0]['userId']=$userId;
+							}
+							
+							$this->getCorrectedTimes($ret[$username][date('Y-m-d', $ts)], $domainId);
+*/
+						}
+						$ts=mktime(0, 0, 0, date('n', $ts), date('j', $ts)+1, date('Y', $ts));
+					}
+					
 				}
 			}
 		}
 	
+		return $ret;
+	}
+	
+	
+	public function getRequestsToAnswer($userId, $domainId, $full=true) {
+		$ret=null;
+		$groupId=null;
+		$locationId=null;
+		if ($userId) {
+			$em=$this->doctrine->getManager();
+			
+			$user=$this->doctrine
+				->getRepository('TimesheetHrBundle:User')->findOneBy(array('id'=>$userId));
+			
+			
+			if ($user) {
+				if ($user->getGroupAdmin()) {
+					$groupId=$user->getGroupId();
+				}
+				if ($user->getLocationAdmin()) {
+					$locationId=$user->getLocationId();
+				}
+
+				$qb=$em
+					->createQueryBuilder()
+					->select('r.id')
+					->addSelect('r.typeId')
+					->addSelect('r.start')
+					->addSelect('r.finish')
+					->addSelect('r.comment')
+					->addSelect('r.createdBy')
+					->addSelect('r.createdOn')
+					->addSelect('u.title')
+					->addSelect('u.firstName')
+					->addSelect('u.lastName')
+								
+					->from('TimesheetHrBundle:Requests', 'r')
+					->join('TimesheetHrBundle:User', 'u', 'WITH', 'r.userId=u.id')
+					->where('r.accepted=0')
+					->orderBy('r.start', 'ASC');
+
+				if ($domainId) {
+error_log('domainId:'.$domainId);
+					$qb->andWhere('u.domainId=:dId')
+						->setParameter('dId', $domainId);
+				}
+					
+				$expr=array();
+				if ($groupId) {
+error_log('groupId:'.$groupId);
+					$expr[]=$qb->expr()->eq('u.groupId', $groupId);
+				}
+				if ($locationId) {
+error_log('locationId:'.$locationId);
+					$expr[]=$qb->expr()->eq('u.locationId', $locationId);
+				}
+				if ($expr) {
+					$qb->andWhere(join(' OR ', $expr));
+				}
+				$results=$qb->getQuery()->getArrayResult();
+				
+				if (!$full) {
+					return count($results);
+				}
+				if ($results && count($results)) {
+					foreach ($results as $r) {
+						$ret[]=$r;
+					}
+				}
+					
+			}
+		}
 		return $ret;
 	}
 	
@@ -3836,6 +4166,7 @@ error_log('getCorrectedTimes');
 		$lunchtimePaid=$this->getConfig('lunchtime', $domainId);
 		$minTimeForLunch=60*$this->getConfig('minhoursforlunch');
 		$deducted=0;
+		$timeoff=0;
 			
 		$i=1;
 		$d=null;
@@ -3849,11 +4180,42 @@ error_log('getCorrectedTimes');
 			$d=date('Y-m-d');
 		}
 
+		if (isset($data[0]['holidays']) && count($data[0]['holidays'])) {
+// error_log('data0:'.print_r($data[0], true));
+// error_log('data1:'.print_r($data[1], true));
+// error_log('data2:'.print_r($data[2], true));
+			foreach ($data[0]['holidays'] as $h) {
+				switch ($h['typeId']) {
+					case 3 : {
+error_log('sick leave');
+						$data[0]['agreedStart']=((isset($data[1]['agreedOrig']))?($data[1]['agreedOrig']->format('Y-m-d H:i:s')):(''));
+						$data[1]['agreed']=((isset($data[1]['agreedOrig']))?($data[1]['agreedOrig']->format('Y-m-d H:i:s')):(''));
+						$data[0]['agreedFinish']=((isset($data[2]['agreedOrig']))?($data[2]['agreedOrig']->format('Y-m-d H:i:s')):(''));
+						$data[2]['agreed']=((isset($data[2]['agreedOrig']))?($data[2]['agreedOrig']->format('Y-m-d H:i:s')):(''));
+						break;
+					}
+					case 4 : {
+error_log('time off');
+						$d1=strtotime($h['start']->format('Y-m-d H:i:s'));
+						$d2=strtotime($h['finish']->format('Y-m-d H:i:s'));
+						$timeoff+=($d2-$d1)/60;
+						break;
+					}
+				}
+			}
+		}
+		
 		if (isset($data[1]['agreed']) && $data[1]['agreed'] && isset($data[2]['agreed']) && $data[2]['agreed']) {
 			
+			if (!is_object($data[1]['agreed'])) {
+				$data[1]['agreed']=new \DateTime($data[1]['agreed']);
+			}
+			if (!is_object($data[2]['agreed'])) {
+				$data[2]['agreed']=new \DateTime($data[2]['agreed']);
+			}
 			$d1=strtotime($data[1]['agreed']->format('H:i:s'));
 			$d2=strtotime($data[2]['agreed']->format('H:i:s'));
-			
+				
 			if ($data[2]['agreed']->format('His') <= $data[1]['agreed']->format('His')) {
 				// finish next day
 				$data[2]['agreed']->modify('+1 day');
@@ -3870,13 +4232,12 @@ error_log('getCorrectedTimes');
 					$ret['AgreedTimeOrig'] -= $lunchtimeUnpaid;
 				}
 			}
-			$ret['AgreedTime']=(strtotime($data[2]['agreed']->format('Y-m-d H:i:s'))-strtotime($data[1]['agreed']->format('Y-m-d H:i:s')))/60;
+			$ret['AgreedTime']=(strtotime($data[2]['agreed']->format('Y-m-d H:i:s'))-strtotime($data[1]['agreed']->format('Y-m-d H:i:s')))/60-$timeoff;
 			if ($ret['AgreedTime'] >= $minTimeForLunch) {
 				$ret['AgreedTime'] -= $lunchtimeUnpaid;
-				$deducted += $lunchtimeUnpaid;
+				$deducted += $lunchtimeUnpaid+$timeoff;
 			}
 			if (isset($data[1]['timestamp']) && $data[1]['timestamp'] && isset($data[2]['timestamp']) && $data[2]['timestamp']) {
-// error_log('timestamps defined');
 				$date1=date('Y-m-d', strtotime($data[1]['timestamp']));
 				if ($data[1]['agreed']->format('H:i:s') > $data[2]['agreed']->format('H:i:s')) {
 					$date2=date('Y-m-d', strtotime($data[1]['timestamp']));
@@ -3884,13 +4245,13 @@ error_log('getCorrectedTimes');
 					$d3=strtotime($data[1]['timestamp']);
 					$date2=date('Y-m-d', mktime(0, 0, 0, date('n', $d3), date('j', $d3)+1, date('Y', $d3)));
 				}
-// error_log('date:'.$date);
+
 				$d1=max(strtotime($data[1]['timestamp']), strtotime($date1.' '.$data[1]['agreed']->format('H:i:s')));
 				$d2=min(strtotime($data[2]['timestamp']), strtotime($date2.' '.$data[2]['agreed']->format('H:i:s')));
-//				$d1=max(strtotime($data[1]['timestamp']), strtotime($data[1]['agreed']->format('Y-m-d H:i:s')));
-//				$d2=min(strtotime($data[2]['timestamp']), strtotime($data[2]['agreed']->format('Y-m-d H:i:s')));
 				if (date('H:i', $d1).':00' > $data[1]['agreed']->format('H:i:s')) {
 					$late=(strtotime(date('Y-m-d H:i:s', $d1))-strtotime($data[1]['agreed']->format('Y-m-d H:i:s')))/60;
+					// less than 5 minutes is acceptable
+					// if more than 5 minutes, round up to the next 15 minutes
 					if ($late < 5) {
 						$late=0;
 					} elseif ($late % 15 > 5) {
@@ -3904,7 +4265,8 @@ error_log('getCorrectedTimes');
 
 				if (date('H:i', $d2).':00' < $data[2]['agreed']->format('H:i:s')) {
 					$leave=(strtotime($data[2]['agreed']->format('H:i:s'))-strtotime(date('H:i:s', $d2)))/60;
-// error_log('leave early:'.$leave);
+					// less than 5 minutes is acceptable
+					// if more than 5 minutes, round up to the next 15 minutes
 					if ($leave < 5) {
 						$leave=0;
 					} elseif ($leave % 15 > 5) {
@@ -3915,10 +4277,21 @@ error_log('getCorrectedTimes');
 					$ret['Leave']=$leave;
 					$deducted+=$leave;
 				}
-				$ret['WorkTime']=$ret['AgreedTime']-$ret['Late']-$ret['Leave']; // ($d2-$d1)/60;
-// error_log('AgreedTime:'.$ret['AgreedTime'].', late:'.$ret['Late'].', Leave:'.$ret['Leave'].', WorkTime:'.$ret['WorkTime']);
+				$ret['WorkTime']=$ret['AgreedTime']-$ret['Late']-$ret['Leave'];
 				$ret['SignedIn']=date('H:i', $d1);
 				$ret['SignedOut']=date('H:i', $d2);
+				// Overtime calculation
+				$overtime=0;
+				if (date('H:i', $d1).':00' < $data[1]['agreed']->format('H:i:s')) {
+					$overtime+=(strtotime($data[1]['agreed']->format('H:i:s'))-strtotime(date('H:i:s', $d1)))/60;
+				}
+				if (date('H:i', $d2).':00' > $data[2]['agreed']->format('H:i:s')) {
+					$overtime+=(strtotime(date('H:i:s', $d2))-strtotime($data[2]['agreed']->format('H:i:s')))/60;
+				}
+				$ret['Overtime']=$overtime;
+				if (isset($ret['AgreedTime']) && isset($ret['AgreedTimeOrig']) && $ret['AgreedTime'] > $ret['AgreedTimeOrig']) {
+					$ret['OvertimeAgreed']=$ret['AgreedTime']-$ret['AgreedTimeOrig'];
+				}
 			}
 			
 			if (isset($data[5]['timestamp']) && $data[5]['timestamp'] && isset($data[6]['timestamp']) && $data[6]['timestamp']) {
@@ -3927,9 +4300,9 @@ error_log('getCorrectedTimes');
 				
 				$ret['LunchTime']=($d2-$d1)/60;
 			} else {
-				$ret['LunchTime']=$this->getConfig('lunchtimeUnpaid', $domainId);
+				$ret['LunchTime']=$lunchtimeUnpaid;
 			}
-error_log('lunch time:'.$ret['LunchTime']);
+			
 			if (isset($data[3]['timestamp']) && $data[3]['timestamp'] && isset($data[4]['timestamp']) && $data[4]['timestamp']) {
 				$d1=strtotime($data[3]['timestamp']);
 				$d2=strtotime($data[4]['timestamp']);
@@ -3945,20 +4318,18 @@ error_log('lunch time:'.$ret['LunchTime']);
 			$ret['Deducted']=$deducted;
 			$ret['TotalDeductedTime']=$deducted+((isset($ret['LunchTime']) && $ret['LunchTime']>=($lunchtimeUnpaid+$lunchtimePaid))?($ret['LunchTime']-($lunchtimeUnpaid+$lunchtimePaid)):(0))+((isset($ret['BreakTime']))?($ret['BreakTime']):(0))+((isset($ret['OtherTime']))?($ret['OtherTime']):(0));
 		}
-		
+
 		if (count($ret)) {
 			foreach ($ret as $k=>$v) {
 				$data[0][$k]=$v;
 			}
 		}
-
-//		return $ret;
 	}
 	
 	
 	public function getAgreedTimes($userId, $timestamp, $conn) {
 error_log('getAgreedTimes');
-error_log('userId:'.$userId.', date:'.date('Y-m-d', $timestamp));
+// error_log('userId:'.$userId.', date:'.date('Y-m-d', $timestamp));
 		$em=$this->doctrine->getManager();
 		$qb=$em
 			->createQueryBuilder()
@@ -3980,45 +4351,24 @@ error_log('userId:'.$userId.', date:'.date('Y-m-d', $timestamp));
 			->setMaxResults(1);
 
 		$results=$qb->getQuery()->getArrayResult();
-/*		
-		$query='SELECT'.
-			' `s`.`startTime`,'.
-			' `s`.`finishTime`,'.
-			' `l`.`Name` as `locationName`,'.
-			' `a`.`locationId`'.
-			' FROM `Users` `u`'.
-			' JOIN `Contract` `c` ON `u`.`id`=`c`.`userId` AND `c`.`CSD`<=:date AND (`c`.`CED`>=:date OR `c`.`CED` IS NULL)'.
-			' JOIN `Allocation` `a` ON `u`.`id`=`a`.`userId` AND `a`.`date`=:date'.
-			' JOIN `Shifts` `s` ON `a`.`shiftId`=`s`.`id` AND `a`.`locationId`=`s`.`locationId`'.
-			' JOIN `Location` `l` ON `a`.`locationId`=`l`.`id`'.
-			' WHERE `u`.`id`=:uId';
-
-// error_log('userId:'.$userId.', ts:'.$timestamp.', date:'.date('Y-m-d', $timestamp).', query:'.$query);
-
-		$stmt=$conn->prepare($query);
-		$stmt->bindValue('uId', $userId);
-		$stmt->bindValue('date', date('Y-m-d', $timestamp));
-		$stmt->execute();
-		
-		$results=$stmt->fetchAll();
-*/
 		if (isset($results) && count($results)) {
-error_log('results:'.print_r($results[0], true));
+// error_log('results:'.print_r($results[0], true));
 			return $results[0];
 		} else {
 			return array();
 		}
-/*
-		unset($query);
-		unset($conn);
-		unset($stmt);
-
-		unset($results);
-		
-		return $result;
-*/
 	}
 
+	
+	public function isAllocatedShift($userId, $date) {
+// error_log('isAllocatedShift');
+// error_log('userId:'.$userId.', date:'.$date);
+		$shifts=$this->doctrine
+			->getRepository('TimesheetHrBundle:Allocation')
+			->findBy(array('published'=>true, 'userId'=>$userId, 'date'=>new \DateTime($date)));
+		
+		return ($shifts && count($shifts));
+	}
 	
 	public function getRequestTypes($id=null) {
 		/*
@@ -4084,6 +4434,17 @@ error_log('getHolidaysForMonth');
 						$result['fulldayPaid']=true;
 						break;
 					}
+					case 3 : {
+error_log('sick leave');
+// error_log('result:'.print_r($result, true));
+						// Sick leave
+						$result['fulldayPaid']=false;
+						$result['start']=null;
+						$result['finish']=null;
+						$result['agreedStart']=null;
+						$result['agreedFinish']=null;
+						break;
+					}
 					case 7 : {
 						// Late
 						$result['agreedStart']=$result['start']->format('Y-m-d H:i:s');
@@ -4105,9 +4466,7 @@ error_log('getHolidaysForMonth');
 						break;
 					}
 				}
-				if (date('Y-m-d', $d1) != date('Y-m-d', $d2)) {
-					
-					
+				if (date('Y-m-d', $d1) != date('Y-m-d', $d2)) {					
 					while ($d1 < $d2) {
 						$ret[date('Y-m-d', $d1)][]=$result;
 						$d1=mktime(0, 0, 0, date('m', $d1), date('d', $d1)+1, date('Y', $d1));
@@ -4419,8 +4778,7 @@ error_log('username:'.$username);
 
 	
 	public function getTimingsForDay($userId, $timestamp) {
-error_log('getTimingsForDay');
-// error_log('userId:'.$userId.', ts:'.$timestamp.', date:'.date('Y-m-d', $timestamp));
+error_log('getTimingsForDay, userId:'.$userId.', ts:'.$timestamp.', date:'.date('Y-m-d', $timestamp));
 		if ($userId && $timestamp) {
 
 			$em=$this->doctrine->getManager();
@@ -4776,6 +5134,9 @@ error_log('getMessageHeaders');
 	
 	
 	public function getCalculatedAHE($userId, $lastContract, $domainId, $timestamp=null) {
+error_log('getCalculatedAHE');
+// error_log('domain:'.$domainId);
+// error_log('lastContract:'.print_r($lastContract, true));
 		$ahew=$lastContract['ahew'];
 		if (!$ahew) {
 			$ahew=$this->getDomainAHEW($domainId);
@@ -4783,14 +5144,16 @@ error_log('getMessageHeaders');
 		if (!$ahew) {
 			$ahew=$this->getConfig('ahew', $domainId);
 		}
+
 		// usually 12.07% of working hours/days/weeks/months
 		$p=(52/(52-$ahew)-1)*100;
 		if (!$lastContract['hct']) {
 			$lastContract['hct']=$this->getDefaultHolidayCalculation($domainId);
 		}
 		if (!$lastContract['hct']) {
-			$lastContract['hct']=$this->getConfig('hct', $domainId);
+			$lastContract['hct']=$this->getConfig('hct', null);
 		}
+
 		switch ($lastContract['hct']) {
 			case 0 : {
 				// Company default
@@ -4839,15 +5202,58 @@ error_log('getMessageHeaders');
 	}
 
 	
-	public function getAverageWeeklyWorkingHours($userId, $timestamp, $withLunchtime=false) {
+	public function getAverageWeeklyWorkingHours($userId, $timestamp, $withLunchtime=false, $recalculate=false) {
 		// Shift workers
-error_log('getAverageWeeklyWorkingHours');
+error_log('getAverageWeeklyWorkingHours, userId:'.$userId.', ts:'.$timestamp);
 		$monday=mktime(0, 0, 0, date('n', $timestamp), date('j', $timestamp)-date('N', $timestamp)+1, date('Y', $timestamp));
+		
+		$tmpYear=date('Y', $monday);
+		$tmpWeek=date('W', $monday);
 		$weeks=12;
 		$maxweeks=12;
 		$totalWeeks=0;
 		$totalDays=0;
 		$totalWhr=0;
+
+		if (!$recalculate) {
+			$em=$this->doctrine->getManager();
+			$qb=$em
+				->createQueryBuilder()
+				->select('awwh.average')
+				->addSelect('awwh.days')
+				->from('TimesheetHrBundle:AWWH', 'awwh')
+				->where('awwh.average>0')
+				->andWhere('awwh.userId=:userId')
+				->andWhere('awwh.year=:year')
+				->andWhere('awwh.week<=:week')
+				->orderBy('awwh.week', 'DESC')
+				->setParameter('userId', $userId)
+				->setParameter('year', $tmpYear)
+				->setParameter('week', $tmpWeek)
+				->setMaxResults($maxweeks);
+		
+			$query=$qb->getQuery();
+			$results=$query->getArrayResult();
+			if ($results && count($results)>0) {
+				foreach ($results as $r) {
+					$totalDays+=$r['days'];
+					$totalWhr+=$r['average'];
+					$totalWeeks++;
+				}
+				$ret=array(
+						'hours'=>$totalWhr,
+						'weeklyhours'=>$totalWhr/$totalWeeks,
+						'dailyhours'=>$totalWhr/$totalDays,
+						'days'=>$totalDays,
+						'weeks'=>$totalWeeks
+				);
+error_log('cached AWWH:'.print_r($ret, true));
+	
+				return $ret;
+			}
+		}
+// error_log('no record');
+
 		$domainId=$this->getDomainIdForUser($userId);
 		if ($withLunchtime) {
 			// if we need the full working time without deducting lunch time
@@ -4862,15 +5268,22 @@ error_log('getAverageWeeklyWorkingHours');
 			$ts=mktime(0, 0, 0, date('n', $monday), date('j', $monday)-7, date('Y', $monday));
 			$sunday=mktime(0, 0, 0, date('n', $ts), date('j', $ts)+6, date('Y', $ts));
 			$whr=0;
+			$days=0;
+			$currentYear=date('Y', $ts);
+			$currentWeek=date('W', $ts);
 			while ($ts <= $sunday) {
 				$timings=$this->getTimingsForDay($userId, $ts);
 				$dhr=$this->calculateHours($timings, $domainId, $lunchtime, $minhoursforlunch, $withLunchtime);
 				if ($dhr>0) {
 					$whr+=$dhr;
 					$totalDays++;
+					$days++;
 				}
 				$ts=mktime(0, 0, 0, date('n', $ts), date('j', $ts)+1, date('Y', $ts));
 			}
+			
+			$this->updateAWWH($userId, $currentYear, $currentWeek, $whr, $days);
+			
 			if ($whr > 0) {
 				$totalWeeks++;
 				$totalWhr+=$whr;
@@ -4896,9 +5309,35 @@ error_log('getAverageWeeklyWorkingHours');
 				'weeks'=>0
 			);
 		}
+error_log('calculated:'.print_r($ret, true));
 		return $ret;
 	}
 	
+	
+	public function updateAWWH($userId, $year, $week, $average, $days) {
+		$em=$this->doctrine->getManager();
+		$awwh=$this->doctrine
+			->getRepository('TimesheetHrBundle:AWWH')
+			->findOneBy(array('userId'=>$userId, 'year'=>$year, 'week'=>$week));
+		
+		if ($awwh) {
+			$new=false;
+		} else {
+			$new=true;
+			$awwh=new AWWH();
+			$awwh->setUserId($userId);
+			$awwh->setYear($year);
+			$awwh->setWeek($week);
+		}
+		
+		$awwh->setAverage($average);
+		$awwh->setDays($days);
+		
+		if ($new) {
+			$em->persist($awwh);
+		}
+		$em->flush($awwh);
+	}
 	
 	public function getAverageWorkingHours($userId, $timestamp) {
 		// Irregular workers
@@ -4908,8 +5347,8 @@ error_log('getAverageWorkingHours');
 		$csd=null;
 		if ($contracts && count($contracts)) {
 			foreach ($contracts as $contract) {
-				if ($csd==null || $contract['CSD']<date('Y-m-d', $csd)) {
-					$csd=strtotime($contract['CSD']);
+				if ($csd==null || $contract['csd']<date('Y-m-d', $csd)) {
+					$csd=strtotime($contract['csd']->format('Y-m-d H:i:s'));
 				}
 			}
 		}
@@ -5126,45 +5565,56 @@ error_log('getAverageWorkingHours');
 	}
 
 	
-	public function getProblems($domainId) {
+	public function getProblems($domainId, $userId=null, $returnText=true) {
 		
 		$problems=array();
 		$noContract=array();
 		$notSignedIn=array();
 		$noVisaStatus=array();
+		$visaExpires=array();
+		$visaExpired=array();
 		
 		$em=$this->doctrine->getManager();
 				
 		$qb=$em
 			->createQueryBuilder()
 			->select('u.title')
-			->addSelect('CONCAT_WS(\' \', u.firstName, u.lastName) as name')
+			->addSelect('u.firstName')
+			->addSelect('u.lastName')
 			->from('TimesheetHrBundle:User', 'u')
 			->leftJoin('TimesheetHrBundle:Contract', 'c', 'WITH', 'c.userId=u.id AND c.csd<=:date AND (c.ced is null OR c.ced>:date)')
 			->where('u.isActive=1')
 			->andWhere('u.domainId=:dId')
 			->andWhere('c.id is null')
 			->groupBy('u.id')
-			->orderBy('name', 'ASC')
+			->orderBy('u.firstName', 'ASC')
+			->addOrderBy('u.lastName', 'ASC')
 			->setParameter('dId', $domainId)
 			->setParameter('date', date('Y-m-d'));
 		
+		if ($userId) {
+			$qb->andWhere('u.id=:uId')
+				->setParameter('uId', $userId);
+		}
 		$query=$qb->getQuery();
 		$results=$query->getArrayResult();
 		
 		if ($results && count($results)) {
 			foreach ($results as $result) {
-				$noContract[]=trim($result['title'].' '.$result['name']);
+				$noContract[]=trim($result['title'].' '.$result['firstName'].' '.$result['lastName']);
 			}
 		}
 
 		$qb=$em
 			->createQueryBuilder()
 			->select('u.title')
-			->addSelect('CONCAT_WS(\' \', u.firstName, u.lastName) as name')
+			->addSelect('u.firstName')
+			->addSelect('u.lastName')
 			->addSelect('CONCAT_WS(\'-\', SUBSTRING(s.startTime, 1, 5), SUBSTRING(s.finishTime, 1, 5)) as time')
+			->addSelect('l.name as location')
 			->from('TimesheetHrBundle:User', 'u')
 			->join('TimesheetHrBundle:Allocation', 'a', 'WITH', 'a.userId=u.id AND a.date=:date')
+			->join('TimesheetHrBundle:Location', 'l', 'WITH', 'a.locationId=l.id')
 			->join('TimesheetHrBundle:Shifts', 's', 'WITH', 'a.shiftId=s.id')
 			->leftJoin('TimesheetHrBundle:Info', 'i', 'WITH', 'i.userId=u.id AND DATE(i.timestamp)=:date')
 			->where('u.isActive=1')
@@ -5173,46 +5623,164 @@ error_log('getAverageWorkingHours');
 			->andWhere('u.domainId=:dId')
 			->andWhere('i.id is null')
 			->groupBy('u.id')
+			->orderBy('u.firstName', 'ASC')
+			->addOrderBy('u.lastName', 'ASC')
 			->setParameter('dId', $domainId)
 			->setParameter('date', date('Y-m-d'));
-		
+
+		if ($userId) {
+			$qb->andWhere('u.id=:uId')
+				->setParameter('uId', $userId);
+		}
+				
 		$query=$qb->getQuery();
 		$results=$query->getArrayResult();
 		
 		if ($results && count($results)) {
 			foreach ($results as $result) {
-				$notSignedIn[]=trim($result['title'].' '.$result['name']).' ('.$result['time'].')';
+				$notSignedIn[]=trim($result['title'].' '.$result['firstName'].' '.$result['lastName']).' ('.$result['location'].' '.$result['time'].')';
 			}
 		}
 
 		$qb=$em
 			->createQueryBuilder()
 			->select('u.title')
-			->addSelect('CONCAT_WS(\' \', u.firstName, u.lastName) as name')
+			->addSelect('u.firstName')
+			->addSelect('u.lastName')
 			->from('TimesheetHrBundle:User', 'u')
 			->leftJoin('TimesheetHrBundle:UserVisas', 'uv', 'WITH', 'uv.userId=u.id')
 			->where('u.isActive=1')
 			->andWhere('uv.id is null')
 			->groupBy('u.id')
-			->setParameter('dId', $domainId);
+			->orderBy('u.firstName', 'ASC')
+			->addOrderBy('u.lastName', 'ASC');
+		
+		if ($domainId) {
+			$qb->andWhere('u.domainId=:dId')
+				->setParameter('dId', $domainId);
+		}			
+		if ($userId) {
+			$qb->andWhere('u.id=:uId')
+				->setParameter('uId', $userId);
+		}
 		
 		$query=$qb->getQuery();
 		$results=$query->getArrayResult();
 		
 		if ($results && count($results)) {
 			foreach ($results as $result) {
-				$noVisaStatus[]=trim($result['title'].' '.$result['name']).' ('.$result['time'].')';
+				$noVisaStatus[]=trim($result['title'].' '.$result['firstName'].' '.$result['lastName']);
+			}
+		}
+
+		$qb_lastvisa=$em
+			->createQueryBuilder()
+			->select('uv1.id')
+			->from('TimesheetHrBundle:UserVisas', 'uv1')
+			->where('uv1.userId=uv.userId')
+			->groupBy('uv1.userId')
+			->orderBy('uv1.startDate', 'DESC')
+			->setMaxResults(1);
+
+		$qb=$em
+			->createQueryBuilder()
+			->select('u.title')
+			->addSelect('u.firstName')
+			->addSelect('u.lastName')
+			->addSelect('uv.endDate')
+			->addSelect('('.$qb_lastvisa->getDql().') as uv2')
+			->addSelect('uv.notExpire')
+			->addSelect('uv.endDate')
+			->from('TimesheetHrBundle:UserVisas', 'uv')
+			->leftJoin('TimesheetHrBundle:User', 'u', 'WITH', 'uv.userId=u.id')
+			->where('u.isActive=1')
+			->groupBy('u.id');
+		if ($domainId) {
+			$qb->andWhere('u.domainId=:dId')
+				->setParameter('dId', $domainId);
+		}
+		if ($userId) {
+			$qb->andWhere('u.id=:uId')
+				->setParameter('uId', $userId);
+		}
+		
+		$query=$qb->getQuery();
+		$results=$query->getArrayResult();
+			
+		if ($results && count($results)) {
+			foreach ($results as $result) {
+				if ($result['notExpire'] == 0 && $result['endDate']->format('Y-m-d') <= date('Y-m-d')) {
+					$visaExpired[]=trim($result['title'].' '.$result['firstName'].' '.$result['lastName']).' ('.$result['endDate']->format('d/m/Y').')';
+				}
+			}
+		}
+				
+		$qb=$em
+			->createQueryBuilder()
+			->select('u.title')
+			->addSelect('u.firstName')
+			->addSelect('u.lastName')
+			->addSelect('uv.endDate')
+			->from('TimesheetHrBundle:User', 'u')
+			->leftJoin('TimesheetHrBundle:UserVisas', 'uv', 'WITH', 'uv.userId=u.id')
+			->where('u.isActive=1')
+			->andWhere('uv.id is not null')
+			->andWhere('uv.notExpire=0')
+			->andWhere('uv.endDate BETWEEN CURRENT_DATE() AND DATE_ADD(CURRENT_DATE(), 1, \'MONTH\')')
+			->groupBy('u.id');
+		
+		if ($domainId) {
+			$qb->andWhere('u.domainId=:dId')
+				->setParameter('dId', $domainId);
+		}			
+		if ($userId) {
+			$qb->andWhere('u.id=:uId')
+				->setParameter('uId', $userId);
+		}
+		
+		$query=$qb->getQuery();
+		$results=$query->getArrayResult();
+		
+		if ($results && count($results)) {
+			foreach ($results as $result) {
+				$visaExpires[]=trim($result['title'].' '.$result['firstName'].' '.$result['lastName']).' ('.$result['endDate']->format('d/m/Y').')';
 			}
 		}
 		
 		if (count($noContract)) {
-			$problems[]='No contract: '.implode(', ', $noContract);
+			if ($returnText) {
+				$problems['noContract']='No contract ('.count($noContract).'): '.implode(', ', $noContract);
+			} else {
+				$problems['noContract']=$noContract;
+			}
 		}
 		if (count($noVisaStatus)) {
-			$problems[]='No visa status entered: '.implode(', ', $noVisaStatus);
+			if ($returnText) {
+				$problems['noVisa']='No visa status entered ('.count($noVisaStatus).'): '.implode(', ', $noVisaStatus);
+			} else {
+				$problems['noVisa']=$noVisaStatus;
+			}
+		}
+		if (count($visaExpired)) {
+			if ($returnText) {
+				$problems['visaExpired']='Visa expired ('.count($visaExpired).'): '.implode(', ', $visaExpired);
+			} else {
+				$problems['visaExpired']=$visaExpired;
+			}
+		}
+		if (count($visaExpires)) {
+			if ($returnText) {
+				$problems['visaExpires']='Visa expire in 1 month ('.count($visaExpires).'): '.implode(', ', $visaExpires);
+			} else {
+				$problems['visaExpires']=$visaExpires;
+			}
 		}
 		if (count($notSignedIn)) {
-			$problems[]='Not signed in Today: '.implode(', ', $notSignedIn);
+			if ($returnText) {
+				$problems['notSigned']='Not signed in Today ('.count($notSignedIn).'): '.implode(', ', $notSignedIn);
+			} else {
+				$problems['notSigned']=$notSignedIn;
+			}
 		}
 		
 		return $problems;
@@ -5303,20 +5871,16 @@ error_log('isDailyScheduleProblem');
 	
 	public function currentStartAndFinishTime(&$startTime, &$finishTime, &$agreedOvertime, $holidays, $userId) {
 error_log('currentStartAndFinishTime');
-// error_log('startTime:'.print_r($startTime, true).', finishTime:'.print_r($finishTime, true));		
 		if ($holidays!=null && is_array($holidays) && count($holidays)) {
-// error_log('holidays list provided');
-error_log('holidays:'.print_r($holidays, true));
 			foreach ($holidays as $h) {
 				if (isset($h['typeId'])) {
 					switch ($h['typeId']) {
 						case 1 : {
-// error_log('holiday');
+error_log('holiday');
 							if (is_null($startTime)) {
 								$startTime=$h['start'];
 								$tmp=clone $h['start'];
-								$awwh=$this->getAverageWeeklyWorkingHours($userId, $tmp->getTimestamp(), true);
-// error_log('awwh:'.print_r($awwh, true));
+								$awwh=$this->getAverageWeeklyWorkingHours($userId, $tmp->getTimestamp(), true, true);
 								$tmp->modify('+'.ceil($awwh['dailyhours']).' hour');
 								$finishTime=$tmp;
 							} else {
@@ -5335,35 +5899,24 @@ error_log('unpaid leave');
 error_log('sick leave');
 							$startTime=$h['start'];
 							$finishTime=$h['start'];
-/*
-							if (is_null($startTime)) {
-								$tmp=clone $h['start'];
-								$awwh=$this->getAverageWeeklyWorkingHours($userId, $tmp->getTimestamp(), true);
-								$tmp->modify('+'.ceil($awwh['dailyhours']).' hour');
-								$finishTime=$tmp;
-//							} else {
-//								$startTime=$h['start'];
-//								$finishTime=$h['finish'];
-//							}
-*/
 							break;
 						}
 						case 7 : {
-// error_log('late');
+error_log('late');
 							if ($h['start']->format('HHii') > 0) {
 								$startTime=$h['start'];
 							}
 							break;
 						}
 						case 8 : {
-// error_log('leave early');
+error_log('leave early');
 							if ($h['finish']->format('HHii') > 0) {
 								$finishTime=$h['finish'];
 							}
 							break;
 						}
 						case 9 : {
-// error_log('overtime');
+error_log('overtime');
 							if ($h['start']->format('HHii') > 0) {
 								$tmp=$h['start']->diff($startTime);
 								$agreedOvertime+=60*$tmp->h+$tmp->i;
@@ -5380,7 +5933,7 @@ error_log('sick leave');
 				}
 			}
 		}
-// error_log('overtime (min):'.$agreedOvertime, true);
+
 		return true;
 	}
 	

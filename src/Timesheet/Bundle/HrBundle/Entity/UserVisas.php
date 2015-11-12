@@ -45,7 +45,7 @@ class UserVisas
     /**
      * @var \DateTime
      *
-     * @ORM\Column(name="endDate", type="date")
+     * @ORM\Column(name="endDate", type="date", nullable=true)
      */
     private $endDate;
 

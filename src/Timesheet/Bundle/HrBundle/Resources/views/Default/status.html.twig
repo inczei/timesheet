@@ -5,5 +5,14 @@
 <br>
 <span class="message">{% if message is defined and message|length %}<b>{{ message|raw }}</b>{% else %} {% endif %}
 </span>
+{% if problems is defined and problems|length %}
+<div class="statusList">
+	<ul>
+	{% for k,p in problems %}
+		<li><span id="problem_{{ k }}_full" style="display: {% if p is defined and p|length<150 %}inline{% else %}none{% endif %}">{{ p }}</span>{% if p is defined and p|length>149 %}<span id="problem_{{ k }}_short">{{ p|slice(0,150) }}<span id="{{ k }}" class="problemShow" title="Click here to show all">...</span></span>{% endif %}</li>
+	{% endfor %}
+	</ul>
+</div>
+{% endif %}
 {{ render(controller('TimesheetHrBundle:Default:usersummary')) }}
 {% endblock %}

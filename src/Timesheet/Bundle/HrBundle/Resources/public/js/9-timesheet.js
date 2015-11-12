@@ -370,18 +370,21 @@ $(document).ready(function(){
 		});
 	});
 
-	$('body').delegate('input[name=userSearch],select[name=groupSearch],select[name=qualificationSearch]', 'keyup change', function () {
+	$('body').delegate('input[name=userSearch],select[name=domainSearch],select[name=groupSearch],select[name=qualificationSearch]', 'keyup change', function () {
 		var url=$(this).attr('data-url');
 		var name=$('input[name=userSearch]').val();
 		var group=$('select[name=groupSearch]').val();
+		var domain=$('select[name=domainSearch]').val();
+// alert('domainSearch:'+domain);
 		var qualification=$('select[name=qualificationSearch]').val();
 		var base=$(this).attr('base-url');
 		var listType=$(this).attr('data-type');
 		var delay=0;
-		if ($(this).attr('name') == 'userSearch') {
-			if ($('#lastSearch').val() != name) {
+		if (($(this).attr('name') == 'userSearch') || ($(this).attr('name') == 'domainSearch')) {
+			if ($('#lastSearch').val() != name || $('#lastDomain').val() != domain) {
 				var delay=1500;
 				$('#lastSearch').val(name);
+				$('#lastDomain').val(domain);
 			}
 		} else {
 			var delay=100;
@@ -396,6 +399,7 @@ $(document).ready(function(){
 					data: {
 						name: name,
 						group: group,
+						domain: domain,
 						qualification: qualification,
 						base: base,
 						listType: listType
@@ -424,6 +428,12 @@ $(document).ready(function(){
 	});
 
 
+	$('body').delegate('span[class^="problemShow"]', 'click', function () {
+		var id=$(this).attr('id');
+		$('#problem_'+id+'_full').show();
+		$('#problem_'+id+'_short').hide();
+	});
+
 
 	$('body').delegate('[class=closeButton]', 'click', function () {
 		$(this).parent().fadeOut(250);
@@ -443,6 +453,7 @@ $(document).ready(function(){
 		var userComment=$('#comment_'+id).val();
 		var ajaxUrl=$('#holidayapproval').attr('data-url');
 		var returnUrl=$('#holidayapproval').attr('data-base');
+		var refresh=$('#holidayapproval').attr('data-refresh');
 		
 		if ($(this).attr('data-question').length) {
 			$('<div></div>').appendTo('body')
@@ -456,11 +467,13 @@ $(document).ready(function(){
 		    		resizable: false,
 		    		buttons: {
 		    			'Approve': function () {
-		    				ajaxApproveDeny(ajaxUrl, 'approve', id, userComment, returnUrl);
+//		    				alert('approved, refresh:'+refresh);
+		    				ajaxApproveDeny(ajaxUrl, 'approve', id, userComment, returnUrl, refresh);
 		    				$(this).dialog("close");
 		    			},
 		    			'Deny': function () {
-		    				ajaxApproveDeny(ajaxUrl, 'deny', id, userComment, returnUrl);
+//		    				alert('denied');
+		    				ajaxApproveDeny(ajaxUrl, 'deny', id, userComment, returnUrl, 'holidayDiv');
 		    				$(this).dialog("close");
 		    			},
 		    			'Cancel': function () {
@@ -472,7 +485,8 @@ $(document).ready(function(){
 		    		}
 		    	});
 		} else {
-			ajaxApproveDeny(ajaxUrl, userAction, id, userComment, returnUrl);
+//			alert('no question, refresh:'+refresh);
+			ajaxApproveDeny(ajaxUrl, userAction, id, userComment, returnUrl, refresh);
 		}
 	});
 
@@ -519,7 +533,8 @@ $(document).ready(function(){
 			dataType: 'json',
 			data: {
 				base: $(this).attr('base-url'),
-				action: 'confirm',
+				action: $(this).attr('data-action'),
+				refresh: $(this).attr('data-refresh'),
 				date: $(this).attr('data-date')
 			},
 		})
@@ -543,17 +558,6 @@ $(document).ready(function(){
 						$(this).remove();
 					}
 				});
-/*
-				$('#popupDiv')
-					.html('<input type="button" class="closeButton" value="X">'+'<div id="container" style="height: '+(Math.round($(window).height()*0.7))+'px; width: '+(Math.round($(window).width()*0.7))+'px"></div>')
-					.css('width', Math.round($(window).width()*0.8))
-					.css('height', Math.round($(window).height()*0.8))
-					.css('z-index', 1000)
-					.center()
-					.fadeIn(250);
-
-				$('#container').html(data.content);
-*/
 			} else {
 				$('#popupDiv').fadeOut(250);
 				$('#container').html('');
@@ -705,6 +709,7 @@ $(document).ready(function(){
 			dataType: 'json',
 			data: {
 				base: $(this).attr('base-url'),
+				refresh: $(this).attr('data-refresh'),
 				userid: $(this).attr('data-userid')
 			},
 		})
@@ -737,15 +742,15 @@ $(document).ready(function(){
 	});
 	
 	$('body').delegate('input[id=usersearch]', 'change', function () {
-		if ($(this).val().length > 1) {
+//		if ($(this).val().length > 0) {
 			ajaxRefresh('timesheetDiv', '', $(this).val());
-		}
+//		}
 	});
 
 	$('body').delegate('input[id=usersearchButton]', 'click', function () {
-		if ($('#usersearch').val().length > 1) {
+//		if ($('#usersearch').val().length > 0) {
 			ajaxRefresh('timesheetDiv', '', $('#usersearch').val());
-		}
+//		}
 	});
 	
 	$('body').delegate('span[class=switchMonth]', 'click', function () {
@@ -1029,7 +1034,8 @@ function postForm( $form, callback ){
 	});
 }
 
-function ajaxApproveDeny(url, userAction, id, userComment, returnUrl) {
+function ajaxApproveDeny(url, userAction, id, userComment, returnUrl, refresh) {
+//	alert('ajaxApproveDeny, url:'+url+', refresh:'+refresh);
 	$.ajax({
 		url: url,
 		method: 'POST',
@@ -1037,24 +1043,37 @@ function ajaxApproveDeny(url, userAction, id, userComment, returnUrl) {
 		data: {
 			action: userAction,
 			id: id,
-			comment: userComment
+			comment: userComment,
+			refresh: refresh
 		},
 	})
 	.error(function(jqXHR, status, errorThrown) {
 		alert('ajax error');
 	})
 	.done(function(data) {
+//alert('success');
 		if (data.success) {
+//			alert('1');
 			$('table#approval tr#'+data.id).remove();
 			var rowCount = $('table#approval tr').length;
 			if (rowCount <= 1) {
+//				alert('2');
 				$('#popupDiv').fadeOut(250);
 //				window.location=returnUrl;
 			}
+// alert('refresh:'+data.refresh);
 			if (typeof data.refresh != 'undefined' && data.refresh.length>0) {
-				ajaxRefresh(data.refresh, '', '');
+// alert('refresh div defined:'+$('#'+data.refresh).length);
+				if (data.refresh.indexOf('/') == -1) {
+//					alert('defined');
+					ajaxRefresh(data.refresh, '', '');
+				} else {
+// alert('refresh undefined');
+					window.location=data.refresh;
+				}
 			}
 		} else {
+// alert('ajaxApproveDeny error');
 			alert(data.error);
 		}
 	});

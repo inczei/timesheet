@@ -600,6 +600,11 @@ error_log('not allowed...redirect to homepage');
     	$session=$this->get('session');
     	$session->set('menu', Constants::MENU_ADMIN);
     
+    	if ($action == 'clean') {
+    		$session->remove('admin');
+    		return $this->redirect($this->generateUrl($base));
+    	}
+    	 
     	if (in_array($action, Constants::adminActions) && $param1!=null) {
     		 
     		$session->set('admin', array('action'=>$action, 'param1'=>$param1, 'param2'=>$param2));

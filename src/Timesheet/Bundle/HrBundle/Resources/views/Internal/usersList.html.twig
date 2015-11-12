@@ -38,9 +38,9 @@
 				</tr>
 				{% for c in u.contracts %}
 				<tr>
-					<td>{{ c.CSD|date('d/m/Y') }}</td>
-					<td>{% if c.CED == null %} - {% else %}{{ c.CED|date('d/m/Y') }}{% endif %}</td>
-					<td>{{ c.AWH }}</td>
+					<td>{{ c.csd|date('d/m/Y') }}</td>
+					<td>{% if c.ced == null %} - {% else %}{{ c.ced|date('d/m/Y') }}{% endif %}</td>
+					<td>{{ c.awh }}</td>
 					<td>{{ c.wdpw }}</td>
 					<td>{% if c.AHE is defined and c.AHE > 0 %}{{ c.AHE }}{% else %}<span title="Company Default">{{ AHE }}*</span>{% endif %}</td>
 					<td>{% if c.AHEW is defined and c.AHEW > 0 %}{{ c.AHEW }}{% else %}<span title="Company Default">{{ AHEW }}*</span>{% endif %}</td>

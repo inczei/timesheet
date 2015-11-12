@@ -2,9 +2,9 @@
 <div class="searchBox">
 <table>
 	<tr>
-		<td>User Search : <input type="text" name="userSearch" data-url="{{ path('timesheet_ajax_userlist') }}" base-url="{{ base }}" data-type="1" value="{{ userSearch }}"><input type="hidden" id="lastSearch" value=""></td>
+		<td>User Search : <input type="text" name="userSearch" data-url="{{ path('timesheet_ajax_userlist') }}" base-url="{{ base }}" data-type="1" value="{{ userSearch }}"><input type="hidden" id="lastSearch" value=""><input type="hidden" id="lastDomain" value=""></td>
 		<td><a href="{{ path(base, {'action': 'edituser', 'param1': '0' }) }}">New user</a></td>
-		<td> </td>
+		<td>{% if domainSearch is defined and domainSearch|length %}Company:<select name="domainSearch" data-url="{{ path('timesheet_ajax_userlist') }}" base-url="{{ base }}" data-type="1"><option value="0"> - All - </option>{% for k,ds in domainSearch %}<option value="{{ k }}">{{ ds }}</option>{% endfor %}</select>{% endif %}</td>
 	</tr>
 </table>
 </div>

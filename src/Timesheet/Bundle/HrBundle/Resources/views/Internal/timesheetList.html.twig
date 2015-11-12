@@ -60,7 +60,7 @@
 	{% else %}
 		{% set noDate1=0 %}
 	{% endif %}
-	{% if (t2[2]['timestamp'] is not defined or t2[2]['timestamp']<1) and (t2[0]['class'] is not defined or t2[0]['class']|length == 0) and (date < 'now'|date('Y-m-d')) %}
+	{% if ((t2[2]['timestamp'] is not defined or t2[2]['timestamp']<1) and (t2[0]['class'] is not defined or t2[0]['class']|length == 0) and (date < 'now'|date('Y-m-d')) or (t2[2]['changeable'] is defined and t2[2]['changeable'])) %}
 		{% set noDate2=1 %}
 	{% else %}
 		{% set noDate2=0 %}
@@ -80,7 +80,7 @@
 				{{ t2[1]['timestamp']|date('H:i') }}
 			{% else %}
 				{% if t2[2]['timestamp'] is defined and t2[2]['timestamp'] %}
-					????
+					<div class="PunchIncorrect">?????</div>
 				{% endif %}
 			{% endif %}
 			</div>
@@ -91,7 +91,7 @@
 				{{ t2[2]['timestamp']|date('H:i') }}
 			{% else %}
 				{% if t2[1]['timestamp'] is defined and t2[1]['timestamp'] %}
-					????
+					<div class="PunchIncorrect">?????</div>
 				{% endif %}
 			{% endif %}
 			</div>
@@ -108,12 +108,10 @@
 		<td>{% if t2[0]['Late'] is defined and t2[0]['Late'] > 0 %}{{ (t2[0]['Late']/60)|number_format(2) }}<br>{{ (t2[0]['Late'])|number_format(0) }}{% set lates=lates+t2[0]['Late'] %} min{% endif %}</td>
 		<td>{% if t2[0]['Leave'] is defined and t2[0]['Leave'] > 0 %}{{ (t2[0]['Leave']/60)|number_format(2) }}<br>{{ (t2[0]['Leave'])|number_format(0) }}{% set leave=leave+t2[0]['Leave'] %} min{% endif %}</td>
 		<td>
-			{% if t2[0]['Overtime'] is defined and t2[0]['Overtime'] > 0 %}{{ (t2[0]['Overtime']/60)|number_format(2) }}<br>{{ (t2[0]['Overtime'])|number_format(0) }}{% set ot=ot+t2[0]['Overtime'] %} min{% endif %}
+			{% if t2[0]['Overtime'] is defined and t2[0]['Overtime'] > 0 %}{{ (t2[0]['Overtime']/60)|number_format(2) }}{% if t2[0]['Overtime']>=15 %}<span class="up"> </span>{% endif %}<br>{{ (t2[0]['Overtime'])|number_format(0) }}{% set ot=ot+t2[0]['Overtime'] %} min{% endif %}
 			{% if t2[0]['OvertimeAgreed'] is defined and t2[0]['OvertimeAgreed'] > 0 %}<br><i>({{ (t2[0]['OvertimeAgreed']/60)|number_format(2) }}{% set ota=ota+t2[0]['OvertimeAgreed'] %})</i>{% endif %}
 		</td>
-		<td>{% spaceless %}
-		{% if t2[1]['holidays'] is defined and t2[1]['holidays']|length %}{% for h in t2[1]['holidays'] %}<div class="holidayClass" style="color: #{{ h['textColor'] }}; background-color: #{{ h['backgroundColor'] }}; border: #{{ h['borderColor'] }} solid 2px;" title="{% if h['comment'] is defined and h['comment']|length %}{{ h['comment'] }}{% endif %}{{ '\n'|raw }}{% if h['acceptedComment'] is defined and h['acceptedComment']|length  %}Manager:{{ h['acceptedComment'] }}{% endif %}">{{ h['name'] }}</div>{% set holidaysummary=holidaysummary|merge({('_'~h['typeId']):{'name':(h['name']), 'num':1}}) %}{% endfor %}{% endif %}
-		{% endspaceless %}</td>
+		<td>{% spaceless %}{% if t2[1]['holidays'] is defined and t2[1]['holidays']|length %}{% for h in t2[1]['holidays'] %}<div class="holidayClass" style="color: #{{ h['textColor'] }}; background-color: #{{ h['backgroundColor'] }}; border: #{{ h['borderColor'] }} solid 2px;" title="{% if h['comment'] is defined and h['comment']|length %}{{ h['comment'] }}{% endif %}{{ '\n'|raw }}{% if h['acceptedComment'] is defined and h['acceptedComment']|length  %}Manager:{{ h['acceptedComment'] }}{% endif %}">{{ h['name'] }}</div>{% if holidaysummary['_'~h['typeId']]['num'] is defined %}{% set tmp=holidaysummary['_'~h['typeId']]['num'] %}{% set tmp=tmp+1 %}{% else %}{% set tmp=1 %}{% endif %}{% set holidaysummary=holidaysummary|merge({('_'~h['typeId']):{'name':(h['name']), 'num':tmp}}) %}{% endfor %}{% endif %}{% endspaceless %}</td>
 		<td>{% spaceless %}{% if t2[1]['comment'] is defined and t2[1]['comment']|length %}<div{% if t2[1]['comment']|length>30 %} title="{{ t2[1]['comment'] }}"{% endif %}>{{ t2[1]['comment']|length>30?t2[1]['comment']|slice(0,30) ~ '...':t2[1]['comment'] }}</div>{% endif %}{% endspaceless %}</td>
 		<td>{% spaceless %}{% if t2[2]['comment'] is defined and t2[2]['comment']|length %}<div{% if t2[2]['comment']|length>30 %} title="{{ t2[2]['comment'] }}"{% endif %}>{{ t2[2]['comment']|length>30?t2[2]['comment']|slice(0,30) ~ '...':t2[2]['comment'] }}</div>{% endif %}{% endspaceless %}</td>
 		{% if isManager  %}
@@ -121,7 +119,7 @@
 			{% if t2[0]['class'] is defined and t2[0]['class']|length %}
 			{% else %}
 				{% if t2[0]['checked'] is defined and t2[0]['checked']|length %}
-					<span title="Checked by {{ (t2[0]['checked']['title']~' '~t2[0]['checked']['firstName']~' '~t2[0]['checked']['lastName'])|trim }}{{ "\n"|raw }}Checked on {{ t2[0]['checked']['checkedOn']|date('d/m/Y H:i') }}{{ "\n"|raw }}Comment:{{ t2[0]['checked']['comment'] }}">OK</span>
+					<span class="noProblem" title="Checked by {{ (t2[0]['checked']['title']~' '~t2[0]['checked']['firstName']~' '~t2[0]['checked']['lastName'])|trim }}{{ "\n"|raw }}Checked on {{ t2[0]['checked']['checkedOn']|date('d/m/Y H:i') }}{{ "\n"|raw }}Comment:{{ t2[0]['checked']['comment'] }}">OK</span>
 				{% else %}
 					{% if t2[1]['timestamp'] is defined and t2[1]['timestamp'] and t2[2]['timestamp'] is defined and t2[2]['timestamp'] %}
 					<span class="timesheetCheck" data-url="{{ path('timesheet_ajax_timesheetcheck') }}" data-date="{{ date|date('Y-m-d') }}" data-userid="{{ t2[0]['userId'] }}">Check</span>
@@ -204,7 +202,7 @@
 		<th><b title="Overtime">{{ (ot/60)|number_format(2) }} Hr</b><br>
 			<i><b title="Agreed">({{ (ota/60)|number_format(2) }} Hr)</b></i>
 		</th>
-		<th>{% if holidaysummary is defined and holidaysummary|length %}Holidays:{% for hs in holidaysummary %}<br>{{ hs.num }} X {{ hs.name }}{% endfor %}{% endif %}</th>
+		<th>{% if holidaysummary is defined and holidaysummary|length %}Requests:{% for hs in holidaysummary %}<br>{{ hs.num }} <span class="multiplication"></span> {{ hs.name }}{% endfor %}{% endif %}</th>
 		<th> </th>
 		<th> </th>
 		{% if isManager  %}<th> </th>{% endif %}

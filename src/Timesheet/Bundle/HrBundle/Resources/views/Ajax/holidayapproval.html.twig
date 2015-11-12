@@ -57,5 +57,5 @@
 	{% endfor %}
 </table>
 {% endif %}
-<input type="hidden" id="holidayapproval" data-url="{{ path('timesheet_ajax_approvedeny') }}" data-base="{{ base }}">
+<input type="hidden" id="holidayapproval" data-refresh="{{ refresh }}" data-url="{{ path('timesheet_ajax_approvedeny') }}" data-base="{{ base }}">
 {% endif %}

@@ -78,7 +78,7 @@ class AjaxController extends Controller
 
 
     public function userlistAction() {
-// error_log('userlistAction');
+error_log('userlistAction');
 		$request=$this->getRequest();
 		if ($request->isXmlHttpRequest()) {
 	    	$data=array(
@@ -105,11 +105,13 @@ class AjaxController extends Controller
     		
     		$name=$params['name'];
     		$group=((isset($params['group']))?($params['group']):(''));
+    		$domain=((isset($params['domain']))?($params['domain']):(''));
+// error_log('domain:'.$domain);
     		$qualification=((isset($params['qualification']))?($params['qualification']):(''));
     		$base=$params['base'];
     		$listType=$params['listType'];
     		
-    		$users=$functions->getUsersList(null, (strlen($name)?$name:null), false, (strlen($group)?$group:null), (strlen($qualification)?$qualification:null), null, true, $domainId);
+    		$users=$functions->getUsersList(null, (strlen($name)?$name:null), false, (strlen($group)?$group:null), (strlen($qualification)?$qualification:null), null, true, (($domain)?($domain):($domainId)));
     		if (isset($users[-1]['found'])) {
     			$found=$users[-1]['found'];
     			unset($users[-1]);
@@ -393,7 +395,7 @@ class AjaxController extends Controller
     
     
     public function addrequestAction() {
-    
+error_log('addrequestAction');    
     	$request=$this->getRequest();
     	if ($request->isXmlHttpRequest()) {
     		$data=array(
@@ -402,13 +404,16 @@ class AjaxController extends Controller
     		);
 
     		$params=$request->request->all();
-    		
+// error_log('params:'.print_r($params, true));
     		$base=$params['base'];
     		$date=$params['date'];
+    		$refresh=((isset($params['refresh']))?($params['refresh']):(null));
     		$action=$params['action'];
     		$id=((isset($params['id']))?($params['id']):(''));
-    		
     		$functions = $this->get('timesheet.hr.functions');
+    		$domainId=$functions->getDomainId($request->getHttpHost());
+error_log('domainId:'.$domainId);
+    		
     		    		
     		switch ($action) {
     			case 'add' : {
@@ -446,8 +451,6 @@ error_log('add');
 		    		
 		    		if ($admin) {
 error_log('admin');
-						$domainId=$functions->getDomainId($request->getHttpHost());
-error_log('domainId:'.$domainId);
 						$users=$functions->getUsersList(null, null, true, $groupId, $qualificationId, $locationId, false, $domainId);
 			    		if ($users) {
 			    			foreach ($users as $k=>$v) {
@@ -539,8 +542,9 @@ error_log('domainId:'.$domainId);
 		   			break;
     			}
 
-    			case 'confirm' : {
-
+    			case 'confirm' :
+    			case 'confirmnew' : {
+// error_log('confirm/new');
     				$data['title']='List of requests';
     				$requests=array();
     				$accepted=array();
@@ -568,64 +572,72 @@ error_log('domainId:'.$domainId);
     						}
     					}
     				}
-
-    				$query='SELECT'.
-    					' `r`.*,'.
-    					' `rt`.`name` as `typeName`,'.
-    					' `rt`.`fullday`,'.
-    					' `rt`.`paid`,'.
-    					' `rt`.`textColor`,'.
-    					' `rt`.`backgroundColor`,'.
-    					' `rt`.`borderColor`,'.
-    					' `u`.`id` as `userId`,'.
-    					' `u`.`firstName`,'.
-    					' `u`.`lastName`,'.
-    					' `u`.`username`,'.
-    					' `u`.`groupAdmin`,'.
-    					' `u`.`groupId`,'.
-    					' `u`.`locationAdmin`,'.
-    					' `u`.`locationId`,'.
-    					' (SELECT CONCAT(`u1`.`firstName`, " ", `u1`.`lastName`) FROM `Users` `u1` WHERE `u1`.`id`=`r`.`createdBy`) as `createdByName`,'.
-    					' (SELECT CONCAT(`u2`.`firstName`, " ", `u2`.`lastName`) FROM `Users` `u2` WHERE `u2`.`id`=`r`.`acceptedBy`) as `acceptedByName`'.
-    					' FROM `Requests` `r`'.
-	   						' JOIN `RequestType` `rt` ON `r`.`typeId`=`rt`.`id`'.
-	   						' JOIN `Users` `u` ON `r`.`userId`=`u`.`id`'.
-    					' WHERE :date BETWEEN DATE_FORMAT(`r`.`start`, "%Y-%m-%d") AND DATE_FORMAT(`r`.`finish`, "%Y-%m-%d")'.
-    					' AND `u`.`domainId`=:dId'.
-    					(($admin)?(''):(' AND `u`.`id`=:uId')).
-    					(($groupId)?(' AND `u`.`groupId`=:gId'):('')).
-    					(($locationId)?(' AND `u`.`locationId`=:lId'):('')).
-    					
-    					' ORDER BY `r`.`createdOn`';
-error_log($query);
-    				$conn=$this->getDoctrine()->getConnection();
+    				$em=$this->getDoctrine()->getManager();
     				
-    				$stmt=$conn->prepare($query);
-    				$stmt->bindValue('date', $date);
-    				$dId=$functions->getDomainId($request->getHttpHost());
-error_log('domainId:'.$dId);
-    				$stmt->bindValue('dId', $dId);
+    				$qb=$em->createQueryBuilder();
+    				$qb->select('r.id')
+    					->addSelect('r.userId')
+    					->addSelect('r.typeId')
+    					->addSelect('r.start')
+    					->addSelect('r.finish')
+    					->addSelect('r.comment')
+    					->addSelect('r.createdBy')
+    					->addSelect('r.createdOn')
+    					->addSelect('r.accepted')
+    					->addSelect('r.acceptedOn')
+    					->addSelect('r.acceptedBy')
+    					->addSelect('r.acceptedComment')
+
+    					->addSelect('rt.name as typeName')
+    					->addSelect('rt.fullday')
+    					->addSelect('rt.paid')
+    					->addSelect('rt.textColor')
+    					->addSelect('rt.backgroundColor')
+    					->addSelect('rt.borderColor')
+    					->addSelect('u.firstName')
+    					->addSelect('u.lastName')
+    					->addSelect('u.username')
+    					->addSelect('u.groupAdmin')
+    					->addSelect('u.groupId')
+    					->addSelect('u.locationAdmin')
+    					->addSelect('u.locationId')
+    						
+    					->from('TimesheetHrBundle:Requests', 'r')
+    					->join('TimesheetHrBundle:RequestType', 'rt', 'WITH', 'r.typeId=rt.id')
+    					->join('TimesheetHrBundle:User', 'u', 'WITH', 'r.userId=u.id')
+    					->where('u.domainId=:dId')
+    					->orderBy('r.createdBy', 'ASC')
+    					->setParameter('dId', $domainId);
+    				
+    				if ($date) {
+    					$qb->andWhere(':date BETWEEN DATE_FORMAT(r.start, \'%Y-%m-%d\') AND DATE_FORMAT(r.finish, \'%Y-%m-%d\')')
+    						->setParameter('date', $date);
+    				}
     				if (!$admin) {
-error_log('userId:'.$currentUser->getId());
-    					$stmt->bindValue('uId', $currentUser->getId());
+    					$qb->andWhere('r.userId=:uId')
+    						->setParameter('uId', $currentUser->getId());
     				}
     				if ($groupId) {
-error_log('groupId:'.$currentUser->getGroupId());
-    					$stmt->bindValue('gId', $currentUser->getGroupId());
+    					$qb->andWhere('u.groupId=:gId')
+    						->setParameter('gId', $groupId);
     				}
-    			    if ($locationId) {
-error_log('locationId:'.$currentUser->getLocationId());
-    					$stmt->bindValue('lId', $currentUser->getLocationId());
+    				if ($locationId) {
+    					$qb->andWhere('u.locationId=:lId')
+    						->setParameter('lId', $locationId);    					
     				}
-    				$stmt->execute();
-    				
-    				$results=$stmt->fetchAll();
-    				
+    				if ($action == 'confirmnew') {
+    					$qb->andWhere('r.accepted=0');
+    				}
+
+    				$results=$qb->getQuery()->getArrayResult();
     				if ($results) {
     					if (!$admin) {
     						$data['title'].=' for '.trim($currentUser->getFirstName().' '.$currentUser->getLastName());
     					}
     					foreach ($results as $result) {
+    						$result['createdByName']=$functions->getUserFullNameById($result['createdBy']);
+    						$result['acceptedByName']=$functions->getUserFullNameById($result['acceptedBy']);
+    						
     						if ($result['accepted'] != 0) {
     							$accepted[]=$result;
     						} else {
@@ -637,9 +649,10 @@ error_log('locationId:'.$currentUser->getLocationId());
     						}
     					}
     				}
-    				
+// error_log('results:'.print_r($results, true));    				
     				$data['content']=$this->renderView('TimesheetHrBundle:Ajax:holidayapproval.html.twig', array(
     					'base'		=> $base,
+    					'refresh'	=> $refresh,
    						'requests'	=> $requests,
     					'accepted'	=> $accepted,
     				));
@@ -1047,16 +1060,16 @@ error_log('Database error:'.$e->getMessage());
 
     
     public function approvedenyAction() {
-    
+error_log('approvedenyAction');    
     	$request=$this->getRequest();
     	if ($request->isXmlHttpRequest()) {
     		 
     		$params=$request->request->all();
-    		
+// error_log('params:'.print_r($params, true));    		
     		$id=$params['id'];
     		$comment=$params['comment'];
     		$action=$params['action'];
-    		
+    		$refresh=((isset($params['refresh']))?($params['refresh']):(null));
     		
     		$holiday=$this->getDoctrine()
     			->getRepository('TimesheetHrBundle:Requests')
@@ -1077,7 +1090,7 @@ error_log('Database error:'.$e->getMessage());
 			if ($holiday->getId()) {
 				$response['success']=true;
 				$response['id']=$holiday->getId();
-				$response['refresh']='holidayDiv';
+				$response['refresh']=$refresh;
 			} else {
 				$response['success']=false;
 				$response['error']='Saving failed';

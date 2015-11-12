@@ -46,6 +46,7 @@ table tr td {
 a {
 	color: #ff0000;
 	text-decoration: underline dashed #cc0000;
+	outline: none;
 }
 
 a:hover {
@@ -252,6 +253,15 @@ a:hover {
 */
 .statusList table tr td {
 	border: #888888 dotted 1px;
+}
+
+.statusList ul li {
+	text-align: left;
+}
+
+.statusList ul li:after {
+	content: '\A\A';
+	white-space: pre;
 }
 
 .clock {
@@ -742,6 +752,12 @@ span.switchMonth:hover {
 	text-decoration: line-through;
 }
 
+.PunchMissing td {
+	background-color: #ffccff;
+	color: #ff0000;
+	text-decoration: none;
+}
+
 .timesheet {
 	font-size: x-small;
 }
@@ -933,6 +949,10 @@ select.swapUser1, select.swapUser2, select.swapShift1, select.swapShift2 {
 	font-weight: bold;
 }
 
+.currentMonth a {
+	text-decoration: none;
+}
+
 .columnHide {
 	display: none;
 }
@@ -1007,9 +1027,18 @@ select.swapUser1, select.swapUser2, select.swapShift1, select.swapShift2 {
 	-khtml-border-radius: 10px;
 	after: ' ! ';
 }
+
 .dayInfoProblem:after {
 	color: red;
 	content: '\002753';
+}
+
+.multiplication:after {
+	content: '\2715';
+}
+
+.up:after {
+	content: '\25b2';
 }
 
 .noProblem {
@@ -1019,4 +1048,10 @@ select.swapUser1, select.swapUser2, select.swapShift1, select.swapShift2 {
 .noProblem:after {
 	color: green;
 	content: '\002714';
+}
+
+.problemShow {
+	cursor: pointer;
+	color: blue;
+	font-weight: bold;
 }
