@@ -3323,14 +3323,64 @@ error_log('getCalendarDay, userId:'.$userId.', timestamp:'.$timestamp.', date:'.
 	}
 
 	
-	public function getTimesheet($userId, $timestamp, $usersearch, $session, $domainId=0) {
+	public function getUsersForManager($user, $limit=0) {
+		
+		$ret=array();
+		$em=$this->doctrine->getManager();
+		
+		$qb=$em->createQueryBuilder()
+			->select('u.id')
+			->addSelect('u.username')
+			->addSelect('u.title')
+			->addSelect('u.firstName')
+			->addSelect('u.lastName')
+			->from('TimesheetHrBundle:User', 'u')
+			->where('u.isActive=true')
+			->andWhere('u.domainId=:dId')
+			->setParameter('dId', $user->getDomainId());
+	
+		$where=array();	
+		if ($user->getGroupAdmin()) {
+//			$where[]='u.groupId IS NULL OR u.groupId=:gId';
+			$where[]='u.groupId=:gId';
+			$qb->setParameter('gId', $user->getGroupId());
+		}
+		if ($user->getLocationAdmin()) {
+//			$where[]='u.locationId IS NULL OR u.locationId=:lId';
+			$where[]='u.locationId=:lId';
+			$qb->setParameter('lId', $user->getLocationId());
+		}
+		if (count($where)) {
+			$qb->andWhere('('.implode(' OR ', $where).')');
+		}
+		if ($limit) {
+			$qb->setMaxResults($limit)
+				->orderBy('u.lastTime', 'DESC');
+		} else {
+			$qb->orderBy('u.firstName', 'ASC')
+				->addOrderBy('u.lastName', 'ASC');		
+		}
+
+		$results=$qb->getQuery()->getArrayResult();
+		
+		if ($results) {
+			foreach ($results as $result) {
+				$ret[$result['id']]=$result;
+			}
+		}
+		return $ret;
+	}
+	
+	public function getTimesheet($userId, $timestamp, $usersearch, $session, $domainId=0, $selectedUserId=0, $availableUsers=null) {
 error_log('getTimesheet');
-//error_log('userId:'.$userId.', timestamp:'.$timestamp.', usersearch:'.$usersearch.', domainId:'.$domainId);	
+// error_log('1 memory:'.memory_get_usage());
+// error_log('userId:'.$userId.', timestamp:'.$timestamp.', usersearch:'.$usersearch.', domainId:'.$domainId.', selectedUserId:'.$selectedUserId.', availableUsers ('.count($availableUsers).'):'.print_r($availableUsers, true));	
 		$conn=$this->doctrine->getConnection();
 		$ret=array();
 		$admin=false;
 		$groupId=null;
 		$locationId=null;
+		$totalUsers=0;
 
 		if ($this->isAdmin()) {
 			$admin=true;
@@ -3394,17 +3444,29 @@ $time=microtime(true);
 			$qb->andWhere('u.id=:uId')
 				->setParameter('uId', $userId);
 		}
-		if ($admin && $groupId) {
-			$qb->andWhere('u.groupId=:gId')
-				->setParameter('gId', $groupId);
+//		if ($admin && $groupId) {
+//			$qb->andWhere('u.groupId=:gId')
+//				->setParameter('gId', $groupId);
+//		}
+//		if ($usersearch) {
+//			$qb->andWhere('u.username LIKE :uSearch OR u.firstName LIKE :uSearch OR u.lastName LIKE :uSearch')
+//				->setParameter('uSearch', '%'.$usersearch.'%');
+//		}
+		if ($selectedUserId) {
+			if ($selectedUserId > 0) {
+				$qb->andWhere('u.id=:userId')
+					->setParameter('userId', $selectedUserId);
+			}
+		} else {
+			// if not selected any user, result should be empty
+			$qb->andWhere('u.id<0');
 		}
-		if ($usersearch) {
-			$qb->andWhere('u.username LIKE :uSearch OR u.firstName LIKE :uSearch OR u.lastName LIKE :uSearch')
-				->setParameter('uSearch', '%'.$usersearch.'%');
-		}
-		if ($admin && $locationId) {
-			$qb->andWhere('u.locationId=:lId')
-				->setParameter('lId', $locationId);
+//		if ($admin && $locationId) {
+//			$qb->andWhere('u.locationId=:lId')
+//				->setParameter('lId', $locationId);
+//		}
+		if (isset($availableUsers) && is_array($availableUsers) && count($availableUsers)) {
+			$qb->andWhere('u.id IN (\''.implode('\',\'', array_keys($availableUsers)).'\')');
 		}
 		if ($timestamp) {
 			$startTime=date('Y-m-01 00:00:00', $timestamp);
@@ -3414,7 +3476,7 @@ $time=microtime(true);
 				->setParameter('dateFinish', $finishTime);
 		}
 		$query=$qb->getQuery();
-error_log('sql:'.$query->getDql());
+error_log('1 sql:'.$query->getDql());
 		$results=$query->getArrayResult();
 // error_log('1st no of results:'.count($results).', time:'.(microtime(true)-$time));
 // error_log('results:'.print_r($results, true));		
@@ -3795,21 +3857,34 @@ error_log('dId:'.$domainId);
 					->setParameter('uId', $userId);
 error_log('uId:'.$userId);
 			}
-			if ($admin && $groupId) {
-				$qb->andWhere('u.groupId=:gId')
-					->setParameter('gId', $groupId);
-error_log('gId:'.$groupId);
+//			if ($admin && $groupId) {
+//				$qb->andWhere('u.groupId=:gId')
+//					->setParameter('gId', $groupId);
+//error_log('gId:'.$groupId);
+//			}
+//			if ($usersearch) {
+//				$qb->andWhere('u.username LIKE :uSearch OR u.firstName LIKE :uSearch OR u.lastName LIKE :uSearch')
+//					->setParameter('uSearch', '%'.$usersearch.'%');
+//error_log('uSearch:'.$usersearch);
+//			}
+			if ($selectedUserId) {
+				if ($selectedUserId > 0) {
+					$qb->andWhere('u.id=:userId')
+						->setParameter('userId', $selectedUserId);
+error_log('selectedUserId:'.$selectedUserId);
+				}
+			} else {
+				// if not selected any user, result should be empty
+				$qb->andWhere('u.id<0');
 			}
-			if ($usersearch) {
-				$qb->andWhere('u.username LIKE :uSearch OR u.firstName LIKE :uSearch OR u.lastName LIKE :uSearch')
-					->setParameter('uSearch', '%'.$usersearch.'%');
-error_log('uSearch:'.$usersearch);
+			if (isset($availableUsers) && is_array($availableUsers) && count($availableUsers)) {
+				$qb->andWhere('u.id IN (\''.implode('\',\'', array_keys($availableUsers)).'\')');
 			}
-			if ($admin && $locationId) {
-				$qb->andWhere('u.locationId=:lId')
-					->setParameter('lId', $locationId);
-error_log('lId:'.$locationId);
-			}
+//			if ($admin && $locationId) {
+//				$qb->andWhere('u.locationId=:lId')
+//					->setParameter('lId', $locationId);
+//error_log('lId:'.$locationId);
+//			}
 			if ($timestamp) {
 				$startTime=date('Y-m-01', $timestamp);
 				$finishTime=date('Y-m-t', $timestamp);
@@ -3822,10 +3897,24 @@ error_log('dateStart:'.print_r($startTime, true));
 error_log('dateFinish:'.print_r($finishTime, true));
 			}
 			$query=$qb->getQuery();
-error_log('sql:'.$query->getDql());
+error_log('2 sql:'.$query->getDql());
 			$users=$query->getArrayResult();
 error_log('1st results:'.count($users).', time:'.(microtime(true)-$time));
 			if (!count($users)) {
+				$users=array();
+				if ($availableUsers) {
+					foreach ($availableUsers as $au) {
+						$totalUsers++;
+						if (count($users) < 10) {
+							if ($selectedUserId == -1 || $selectedUserId == $au['id']) {
+error_log('user added:'.$au['username']);
+								$users[]=array('id'=>$au['id'], 'username'=>$au['username']);
+							}
+						}
+					}
+				}
+				
+/*				
 				$find=array();
 				$find+=array('domainId'=>$domainId);
 				if ($admin) {
@@ -3853,7 +3942,10 @@ error_log('findUsers:'.print_r($findUsers, true));
 						}
 					}
 				}
+*/
 				
+			} else {
+				$totalUsers=count($users);
 			}
 
 			$holidays=array();
@@ -3917,7 +4009,7 @@ error_log('not exists '.$username.' '.date('Y-m-d', $ts));
 									'userId'=>$userId,
 									'comment'=>'',
 									'day'=>date('D jS M', $ts),
-									'timestamp'=>date('Y-m-d ', mktime(8, 0, 0, date('m', $ts), date('d', $ts), date('Y', $ts))).$agreedStartTime->format('H:i:s'),
+									'timestamp'=>date('Y-m-d ', mktime(8, 0, 0, date('m', $ts), date('d', $ts), date('Y', $ts))).((is_null($agreedStartTime))?('??:??'):($agreedStartTime->format('H:i:s'))),
 									'agreed'=>$agreedStartTime,
 									'agreedOrig'=>$origStartTime,
 									'location'=>((isset($location[$tmpTimings['locationId']]))?($location[$tmpTimings['locationId']]):(null)),
@@ -3929,7 +4021,7 @@ error_log('not exists '.$username.' '.date('Y-m-d', $ts));
 									'userId'=>$userId,
 									'comment'=>'',
 									'day'=>date('D jS M', $ts),
-									'timestamp'=>date('Y-m-d ', mktime(16, 0, 0, date('m', $ts), date('d', $ts), date('Y', $ts))).$agreedFinishTime->format('H:i:s'),
+									'timestamp'=>date('Y-m-d ', mktime(16, 0, 0, date('m', $ts), date('d', $ts), date('Y', $ts))).((is_null($agreedFinishTime))?('??:??'):($agreedFinishTime->format('H:i:s'))),
 									'agreed'=>$agreedFinishTime,
 									'agreedOrig'=>$origFinishTime,
 									'location'=>((isset($location[$tmpTimings['locationId']]))?($location[$tmpTimings['locationId']]):(null)),
@@ -4081,7 +4173,13 @@ error_log('no holidays...');
 				}
 			}
 		}
-	
+// error_log('2 memory:'.memory_get_usage());
+// error_log('users : '.count($users).' of '.$totalUsers);	
+		unset($users);
+		unset($results);
+		unset($holidays);
+		unset($loginRequired);
+// error_log('3 memory:'.memory_get_usage());
 		return $ret;
 	}
 	
@@ -4160,7 +4258,19 @@ error_log('locationId:'.$locationId);
 	
 	public function getCorrectedTimes(&$data, $domainId) {
 error_log('getCorrectedTimes');
-		$ret=array('SignedIn'=>'', 'SignedOut'=>'', 'WorkTime'=>0, 'Late'=>0, 'Leave'=>0, 'LunchTime'=>'', 'userId'=>$data[0]['userId']);
+		$ret=array(
+			'SignedIn'=>'',
+			'SignedOut'=>'',
+			'WorkTime'=>0,
+			'Late'=>0,
+			'LateLess'=>0,
+			'LateMore'=>0,
+			'Leave'=>0,
+			'LeaveLess'=>0,
+			'LeaveMore'=>0,
+			'LunchTime'=>'',
+			'userId'=>$data[0]['userId']
+		);
 
 		$lunchtimeUnpaid=$this->getConfig('lunchtimeUnpaid', $domainId);
 		$lunchtimePaid=$this->getConfig('lunchtime', $domainId);
@@ -4196,8 +4306,8 @@ error_log('sick leave');
 					}
 					case 4 : {
 error_log('time off');
-						$d1=strtotime($h['start']->format('Y-m-d H:i:s'));
-						$d2=strtotime($h['finish']->format('Y-m-d H:i:s'));
+						$d1=$h['start']->getTimestamp();
+						$d2=$h['finish']->getTimestamp();
 						$timeoff+=($d2-$d1)/60;
 						break;
 					}
@@ -4222,17 +4332,17 @@ error_log('time off');
 			}
 			if (isset($data[2]['agreedOrig']) || isset($data[1]['agreedOrig'])) {
 				if (isset($data[2]['agreedOrig'])) {
-					$d2=strtotime($data[2]['agreedOrig']->format('Y-m-d H:i:s'));
+					$d2=$data[2]['agreedOrig']->getTimestamp();
 				}	
 				if (isset($data[1]['agreedOrig'])) {
-					$d1=strtotime($data[1]['agreedOrig']->format('Y-m-d H:i:s'));
+					$d1=$data[1]['agreedOrig']->getTimestamp();
 				}
 				$ret['AgreedTimeOrig']=($d2-$d1)/60;
 				if ($ret['AgreedTimeOrig'] >= $minTimeForLunch) {
 					$ret['AgreedTimeOrig'] -= $lunchtimeUnpaid;
 				}
 			}
-			$ret['AgreedTime']=(strtotime($data[2]['agreed']->format('Y-m-d H:i:s'))-strtotime($data[1]['agreed']->format('Y-m-d H:i:s')))/60-$timeoff;
+			$ret['AgreedTime']=($data[2]['agreed']->getTimestamp()-$data[1]['agreed']->getTimestamp())/60-$timeoff;
 			if ($ret['AgreedTime'] >= $minTimeForLunch) {
 				$ret['AgreedTime'] -= $lunchtimeUnpaid;
 				$deducted += $lunchtimeUnpaid+$timeoff;
@@ -4254,10 +4364,14 @@ error_log('time off');
 					// if more than 5 minutes, round up to the next 15 minutes
 					if ($late < 5) {
 						$late=0;
+						$ret['LateLess']++;
 					} elseif ($late % 15 > 5) {
 						$late=15*ceil($late/15);
 					} else {
 						$late=16*(int)($late/15);
+					}
+					if ($late > 0) {
+						$ret['LateMore']++;
 					}
 					$ret['Late']=$late;
 					$deducted+=$late;
@@ -4269,10 +4383,14 @@ error_log('time off');
 					// if more than 5 minutes, round up to the next 15 minutes
 					if ($leave < 5) {
 						$leave=0;
+						$ret['LeaveLess']++;
 					} elseif ($leave % 15 > 5) {
 						$leave=15*ceil($leave/15);
 					} else {
 						$leave=16*(int)($leave/15);
+					}
+					if ($leave > 0) {
+						$ret['LeaveMore']++;
 					}
 					$ret['Leave']=$leave;
 					$deducted+=$leave;
@@ -4295,8 +4413,8 @@ error_log('time off');
 			}
 			
 			if (isset($data[5]['timestamp']) && $data[5]['timestamp'] && isset($data[6]['timestamp']) && $data[6]['timestamp']) {
-				$d1=strtotime($data[5]['timestamp']);
-				$d2=strtotime($data[6]['timestamp']);
+				$d1=$data[5]['timestamp']->getTimestamp();
+				$d2=$data[6]['timestamp']->getTimestamp();
 				
 				$ret['LunchTime']=($d2-$d1)/60;
 			} else {
@@ -4304,14 +4422,14 @@ error_log('time off');
 			}
 			
 			if (isset($data[3]['timestamp']) && $data[3]['timestamp'] && isset($data[4]['timestamp']) && $data[4]['timestamp']) {
-				$d1=strtotime($data[3]['timestamp']);
-				$d2=strtotime($data[4]['timestamp']);
+				$d1=$data[3]['timestamp']->getTimestamp();
+				$d2=$data[4]['timestamp']->getTimestamp();
 				
 				$ret['BreakTime']=($d2-$d1)/60;
 			}
 			if (isset($data[7]['timestamp']) && $data[7]['timestamp'] && isset($data[8]['timestamp']) && $data[8]['timestamp']) {
-				$d1=strtotime($data[7]['timestamp']);
-				$d2=strtotime($data[8]['timestamp']);
+				$d1=$data[7]['timestamp']->getTimestamp();
+				$d2=$data[8]['timestamp']->getTimestamp();
 				
 				$ret['OtherTime']=($d2-$d1)/60;
 			}
@@ -4479,6 +4597,8 @@ error_log('sick leave');
 // error_log('getHolidaysForMonth userId:'.$userId);
 // error_log('date: '.$startDate.'-'.$finishDate.', data:'.print_r($ret, true));
 // error_log($query);
+		unset($results);
+		
 		return $ret;
 		
 	}
@@ -4766,9 +4886,12 @@ error_log('username:'.$username);
 				->setParameter('uName', $username)
 				->setParameter('dId', $domainId);
 			
-			$result=$qb->getQuery()->getSingleResult();
-			if ($result) {
-				$req=$result['loginRequired'];
+			$results=$qb->getQuery()->getArrayResult();
+			if ($results && count($results)) {
+				$result=reset($results);
+				if (isset($result['loginRequired'])) {
+					$req=$result['loginRequired'];
+				}
 			}
 		
 		}

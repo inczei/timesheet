@@ -64,6 +64,9 @@ timesheet_hr_forgotpassword:
 timesheet_hr_userphotos:
     path:     /userphotos/{action}/{id}
     defaults: { _controller: TimesheetHrBundle:Default:userphotos, action: '', id: '' }
+timesheet_hr_timesheetreport:
+    path:     /timesheetreport/{timestamp}/{userid}
+    defaults: { _controller: TimesheetHrBundle:Default:timesheetreport, timestamp: '', userid: '' }
 
 residents_hr_dashboard:
     path:     /residentshome

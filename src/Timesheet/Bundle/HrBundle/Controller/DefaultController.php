@@ -3204,6 +3204,52 @@ error_log('not allowed...redirect to homepage');
 				'Content-Disposition' => 'attachment; filename=' . $filename
    			));
     }
+
+    
+    /*
+     * @Pdf()
+     */
+    public function timesheetreportAction($timestamp, $userid) {
+error_log('timesheetreportAction');
+    
+    	$securityContext = $this->container->get('security.context');
+    	if (!$securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
+    		error_log('not allowed...redirect to homepage');
+    		return $this->redirect($this->generateUrl('timesheet_hr_homepage'));
+    	}
+    	$functions = $this->get('timesheet.hr.functions');
+    	
+    	$session=$this->get('session');
+    	$domainId=$functions->getDomainId($this->getRequest()->getHttpHost());
+    	$currentUser=$this->getUser();
+    	
+    	$first=mktime(0, 0, 0, date('n', $timestamp), 1, date('Y', $timestamp));
+    
+    	$facade = $this->get('ps_pdf.facade');
+    	$response = new Response();
+    
+    	$user=$this->getDoctrine()
+    		->getRepository('TimesheetHrBundle:User')
+    		->findOneBy(array('id'=>$userid));
+    
+    	$this->render(sprintf('TimesheetHrBundle:Pdf:TimesheetReport.%s.twig', 'pdf'), array(
+    			'name' => trim($user->getTitle().' '.$user->getFirstName().' '.$user->getLastName()),
+    			'username' => $user->getUsername(),
+    			'date'=>date('F Y', $first),
+    			'report'=>$functions->getTimesheet($currentUser->getId(), $first, '', $session, $domainId, $userid, $functions->getUsersForManager($this->getUser(), 0)),
+    			'footer' => 'Created on '.date('d/m/Y H:i:s'),
+    	), $response);
+    
+    	$filename='TimesheetReport.pdf';
+    	$xml=$response->getContent();
+    
+    	$content = $facade->render($xml);
+    	 
+    	return new Response($content, 200, array
+    			('content-type' => 'application/pdf',
+    					'Content-Disposition' => 'attachment; filename=' . $filename
+    			));
+    }
     
 /*
  * Private functions

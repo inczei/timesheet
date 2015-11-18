@@ -1266,7 +1266,7 @@ error_log('swap:'.print_r($swap, true));
     }
     
 
-    public function timesheetListAction($userId='0', $timestamp='0', $func='', $usersearch='') {
+    public function timesheetListAction($userId='0', $timestamp='0', $func='', $usersearch='', $selectedUserId='') {
 // error_log('ajax timesheetList');    	
     	$request=$this->getRequest();
 
@@ -1288,6 +1288,9 @@ error_log('swap:'.print_r($swap, true));
     	    if (isset($calendar['usersearch'])) {
     			$usersearch=$calendar['usersearch'];
     		}
+    		if (isset($calendar['selectedUserId'])) {
+    			$selectedUserId=$calendar['selectedUserId'];
+    		}
     		$params=$request->request->all();
 
     		if (isset($params['func'])) {
@@ -1308,6 +1311,13 @@ error_log('swap:'.print_r($swap, true));
     			$usersearch=$params['usersearch'];
     			$calendar['usersearch']=$usersearch;
     		}
+    		if (isset($params['selectedUserId']) && $params['selectedUserId']) {
+    			$selectedUserId=$params['selectedUserId'];
+    		}
+    		if (isset($params['selectedUserId']) && $params['selectedUserId']=='0') {
+    			$selectedUserId=0;
+    		}
+    		$calendar['selectedUserId']=$selectedUserId;
     		
     		$session->set('timesheet', $calendar);
     	} else {
@@ -1317,12 +1327,19 @@ error_log('swap:'.print_r($swap, true));
     	}
 
     	$domainId=$functions->getDomainId($request->getHttpHost());
-    	
+// error_log('selectedUserId:'.$selectedUserId);
+		$users=$functions->getUsersForManager($this->getUser());
+// error_log('4 memory:'.memory_get_usage());
+		$timesheet=$functions->getTimesheet($userId, $timestamp, $usersearch, $session, $domainId, $selectedUserId, $functions->getUsersForManager($this->getUser(), (($selectedUserId>0)?(0):(10))));
+// error_log('5 memory:'.memory_get_usage());
     	$content=$this->renderView('TimesheetHrBundle:Internal:timesheetList.html.twig', array(
 	    		'base'		=> $base,
 				'currentMonth'=> date('F Y', $timestamp),
     			'isManager'	=> $functions->isManager(),
-	   			'timesheet'	=> $functions->getTimesheet($userId, $timestamp, $usersearch, $session, $domainId)
+    			'users'		=> $users,
+    			'selectedUserId'	=> $selectedUserId,
+    			'timestamp'	=> $timestamp,
+	   			'timesheet'	=> $timesheet
 	    	));
     	
     	if ($request->isXmlHttpRequest()) {

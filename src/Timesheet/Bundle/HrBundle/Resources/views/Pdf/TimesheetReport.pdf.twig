@@ -1,0 +1,148 @@
+<pdf>
+	<page page-size="A4">
+		<span font-size="14">Name: {{ name }}, Username: {{ username }}</span>
+		<br/>
+		<br/>
+		<span font-size="14">Date: {{ date }}</span>
+		<br/>
+		<br/>
+		{% if report is defined and report|length %}
+<table font-size="7" text-align="center">
+{% for userName,t1 in report %}
+{% set userId=0 %}
+{% set tah=0 %}
+{% set tahOrig=0 %}
+{% set ah=0 %}
+{% set ahd=0 %}
+{% set lates=0 %}
+{% set leave=0 %}
+{% set ot=0 %}
+{% set ota=0 %}
+{% set lateless=0 %}
+{% set latemore=0 %}
+{% set leaveless=0 %}
+{% set leavemore=0 %}
+{% set holidaysummary=[] %}
+	<tr>
+		<td colspan="2"></td>
+		<td colspan="2">Agreed Time</td>
+		<td colspan="2">Actual Time</td>
+		<td>Total Agreed Hours</td>
+		<td>Actual Hours</td>
+		<td>Lates</td>
+		<td>Leave Early</td>
+		<td>Overtime</td>
+		<td colspan="3">Notes</td>
+	</tr>
+	<tr>
+		<td colspan="2">Date</td>
+		<td>Sign In</td>
+		<td>Sign Out</td>
+		<td>Sign In</td>
+		<td>Sign Out</td>
+		<td><i>[Original]</i></td>
+		<td><i>(Deducted)</i></td>
+		<td> </td>
+		<td> </td>
+		<td><i>(Agreed)</i></td>
+		<td> </td>
+		<td>Employee</td>
+		<td>Manager</td>
+	</tr>
+	{% for date,t2 in t1 %}
+	{% set userId=t2[0]['userId'] %}
+	{% if t2[0]['LateLess'] is defined and t2[0]['LateLess']>0 %}{% set lateless=lateless+t2[0]['LateLess'] %}{% endif %}
+	{% if t2[0]['LateMore'] is defined and t2[0]['LateMore']>0 %}{% set latemore=latemore+t2[0]['LateMore'] %}{% endif %}
+	{% if t2[0]['LeaveLess'] is defined and t2[0]['LeaveLess']>0 %}{% set leaveless=leaveless+t2[0]['LeaveLess'] %}{% endif %}
+	{% if t2[0]['LeaveMore'] is defined and t2[0]['LeaveMore']>0 %}{% set leavemore=leavemore+t2[0]['LeaveMore'] %}{% endif %}
+	{% if (t2[1]['timestamp'] is not defined or t2[1]['timestamp']<1) and (t2[0]['class'] is not defined or t2[0]['class']|length == 0) and (date < 'now'|date('Y-m-d')) %}
+		{% set noDate1=1 %}
+	{% else %}
+		{% set noDate1=0 %}
+	{% endif %}
+	{% if ((t2[2]['timestamp'] is not defined or t2[2]['timestamp']<1) and (t2[0]['class'] is not defined or t2[0]['class']|length == 0) and (date < 'now'|date('Y-m-d')) or (t2[2]['changeable'] is defined and t2[2]['changeable'])) %}
+		{% set noDate2=1 %}
+	{% else %}
+		{% set noDate2=0 %}
+	{% endif %}
+	<tr>
+		<td>{{ date|date('jS M') }}</td>
+		<td>{{ date|date('D') }}</td>
+		<td>
+			{% if t2[0]['agreedStart'] is defined and t2[0]['agreedStart'] %}{{ t2[0]['agreedStart']|date('H:i') }}{% else %}{% endif %}
+		</td>
+		<td>
+			{% if t2[0]['agreedFinish'] is defined and t2[0]['agreedFinish'] %}{{ t2[0]['agreedFinish']|date('H:i') }}{% else %}{% endif %}
+		</td>
+		<td>
+			<div>
+			{% if t2[1]['timestamp'] is defined and t2[1]['timestamp'] %}
+				{{ t2[1]['timestamp']|date('H:i') }}
+			{% else %}
+				{% if t2[2]['timestamp'] is defined and t2[2]['timestamp'] %}
+					<div class="PunchIncorrect">?????</div>
+				{% endif %}
+			{% endif %}
+			</div>
+		</td>
+		<td>
+			<div>
+			{% if t2[2]['timestamp'] is defined and t2[2]['timestamp'] %}
+				{{ t2[2]['timestamp']|date('H:i') }}
+			{% else %}
+				{% if t2[1]['timestamp'] is defined and t2[1]['timestamp'] %}
+					<div class="PunchIncorrect">?????</div>
+				{% endif %}
+			{% endif %}
+			</div>
+		</td>
+		<td>
+			{% if t2[0]['AgreedTime'] is defined and t2[0]['AgreedTime']>0 %}{{ (t2[0]['AgreedTime']/60)|number_format(2) }}{% set tah=tah+t2[0]['AgreedTime'] %} Hr{% endif %}
+			{% if t2[0]['AgreedTimeOrig'] is defined and t2[0]['AgreedTimeOrig']>0 %}<br/><i>[{{ (t2[0]['AgreedTimeOrig']/60)|number_format(2) }}{% set tahOrig=tahOrig+t2[0]['AgreedTimeOrig'] %} Hr]</i>{% endif %}
+		</td>
+		<td>
+			{% if t2[0]['WorkTime'] is defined and t2[0]['WorkTime']>0 %}{{ (t2[0]['WorkTime']/60)|number_format(2) }}{% set ah=ah+t2[0]['WorkTime'] %} Hr
+			{% if t2[0]['Deducted'] is defined and t2[0]['Deducted'] > 0 %}<br/>({{ (t2[0]['Deducted']/60)|number_format(2) }}{% set ahd=ahd+t2[0]['Deducted'] %} Hr){% endif %}
+			{% endif %}
+		</td>
+		<td>{% if t2[0]['Late'] is defined and t2[0]['Late'] > 0 %}{{ (t2[0]['Late']/60)|number_format(2) }}<br/>{{ (t2[0]['Late'])|number_format(0) }}{% set lates=lates+t2[0]['Late'] %} min{% endif %}</td>
+		<td>{% if t2[0]['Leave'] is defined and t2[0]['Leave'] > 0 %}{{ (t2[0]['Leave']/60)|number_format(2) }}<br/>{{ (t2[0]['Leave'])|number_format(0) }}{% set leave=leave+t2[0]['Leave'] %} min{% endif %}</td>
+		<td>
+			{% if t2[0]['Overtime'] is defined and t2[0]['Overtime'] > 0 %}{{ (t2[0]['Overtime']/60)|number_format(2) }}{% if t2[0]['Overtime']>=15 %}<span class="up"> </span>{% endif %}<br/>{{ (t2[0]['Overtime'])|number_format(0) }}{% set ot=ot+t2[0]['Overtime'] %} min{% endif %}
+			{% if t2[0]['OvertimeAgreed'] is defined and t2[0]['OvertimeAgreed'] > 0 %}<br/><i>({{ (t2[0]['OvertimeAgreed']/60)|number_format(2) }}{% set ota=ota+t2[0]['OvertimeAgreed'] %})</i>{% endif %}
+		</td>
+		<td>{% spaceless %}{% if t2[1]['holidays'] is defined and t2[1]['holidays']|length %}{% for h in t2[1]['holidays'] %}<div class="holidayClass">{{ h['name'] }}</div>{% if holidaysummary['_'~h['typeId']]['num'] is defined %}{% set tmp=holidaysummary['_'~h['typeId']]['num'] %}{% set tmp=tmp+1 %}{% else %}{% set tmp=1 %}{% endif %}{% set holidaysummary=holidaysummary|merge({('_'~h['typeId']):{'name':(h['name']), 'num':tmp}}) %}{% endfor %}{% endif %}{% endspaceless %}</td>
+		<td>{{ t2[1]['comment'] }}</td>
+		<td>{{ t2[2]['comment'] }}</td>
+	</tr>
+	{% endfor %}
+	<tr>
+		<td colspan="2"><b>Summary</b></td>
+		<td> </td>
+		<td> </td>
+		<td> </td>
+		<td> </td>
+		<td><b>{{ (tah/60)|number_format(2) }} Hr</b><br/>
+			<i><b>[{{ (tahOrig/60)|number_format(2) }} Hr]</b></i>
+		</td>
+		<td>
+			<b>{{ (ah/60)|number_format(2) }} Hr</b><br/>
+			<i><b>({{ (ahd/60)|number_format(2) }} Hr)</b></i>
+		</td>
+		<td><b>{{ (lates/60)|number_format(2) }} Hr</b>{% if latemore>0 %}<br/>{{ latemore }} x &gt;5mins{% endif %}{% if lateless>0 %}<br/>{{ lateless }} x &lt;5mins{% endif %}</td>
+		<td><b>{{ (leave/60)|number_format(2) }} Hr</b>{% if leavemore>0 %}<br/>{{ leavemore }} x &gt;5mins{% endif %}{% if leaveless>0 %}<br/>{{ leaveless }} x &lt;5mins{% endif %}</td>
+		<td><b>{{ (ot/60)|number_format(2) }} Hr</b><br/>
+			<i><b>({{ (ota/60)|number_format(2) }} Hr)</b></i>
+		</td>
+		<td>{% if holidaysummary is defined and holidaysummary|length %}Requests:{% for hs in holidaysummary %}<br/>{{ hs.num }} <span class="multiplication"></span> {{ hs.name }}{% endfor %}{% endif %}</td>
+		<td> </td>
+		<td> </td>
+	</tr>
+{% endfor %}
+</table>
+		{% endif %}
+		<br/>
+		<br/>
+		{{ footer }}
+	</page>
+</pdf>

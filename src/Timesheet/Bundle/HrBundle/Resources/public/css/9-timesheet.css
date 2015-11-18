@@ -1055,3 +1055,12 @@ select.swapUser1, select.swapUser2, select.swapShift1, select.swapShift2 {
 	color: blue;
 	font-weight: bold;
 }
+
+.tsDownload {
+	font-size: large;
+	cursor: pointer;
+	text-decoration: none;
+}
+.tsDownload:after {
+	content: '\2913';
+}

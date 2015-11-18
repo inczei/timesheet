@@ -16,7 +16,7 @@
 	</tr>
 </table>
 <br>
-User search:<input type="text" id="usersearch" value="{{ usersearch }}"><input type="button" id="usersearchButton" value="Search">
+<!-- User search:<input type="text" id="usersearch" value="{{ usersearch }}"><input type="button" id="usersearchButton" value="Search"> -->
 <div class="timesheet" id="timesheetDiv" data-url="{{ path('timesheet_ajax_timesheetlist') }}" data-userid="{{ userId }}" data-locationid="" data-timestamp="{{ timestamp }}">
 {{ render(controller('TimesheetHrBundle:Ajax:timesheetList', { 'userId': userId, 'timestamp': timestamp, 'usersearch': usersearch })) }}
 </div>

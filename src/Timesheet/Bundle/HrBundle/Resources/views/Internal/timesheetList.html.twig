@@ -1,7 +1,19 @@
-<div class="currentMonth">{{ currentMonth }}</div> [<span class="showhideButton" name="showhide" column="columnHide">Show</span> full dedails]
+{% if users is defined and users|length %}
+<select id="timesheetUserSelect">
+	<option value="0"> - Please select - </option>
+	<option value="-1"{% if selectedUserId == -1 %} selected{% endif %}> - Latest 10 active - </option>
+	{% for u in users %}
+		<option value="{{ u.id }}"{% if selectedUserId == u.id %} selected{% endif %}>{{ (u.title~' '~u.firstName~' '~u.lastName)|trim }}</option>
+	{% endfor %}
+</select>
+{% endif %}
+<div class="currentMonth">{{ currentMonth }}</div>
+{% if timesheet is defined and timesheet|length %}|{% for userName,t1 in timesheet %}| <a href="#{{ userName }}">{{ userName }}</a> |{% endfor %}|
+<br>[<span class="showhideButton" name="showhide" column="columnHide">Show</span> full dedails]{% endif %}
 {% if timesheet is defined and timesheet|length %}
 <table>
 {% for userName,t1 in timesheet %}
+{% set userId=0 %}
 {% set tah=0 %}
 {% set tahOrig=0 %}
 {% set ah=0 %}
@@ -10,8 +22,12 @@
 {% set leave=0 %}
 {% set ot=0 %}
 {% set ota=0 %}
+{% set lateless=0 %}
+{% set latemore=0 %}
+{% set leaveless=0 %}
+{% set leavemore=0 %}
 {% set holidaysummary=[] %}
-	<tr class="header">
+	<tr class="header" id="{{ userName }}">
 		<th colspan="{% if isManager %}15{% else %}14{% endif %}"><h2>{{ userName }}</h2></th>
 		<th colspan="10" class="columnHide"></th>
 	</tr>
@@ -23,7 +39,7 @@
 		<th>Actual Hours</th>
 		<th>Lates</th>
 		<th>Leave Early</th>
-		<th>Overetime</th>
+		<th>Overtime</th>
 		<th colspan="3">Notes</th>
 		{% if isManager  %}<th>Check</th>{% endif %}
 		<th colspan="10" class="columnHide">Break</th>
@@ -55,6 +71,11 @@
 		<th class="columnHide">Total Break Time</th>
 	</tr>
 	{% for date,t2 in t1 %}
+	{% set userId=t2[0]['userId'] %}
+	{% if t2[0]['LateLess'] is defined and t2[0]['LateLess']>0 %}{% set lateless=lateless+t2[0]['LateLess'] %}{% endif %}
+	{% if t2[0]['LateMore'] is defined and t2[0]['LateMore']>0 %}{% set latemore=latemore+t2[0]['LateMore'] %}{% endif %}
+	{% if t2[0]['LeaveLess'] is defined and t2[0]['LeaveLess']>0 %}{% set leaveless=leaveless+t2[0]['LeaveLess'] %}{% endif %}
+	{% if t2[0]['LeaveMore'] is defined and t2[0]['LeaveMore']>0 %}{% set leavemore=leavemore+t2[0]['LeaveMore'] %}{% endif %}
 	{% if (t2[1]['timestamp'] is not defined or t2[1]['timestamp']<1) and (t2[0]['class'] is not defined or t2[0]['class']|length == 0) and (date < 'now'|date('Y-m-d')) %}
 		{% set noDate1=1 %}
 	{% else %}
@@ -185,7 +206,7 @@
 	</tr>
 	{% endfor %}
 	<tr>
-		<th colspan="2"><b>Summary</b></th>
+		<th colspan="2"><b>Summary</b> <a href="{{ path('timesheet_hr_timesheetreport', { 'timestamp': timestamp, 'userid': userId }) }}" class="tsDownload" title="Download as PDF"> </a></th>
 		<th> </th>
 		<th> </th>
 		<th> </th>
@@ -197,8 +218,8 @@
 			<b title="Actual Hours">{{ (ah/60)|number_format(2) }} Hr</b><br>
 			<i><b title="Deducted">({{ (ahd/60)|number_format(2) }} Hr)</b></i>
 		</th>
-		<th><b title="Lates">{{ (lates/60)|number_format(2) }} Hr</b></th>
-		<th><b title="Leave Early">{{ (leave/60)|number_format(2) }} Hr</b></th>
+		<th><b title="Lates">{{ (lates/60)|number_format(2) }} Hr</b>{% if latemore>0 %}<br>{{ latemore }} x >5mins{% endif %}{% if lateless>0 %}<br>{{ lateless }} x <5mins{% endif %}</th>
+		<th><b title="Leave Early">{{ (leave/60)|number_format(2) }} Hr</b>{% if leavemore>0 %}<br>{{ leavemore }} x >5mins{% endif %}{% if leaveless>0 %}<br>{{ leaveless }} x <5mins{% endif %}</th>
 		<th><b title="Overtime">{{ (ot/60)|number_format(2) }} Hr</b><br>
 			<i><b title="Agreed">({{ (ota/60)|number_format(2) }} Hr)</b></i>
 		</th>

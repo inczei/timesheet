@@ -101,7 +101,6 @@ $(document).ready(function(){
         var name = $(this).attr('data-name');
         var title = $(this).children('td:first').html();
         var value = $(this).children('td:last').html();
-//        alert(name+'='+value);
         if (name=='hct') {
         	var options=[];
             $('input[name=hct]').each(function(index) {
@@ -204,9 +203,7 @@ $(document).ready(function(){
     });
 
 	$('body').delegate('form', 'submit', function( e ){
-//		alert('submit');
 		if ($(this).attr('action').indexOf('ajax') != -1) {
-//			alert('ajax');
 			e.preventDefault();
 			$('#popupDiv').fadeOut(250);
 			postForm( $(this), function( response ){
@@ -216,18 +213,13 @@ $(document).ready(function(){
 					if (typeof response.message != 'undefined' && response.message.length>0) {
 						showMessage(response.message);
 					}
-					ajaxRefresh(response.refresh, '', '');
+					ajaxRefresh(response.refresh, '', '', '');
 				} else if (typeof response.cause != 'undefined' && response.cause.length>0) {
 					$('#popupDiv').fadeIn(250);
 					alert(response.cause);
 				}
 			});
 		} else {
-//			var act=$(this).attr('action');
-//			postForm( $(this), function( response ){
-//				window.location=act;
-//			}, 'ajax');
-//			alert('post');
 			return true;
 		}
 	});
@@ -375,7 +367,6 @@ $(document).ready(function(){
 		var name=$('input[name=userSearch]').val();
 		var group=$('select[name=groupSearch]').val();
 		var domain=$('select[name=domainSearch]').val();
-// alert('domainSearch:'+domain);
 		var qualification=$('select[name=qualificationSearch]').val();
 		var base=$(this).attr('base-url');
 		var listType=$(this).attr('data-type');
@@ -405,7 +396,6 @@ $(document).ready(function(){
 						listType: listType
 					},
 					beforeSend: function() {
-//						$('#usersList').css({ opacity: 0.5 });
 						$('body').css('cursor', 'pointer');
 					}
 				})
@@ -416,7 +406,6 @@ $(document).ready(function(){
 					if (data.content != $('#usersList').html()) {
 						$('#usersList').html(data.content);
 					}
-//				$('#usersList').css({ opacity: 1 });
 				$('body').css('cursor', 'auto');
 				});
 			}, delay));
@@ -440,11 +429,7 @@ $(document).ready(function(){
 	});
 	
 	$('body').delegate('button[type=submit]', 'click', function () {
-//		scroll(0,0);
-//		$(this).text('Submitting...');
 		$('form').preventDoubleSubmission();
-//		$('#lockscreen').addClass('freezePaneOn');
-//		$(this).submit();
 	});
 
 	$('body').delegate('input[class=buttonApprove],input[class=buttonDeny]', 'click', function () {
@@ -467,12 +452,10 @@ $(document).ready(function(){
 		    		resizable: false,
 		    		buttons: {
 		    			'Approve': function () {
-//		    				alert('approved, refresh:'+refresh);
 		    				ajaxApproveDeny(ajaxUrl, 'approve', id, userComment, returnUrl, refresh);
 		    				$(this).dialog("close");
 		    			},
 		    			'Deny': function () {
-//		    				alert('denied');
 		    				ajaxApproveDeny(ajaxUrl, 'deny', id, userComment, returnUrl, 'holidayDiv');
 		    				$(this).dialog("close");
 		    			},
@@ -485,7 +468,6 @@ $(document).ready(function(){
 		    		}
 		    	});
 		} else {
-//			alert('no question, refresh:'+refresh);
 			ajaxApproveDeny(ajaxUrl, userAction, id, userComment, returnUrl, refresh);
 		}
 	});
@@ -616,7 +598,7 @@ $(document).ready(function(){
 		   				var apComment=$('#addPunchComment').val();
 		   				$(this).dialog("close");
 		   				ajaxAddPunch(ajaxUrl, typeId, userId, date, apTime, apComment);
-		   				ajaxRefresh('timesheetDiv', '', '');		   				
+		   				ajaxRefresh('timesheetDiv', '', '', '');		   				
 		   			},
 		   			'No': function () {
 		   				$(this).dialog("close");
@@ -742,19 +724,19 @@ $(document).ready(function(){
 	});
 	
 	$('body').delegate('input[id=usersearch]', 'change', function () {
-//		if ($(this).val().length > 0) {
-			ajaxRefresh('timesheetDiv', '', $(this).val());
-//		}
+		ajaxRefresh('timesheetDiv', '', $('#usersearch').val(), $('#timesheetUserSelect').val());
+	});
+
+	$('body').delegate('select[id=timesheetUserSelect]', 'change', function () {
+		ajaxRefresh('timesheetDiv', '', $('#usersearch').val(), $('#timesheetUserSelect').val());
 	});
 
 	$('body').delegate('input[id=usersearchButton]', 'click', function () {
-//		if ($('#usersearch').val().length > 0) {
-			ajaxRefresh('timesheetDiv', '', $('#usersearch').val());
-//		}
+		ajaxRefresh('timesheetDiv', '', $('#usersearch').val(), $('#timesheetUserSelect').val());
 	});
 	
 	$('body').delegate('span[class=switchMonth]', 'click', function () {
-		ajaxRefresh($(this).attr('data-div'), $(this).attr('name'), '');
+		ajaxRefresh($(this).attr('data-div'), $(this).attr('name'), '', '');
 	});
 
 	$('body').delegate('span.dayInfoProblem,span.noProblem', 'click', function () {
@@ -863,7 +845,7 @@ $(document).ready(function(){
 						}
 					}
 				} else {
-					ajaxRefresh(div, '', '');
+					ajaxRefresh(div, '', '', '');
 				}
 			}
 		});
@@ -889,7 +871,6 @@ function dragLeave(ev) {
 function drag(ev) {
 	ev.dataTransfer.setData("text", ev.target.id);
 	var dragIcon = document.createElement('img');
-//	dragIcon.src = '/web/bundles/timesheethr/images/ajax-loader.gif';
 	dragIcon.width = 100;
 	ev.dataTransfer.setDragImage(dragIcon, -10, -10);
 }
@@ -910,7 +891,6 @@ function drop(ev) {
 
 
 function ajaxSchedule(action, targetId, date, locationId, shiftId, userId) {
-// alert(targetId+' - '+((parseInt(targetId)>0)?'true':'false'));
 	if (parseInt(targetId) > 0 && $('#shft'+targetId).length>0) {
 		$.ajax({
 			url: $('#scheduleurl').val(),
@@ -960,13 +940,10 @@ function ajaxSchedule(action, targetId, date, locationId, shiftId, userId) {
 			}
 			
 			$('#loc'+locationId).css({ opacity: 1 });
-//			alert('dayId:'+data.dayId);
 			if (data.dayProblem==true) {
 				$('#dayInfo'+data.dayId).removeClass('noProblem');
-//				alert('visible');
 			} else {
 				$('#dayInfo'+data.dayId).addClass('noProblem');
-//				alert('hidden');
 			}
 		});
 	}
@@ -1035,7 +1012,6 @@ function postForm( $form, callback ){
 }
 
 function ajaxApproveDeny(url, userAction, id, userComment, returnUrl, refresh) {
-//	alert('ajaxApproveDeny, url:'+url+', refresh:'+refresh);
 	$.ajax({
 		url: url,
 		method: 'POST',
@@ -1051,29 +1027,20 @@ function ajaxApproveDeny(url, userAction, id, userComment, returnUrl, refresh) {
 		alert('ajax error');
 	})
 	.done(function(data) {
-//alert('success');
 		if (data.success) {
-//			alert('1');
 			$('table#approval tr#'+data.id).remove();
 			var rowCount = $('table#approval tr').length;
 			if (rowCount <= 1) {
-//				alert('2');
 				$('#popupDiv').fadeOut(250);
-//				window.location=returnUrl;
 			}
-// alert('refresh:'+data.refresh);
 			if (typeof data.refresh != 'undefined' && data.refresh.length>0) {
-// alert('refresh div defined:'+$('#'+data.refresh).length);
 				if (data.refresh.indexOf('/') == -1) {
-//					alert('defined');
-					ajaxRefresh(data.refresh, '', '');
+					ajaxRefresh(data.refresh, '', '', '');
 				} else {
-// alert('refresh undefined');
 					window.location=data.refresh;
 				}
 			}
 		} else {
-// alert('ajaxApproveDeny error');
 			alert(data.error);
 		}
 	});
@@ -1101,7 +1068,7 @@ function ajaxSwapApproveDeny(url, userAction, id, returnUrl) {
 	});
 }
 
-function ajaxRefresh(div, func, usersearch) {
+function ajaxRefresh(div, func, usersearch, selectedUserId) {
 	var url=$('#'+div).attr('data-url');
 	var userId=$('#'+div).attr('data-userid');
 	var locationId=$('#'+div).attr('data-locationid');
@@ -1118,6 +1085,7 @@ function ajaxRefresh(div, func, usersearch) {
 			locationId: locationId,
 			timestamp: timestamp,
 			usersearch: usersearch,
+			selectedUserId: selectedUserId,
 			func: func
 		},
 	})
@@ -1241,6 +1209,6 @@ function ajaxTimesheetCheck(ajaxurl, date, userid, comment) {
 		if (data.error.length > 0) {
 			alert(data.error);
 		}
-		ajaxRefresh('timesheetDiv', '', '');
+		ajaxRefresh('timesheetDiv', '', '', '');
 	});
 }
