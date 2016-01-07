@@ -68,7 +68,8 @@ class Functions extends ContainerAware
 	
 	
 	public function getUsersList($userId=null, $name=null, $all=false, $groupId=null, $qualificationId=null, $locationId=null, $extra=true, $domainId=null) {
-		
+// error_log('getUsersList');
+// error_log('userId:'.$userId.', name:'.$name.', all:'.$all.', groupId:'.$groupId.', qualificationId:'.$qualificationId.', locationId:'.$locationId.', extra:'.$extra.', domainId:'.$domainId);
 //		$request=$this->requestStack->getCurrentRequest();
 		$users=array();
 		$em=$this->doctrine->getManager();
@@ -113,7 +114,7 @@ class Functions extends ContainerAware
 		
 		$query=$qb->getQuery();
 		$results=$query->getArrayResult();
-
+// error_log('results:'.print_r($results, true));
 		if ($results && count($results)) { 
 			$found=count($results);
 
@@ -870,22 +871,30 @@ error_log('getMembers');
 		/*
 		 * read the groups table by name
 		 */
+		$em=$this->doctrine->getManager();
+		 
+		$qb=$em
+			->createQueryBuilder()
+			->select('g.id')
+			->addSelect('g.name')
+			->addSelect('c.companyname')
+			->from('TimesheetHrBundle:Groups', 'g')
+			->join('TimesheetHrBundle:Companies', 'c', 'WITH', 'g.domainId=c.id')
+			->orderBy('c.companyname', 'ASC')
+			->addOrderBy('g.name', 'ASC');
+
 		if ($domainId) {
-			$search=array('domainId'=>$domainId);
-		} else {
-			$search=array();
+			$qb->andWhere('g.domainId=:dId')
+				->setParameter('dId', $domainId);
 		}
-		$results=$this->doctrine
-			->getRepository('TimesheetHrBundle:Groups')
-			->findBy(
-				$search,
-				array('name'=>'ASC')
-			);
+					
+		$query=$qb->getQuery();
+		$results=$query->getArrayResult();
 		 
 		$arr=array();
 		if ($results) {
 			foreach ($results as $result) {
-				$arr[$result->getId()]=$result->getName();
+				$arr[$result['id']]=$result['name'].($domainId?(''):(' - '.$result['companyname']));
 			}
 		}
 	
@@ -1174,46 +1183,67 @@ error_log('getMembers');
 		 * read the location table by name
 		 */
 		
-		$search=array();
-		if ($id) {
-			$search['id']=$id;
-		}
+		$em=$this->doctrine->getManager();
+			
+		$qb=$em
+			->createQueryBuilder()
+			->select('l.id')
+			->addSelect('l.name')
+			->addSelect('l.addressLine1')
+			->addSelect('l.addressLine2')
+			->addSelect('l.addressCity')
+			->addSelect('l.addressCounty')
+			->addSelect('l.addressCountry')
+			->addSelect('l.addressPostcode')
+			->addSelect('l.phoneLandline')
+			->addSelect('l.phoneMobile')
+			->addSelect('l.phoneFax')
+			->addSelect('l.active')
+			->addSelect('l.fixedIpAddress')
+			->addSelect('c.companyname')
+			->from('TimesheetHrBundle:Location', 'l')
+			->join('TimesheetHrBundle:Companies', 'c', 'WITH', 'l.domainId=c.id')
+			->orderBy('c.companyname', 'ASC')
+			->addOrderBy('l.name', 'ASC');
+		
 		if ($domainId) {
-			$search['domainId']=$domainId;
+			$qb->andWhere('l.domainId=:dId')
+				->setParameter('dId', $domainId);
 		}
-		$results=$this->doctrine
-			->getRepository('TimesheetHrBundle:Location')
-			->findBy(
-				($search),
-				array('name'=>'ASC')
-			);
+		if ($id) {
+			$qb->andWhere('l.id=:lId')
+				->setParameter('lId', $id);
+		}
+			
+		$query=$qb->getQuery();
+		$results=$query->getArrayResult();
 	
 		$arr=array();
 		if ($results) {
 			foreach ($results as $result) {
 				if ($nameOnly) {
-					$arr[$result->getId()]=$result->getName();
+					$arr[$result['id']]=$result['name'].($domainId?'':' - '.$result['companyname']);
 				} else {
 					$tmp=array(
-							'id'=>$result->getId(),
-							'name'=>$result->getName(),
+							'id'=>$result['id'],
+							'name'=>$result['name'],
 							'address'=>array(
-									'line1'=>$result->getAddressLine1(),
-									'line2'=>$result->getAddressLine2(),
-									'city'=>$result->getAddressCity(),
-									'county'=>$result->getAddressCounty(),
-									'country'=>$result->getAddressCountry(),
-									'postcode'=>$result->getAddressPostcode()
+									'line1'=>$result['addressLine1'],
+									'line2'=>$result['addressLine2'],
+									'city'=>$result['addressCity'],
+									'county'=>$result['addressCounty'],
+									'country'=>$result['addressCountry'],
+									'postcode'=>$result['addressPostcode']
 							),
 							'phone'=>array(
-									'landline'=>$result->getPhoneLandline(),
-									'mobile'=>$result->getPhoneMobile(),
-									'fax'=>$result->getPhoneFax()
+									'landline'=>$result['phoneLandline'],
+									'mobile'=>$result['phoneMobile'],
+									'fax'=>$result['phoneFax']
 							),
-							'active'=>$result->getActive(),
-							'fixedipaddress'=>$result->getFixedIpAddress(),
-							'ipaddress'=>$this->getIpAddress($result->getId()),
-							'members'=>$this->getMembers($result->getId())
+							'active'=>$result['active'],
+							'fixedipaddress'=>$result['fixedIpAddress'],
+							'ipaddress'=>$this->getIpAddress($result['id']),
+							'members'=>$this->getMembers($result['id'])
 					);
 					if ($id) {
 						$arr=$tmp;
@@ -1507,8 +1537,14 @@ error_log('getMembers');
 		if ($result['startTime'] && $result['finishTime']) {
 			if (is_object($result['startTime'])) {
 				$minutes=round((strtotime($result['finishTime']->format('H:i:s'))-strtotime($result['startTime']->format('H:i:s')))/60);
+				if ($minutes < 0) {
+					$minutes=$minutes+24*60;
+				}
 			} else {
 				$minutes=round((strtotime($result['finishTime'])-strtotime($result['startTime']))/60);
+				if ($minutes < 0) {
+					$minutes=$minutes+24*60;
+				}
 			}
 			if ($minutes>=$minhoursforlunch*60) {
 				$minutes-=$lunchtime;
@@ -1893,16 +1929,23 @@ error_log('getWeeklyLocationSchedule');
 		$d=min($data['monthly']['last']['first'], $data['weekly']['last']['first']);
 // error_log('d:'.$d.', date:'.date('Y-m-d', $d));
 		$domainId=$this->getDomainIdForUser($userId);
-		while ($d <= max($data['monthly']['next']['last'], $data['weekly']['next']['last'])) {
+		$last=max($data['monthly']['next']['last'], $data['weekly']['next']['last']);
+		while ($d <= $last) {
 			$timings=$this->getTimingsForDay($userId, $d);
-// error_log('timings ('.date('Y-m-d', $d).'):'.print_r($timings, true));
+error_log('timings ('.date('Y-m-d', $d).'):'.print_r($timings, true));
 			$whr=$this->calculateHours($timings, $domainId);
-			
+error_log('whr:'.print_r($whr, true));			
 			foreach ($data as $k=>$v) {
 				foreach ($v as $k1=>$v1) {
 					if ($d>=$v1['first'] && $d<=$v1['last']) {
-// error_log('data: '.$k.' : '.$k1.' ('.date('Y-m-d', $v1['first']).' - '.date('Y-m-d', $v1['last']).')'.' : '.print_r($timings, true));
-						$data[$k][$k1]['whr']+=$whr;
+error_log('data: '.$k.' : '.$k1.' ('.date('Y-m-d', $v1['first']).' - '.date('Y-m-d', $v1['last']).')'.' : '.print_r($timings, true));
+						if (isset($data[$k][$k1]['whr'])) {
+error_log('add:'.$data[$k][$k1]['whr'].'+'.$whr);
+							$data[$k][$k1]['whr']+=$whr;
+						} else {
+							$data[$k][$k1]['whr']=$whr;
+						}
+error_log('added:'.$data[$k][$k1]['whr']);
 					}
 				}
 			}
@@ -2178,7 +2221,8 @@ error_log('getAllocationDivs');
 			' WHERE 1'.
 			(($locationId)?(' AND `a`.`locationId`=:lId'):('')).
 			(($timestamp)?(' AND `a`.`date` BETWEEN :monday AND :sunday'):('')).
-			' GROUP BY `a`.`id`';
+			' GROUP BY `a`.`id`'.
+			' ORDER BY `u`.`username`';
 	
 		$stmt=$conn->prepare($query);
 		if ($timestamp) {
@@ -2209,20 +2253,14 @@ error_log('getAllocationDivs');
 	
 	public function createAllocationDiv($count, $numberOfStaff, $username, $fullname, $groupname, $qualifications, $date, $locationId, $shiftId, $userId, $published = false) {
 error_log('createAllocationDiv');
-		return '<div class="'.
-				'allocation allocationNormal'.
-				'">'.
-					'<table><tr>'.
-					(($published)?
-						(''):
-						('<td>'.
-						'<span class="allocationRemove" data-id="'.str_replace('-', '', $date).'_'.$locationId.'_'.$shiftId.'_'.$userId.'" title="Click here to remove">X</span>'.
-						'</td>')
-					).
-					'<td>'.
-					'<span class="allocationName" title="'.(($published)?('Published'.PHP_EOL):('')).'Username: '.$username.((strlen($groupname))?(PHP_EOL.'Group: '.$groupname):('')).((strlen($qualifications))?(PHP_EOL.'Qualifications:'.PHP_EOL.' - '.$qualifications):('')).'">'.$fullname.'</span>'.
-					'</td></tr></table>'.
-				'</div>';
+		return $this->renderView('TimesheetHrBundle:Internal:allocationdiv.html.twig', array(
+			'published'		=> $published,
+			'data_id'		=> str_replace('-', '', $date).'_'.$locationId.'_'.$shiftId.'_'.$userId,
+			'username'		=> $username,
+			'groupname'		=> $groupname,
+			'fullname'		=> $fullname,
+			'qualifications'=> $qualifications
+		));
 	}
 
 	
@@ -2512,7 +2550,7 @@ error_log('getRequiredQualificationsList');
 				if ($k > 0) {
 					$class='allocationNormal';
 					if ($v['AWH']) {
-						$ok=(round($v['WH']/6)/10)-$v['AWH'];
+						$ok=$v['WH']-$v['AWH'];
 						if ($ok != 0) {
 							if ($ok > 0) {
 								$class='allocationHigh';
@@ -2556,14 +2594,16 @@ error_log('getRequiredQualificationsList');
 						}
 					}
 					
-					$ret.='<div class="allocation '.$class.'" title="Username: '.$v['username'].((isset($v['groupname']))?(PHP_EOL.'Group: '.$v['groupname']):('')).PHP_EOL.'Agreed Weekly Hours: '.$v['AWH'].'">'.
-						$v['name'].':'.
-						'<br>'.
-						'This week: '.(round($v['WH']/6)/10).' Hrs'.
-						(($v['AWH']<1)?('<br>NO CONTRACT !!!'):('')).
-						$holidays_html.
-						((strlen($exceptions_html))?('<span style="color: #cc0000">'.$exceptions_html.'</span>'):('')).
-						'</div>';
+					$ret.=$this->renderView('TimesheetHrBundle:Internal:allocationdivuser.html.twig', array(
+						'class'		=> $class,
+						'name'		=> $v['name'],
+						'username'	=> $v['username'],
+						'groupname'	=> $v['groupname'],
+						'AWH'		=> $v['AWH'],
+						'WH'		=> $v['WH'],
+						'holidays'	=> $holidays_html,
+						'exceptions'=> $exceptions_html
+					));
 				}
 			}
 		}
@@ -2750,6 +2790,7 @@ error_log('getAllLocationDivs');
 			->addSelect('u.firstName')
 			->addSelect('u.lastName')
 			->addSelect('u.groupId')
+			->addSelect('u.domainId')
 			->addSelect('a.date')
 			->addSelect('a.locationId')
 			->addSelect('a.shiftId')
@@ -2868,13 +2909,7 @@ error_log('results1'.print_r($results2, true));
 						'WH'=>0
 					);
 				}
-				if ($r['finishTime'] > $r['startTime']) {
-					$tmp[$r['locationId']][$r['userId']]['WH']+=round((strtotime($r['date']->format('Y-m-d').' '.$r['finishTime']->format('H:i:s'))-strtotime($r['date']->format('Y-m-d').' '.$r['startTime']->format('H:i:s')))/60);
-				} else {
-					$d1=strtotime($r['date']->format('Y-m-d'));
-					$d2=date('Y-m-d', mktime(0, 0, 0, date('m', $d1), date('d', $d1)+1, date('Y', $d1)));
-					$tmp[$r['locationId']][$r['userId']]['WH']+=round((strtotime($d2.' '.$r['finishTime']->format('H:i:s'))-strtotime($r['date']->format('Y-m-d').' '.$r['startTime']->format('H:i:s')))/60);
-				}
+				$tmp[$r['locationId']][$r['userId']]['WH']+=$this->calculateHours($r, $r['domainId']);
 			}
 		}
 
@@ -2883,18 +2918,6 @@ error_log('results1'.print_r($results2, true));
 				$ret[$k]=$this->createWeeklyDiv($v, $monday, $sunday);
 			}
 		}
-/*
-		$staff=$this->getRequiredStaffList($staffMembers, $monday, $locationId);
-		$qual=$this->getRequiredQualificationsList($qualificationMembers, $monday, $locationId);
-
-		if (count($qual)) {
-			$ret[-1]='<div class="allocation allocationHigh">Required qualifications:<div name="showhide" id="rs_showhidebutton" column="req_qual_div">Show</div><div class="req_qual_div" id="rs_showhide" style="display: none">'.((count($qual))?(implode('<br>', $qual)):('')).'</div></div>';
-		}
-		if (count($staff)) {
-			$ret[0]='<div class="allocation allocationHigh">Required staff:<div name="showhide" id="rq_showhidebutton" column="req_staff_div">Show</div><div class="req_staff_div" id="rq_showhide" style="display: none">'.((count($staff))?(implode('<br>', $staff)):('')).'</div></div>';
-		}
-*/			
-//		error_log(print_r($ret, true));
 		
 		return $ret;
 	}
@@ -3323,7 +3346,7 @@ error_log('getCalendarDay, userId:'.$userId.', timestamp:'.$timestamp.', date:'.
 	}
 
 	
-	public function getUsersForManager($user, $limit=0) {
+	public function getUsersForManager($user, $limit=0, $role='ROLE_USER') {
 		
 		$ret=array();
 		$em=$this->doctrine->getManager();
@@ -3335,17 +3358,23 @@ error_log('getCalendarDay, userId:'.$userId.', timestamp:'.$timestamp.', date:'.
 			->addSelect('u.firstName')
 			->addSelect('u.lastName')
 			->from('TimesheetHrBundle:User', 'u')
-			->where('u.isActive=true')
-			->andWhere('u.domainId=:dId')
-			->setParameter('dId', $user->getDomainId());
-	
+			->where('u.isActive=true');
+		
+		if ($role!='ROLE_SYSADMIN') {
+			$qb->andWhere('u.domainId=:dId')
+				->setParameter('dId', $user->getDomainId());
+		}
+		if ($role=='ROLE_USER') {
+			$qb->andWhere('u.id=:uId')
+				->setParameter('uId', $user->getId());
+		}
 		$where=array();	
-		if ($user->getGroupAdmin()) {
+		if ($role=='ROLE_MANAGER' && $user->getGroupAdmin()) {
 //			$where[]='u.groupId IS NULL OR u.groupId=:gId';
 			$where[]='u.groupId=:gId';
 			$qb->setParameter('gId', $user->getGroupId());
 		}
-		if ($user->getLocationAdmin()) {
+		if ($role=='ROLE_MANAGER' && $user->getLocationAdmin()) {
 //			$where[]='u.locationId IS NULL OR u.locationId=:lId';
 			$where[]='u.locationId=:lId';
 			$qb->setParameter('lId', $user->getLocationId());
@@ -3476,7 +3505,7 @@ $time=microtime(true);
 				->setParameter('dateFinish', $finishTime);
 		}
 		$query=$qb->getQuery();
-error_log('1 sql:'.$query->getDql());
+// error_log('1 sql:'.$query->getDql());
 		$results=$query->getArrayResult();
 // error_log('1st no of results:'.count($results).', time:'.(microtime(true)-$time));
 // error_log('results:'.print_r($results, true));		
@@ -3830,7 +3859,7 @@ error_log('is allocated? '.(($this->isAllocatedShift($uId, date('Y-m-d', $ts)))?
 		{
 			// No sign in/out data
 			// If sign in/out not required, use the allocation data
-error_log('no sign in/out data');			
+// error_log('no sign in/out data');			
 
 $time=microtime(true);
 			$em=$this->doctrine->getManager();
@@ -3850,12 +3879,12 @@ $time=microtime(true);
 				->orderBy('u.id', 'ASC')
 				->setParameter('dId', $domainId);
 			
-error_log('dId:'.$domainId);
+// error_log('dId:'.$domainId);
 				
 			if (!$admin && $userId) {
 				$qb->andWhere('u.id=:uId')
 					->setParameter('uId', $userId);
-error_log('uId:'.$userId);
+// error_log('uId:'.$userId);
 			}
 //			if ($admin && $groupId) {
 //				$qb->andWhere('u.groupId=:gId')
@@ -3871,7 +3900,7 @@ error_log('uId:'.$userId);
 				if ($selectedUserId > 0) {
 					$qb->andWhere('u.id=:userId')
 						->setParameter('userId', $selectedUserId);
-error_log('selectedUserId:'.$selectedUserId);
+// error_log('selectedUserId:'.$selectedUserId);
 				}
 			} else {
 				// if not selected any user, result should be empty
@@ -3893,13 +3922,13 @@ error_log('selectedUserId:'.$selectedUserId);
 					->andWhere('c.ced>=:dateStart OR c.ced IS NULL')
 					->setParameter('dateStart', $startTime)
 					->setParameter('dateFinish', $finishTime);
-error_log('dateStart:'.print_r($startTime, true));
-error_log('dateFinish:'.print_r($finishTime, true));
+// error_log('dateStart:'.print_r($startTime, true));
+// error_log('dateFinish:'.print_r($finishTime, true));
 			}
 			$query=$qb->getQuery();
-error_log('2 sql:'.$query->getDql());
+// error_log('2 sql:'.$query->getDql());
 			$users=$query->getArrayResult();
-error_log('1st results:'.count($users).', time:'.(microtime(true)-$time));
+// error_log('1st results:'.count($users).', time:'.(microtime(true)-$time));
 			if (!count($users)) {
 				$users=array();
 				if ($availableUsers) {
@@ -3907,7 +3936,7 @@ error_log('1st results:'.count($users).', time:'.(microtime(true)-$time));
 						$totalUsers++;
 						if (count($users) < 10) {
 							if ($selectedUserId == -1 || $selectedUserId == $au['id']) {
-error_log('user added:'.$au['username']);
+// error_log('user added:'.$au['username']);
 								$users[]=array('id'=>$au['id'], 'username'=>$au['username']);
 							}
 						}
@@ -3967,10 +3996,10 @@ error_log('findUsers:'.print_r($findUsers, true));
 					// but we have userId
 					
 					while ($ts <= $d) {
-error_log('ts:'.$ts.'='.date('Y-m-d', $ts).', d:'.$d.'='.date('Y-m-d', $d));
+// error_log('ts:'.$ts.'='.date('Y-m-d', $ts).', d:'.$d.'='.date('Y-m-d', $d));
 						$tmpTimings=$this->getTimingsForDay($userId, $ts);
 						if (!isset($ret[$username][date('Y-m-d', $ts)][0])) {
-error_log('not exists '.$username.' '.date('Y-m-d', $ts));
+// error_log('not exists '.$username.' '.date('Y-m-d', $ts));
 							if (($tmpTimings && count($tmpTimings)) || (isset($holidays[$userId][date('Y-m-d', $ts)]))) {
 								$agreedStartTime=null;
 								$agreedFinishTime=null;
@@ -4058,7 +4087,7 @@ error_log('not exists '.$username.' '.date('Y-m-d', $ts));
 					}
 
 				} else {
-error_log('login not required');					
+// error_log('login not required');					
 					while ($ts <= $d) {
 // error_log('ts:'.$ts.'='.date('Y-m-d', $ts).', d:'.$d.'='.date('Y-m-d', $d));
 						$agreedStartTime=null;

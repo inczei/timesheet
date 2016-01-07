@@ -1,0 +1,6 @@
+<div class="allocation {{ class }}" title="Username: {{ username }}{% if groupname is defined and groupname|length %}{{ "\n"|raw }}Group: {{ groupname }}{% endif %}{{ "\n"|raw }}Agreed Weekly Hours: {{ AWH|number_format(1) }}">
+{{ name }}:<br>
+This week: {{ WH|number_format(1) }} Hrs{% if AWH<1 %}<br>NO CONTRACT !!!{% endif %}
+{{ holidays|raw }}
+{% if exceptions is defined and exceptions|length %}<span style="color: #cc0000">{{ exceptions|raw }}</span>{% endif %}
+</div>

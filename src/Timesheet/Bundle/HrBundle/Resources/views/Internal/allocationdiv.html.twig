@@ -1,0 +1,15 @@
+<div class="allocation allocationNormal">
+<table>
+	<tr>
+{% if published is defined and published %}
+{% else %}
+		<td>
+			<span class="allocationRemove" data-id="{{ data_id }}" title="Click here to remove">X</span>
+		</td>
+{% endif %}
+		<td>
+			<span class="allocationName" title="{% if published is defined and published %}Published{{ "\n"|raw }}{% endif %}Username: {{ username }}{% if groupname is defined and groupname|length %}{{ "\n"|raw }}Group: {{ groupname }}{% endif %}{% if qualifications is defined and qualifications|length %}{{ "\n"|raw }}Qualifications:{{ "\n"|raw }} - {{ qualifications }}{% endif %}">{{ fullname }}</span>
+		</td>
+	</tr>
+</table>
+</div>

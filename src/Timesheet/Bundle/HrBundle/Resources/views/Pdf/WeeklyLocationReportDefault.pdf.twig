@@ -65,7 +65,7 @@
 		{% if shifts is defined and shifts|length %}
 		<br/><br/>Shifts*:<br/>
 		{% for sId,s in shifts %}
-			Shifts {{ shiftsArray['_'~sId] }} : {{ s.title }} ({{ s.times }})<br/>
+			Shift {{ shiftsArray['_'~sId] }} : {{ s.title }} ({{ s.times }})<br/>
 		{% endfor %}
 		{% endif %}
 		</div>

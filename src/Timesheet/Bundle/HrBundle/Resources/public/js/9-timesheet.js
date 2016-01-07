@@ -249,6 +249,8 @@ $(document).ready(function(){
 		var la=$('select[id=register_locationAdmin]');
 		switch ($(this).val()) {
 			case 'ROLE_MANAGER' :
+//				ga.show();
+//				la.show();
 				ga.css('read_only', false);
 				ga.removeAttr('disabled');
 				la.css('read_only', false);
@@ -261,6 +263,8 @@ $(document).ready(function(){
 				la.val('1');
 				la.css('read_only', true);
 				la.attr('disabled', 'disabled');
+//				ga.hide();
+//				la.hide();
 				break;
 			default :
 				ga.val('0');
@@ -269,6 +273,8 @@ $(document).ready(function(){
 				la.val('0');
 				la.css('read_only', true);
 				la.attr('disabled', 'disabled');
+//				ga.hide();
+//				la.hide();
 				break;
 		};
 	});

@@ -203,17 +203,17 @@ class RegisterType extends AbstractType
     			'data'=>((isset($this->user))?($this->getRoles($this->user->getRoles())):(''))
     		))
     		->add('groupAdmin', 'choice', array(
-    			'choices'=>array(0=>'No', 1=>'Yes'),
+    			'choices'=>array('0'=>'No', '1'=>'Yes'),
     			'label'=>'Group Admin:',
     			'required'=>true,
-   				'disabled'=>(((isset($this->user))?(($this->getRoles($this->user->getRoles()) == 'ROLE_MANAGER')?false:true):(false))),
+//   				'disabled'=>(((isset($this->user))?(($this->getRoles($this->user->getRoles()) == 'ROLE_MANAGER')?false:true):(false))),
     			'data'=>((isset($this->user))?($this->user->getGroupAdmin()):(''))
     		))
     		->add('locationAdmin', 'choice', array(
-    			'choices'=>array(0=>'No', 1=>'Yes'),
+    			'choices'=>array('0'=>'No', '1'=>'Yes'),
     			'label'=>'Location Admin:',
     			'required'=>true,
-   				'disabled'=>(((isset($this->user))?(($this->getRoles($this->user->getRoles()) == 'ROLE_MANAGER')?false:true):(false))),
+//   				'disabled'=>(((isset($this->user))?(($this->getRoles($this->user->getRoles()) == 'ROLE_MANAGER')?false:true):(false))),
     			'data'=>((isset($this->user))?($this->user->getLocationAdmin()):(''))
     		))
     		->add('exEmail', 'choice', array(
@@ -234,8 +234,25 @@ class RegisterType extends AbstractType
    					'formnovalidate'=>true
    				),
     			'validation_groups'=>false
-    		));
-
+    		))
+   			->addEventListener(
+   				FormEvents::SUBMIT,
+   				array($this, 'onSubmit')
+   			)
+   			->addEventListener(
+   				FormEvents::PRE_SUBMIT,
+   				array($this, 'onPreSubmit')
+   			)
+   			->addEventListener(
+   				FormEvents::POST_SUBMIT,
+   				function (FormEvent $event) {
+        			$event->stopPropagation();
+   			}, 900);
+error_log('user:'.print_r($this->user, true));
+$roles=$this->user->getRoles();
+error_log('roles:'.print_r($roles, true));
+$role=$this->user->getRoles($roles);
+error_log('role:'.print_r($role, true));
    		if ($this->domains) {
    			$builder
    				->add('domainId', 'choice', array(
@@ -299,7 +316,39 @@ class RegisterType extends AbstractType
     	}
     	return 'ROLE_USER';
     }
+    
+    public function onSubmit(FormEvent $event) {
+//    	$form=$event->getForm();
+    	$data=$event->getData();
+error_log('onSubmit');
+//error_log('form:'.print_r($form, true));
+error_log('form data:'.print_r($data, true));
+		switch ($data['role']) {
+			case 'ROLE_ADMIN': {
+				$data['groupAdmin']=1;
+				$data['locationAdmin']=1;
+				$event->setData($data);
+				break;
+			}
+			case 'ROLE_USER': {
+				$data['groupAdmin']=0;
+				$data['locationAdmin']=0;
+				$event->setData($data);
+				break;
+			}
+		}
+    }
 
+    public function onPreSubmit(FormEvent $event) {
+//    	$form=$event->getForm();
+    	$data=$event->getData();
+error_log('onPreSubmit');
+error_log('form data:'.print_r($data, true));
+    	if ($data['role']=='ROLE_MANAGER') {
+    		error_log('manager');
+    	}
+    	//    	$form->get('groupAdmin');
+    }
     
     public function getName()
     {

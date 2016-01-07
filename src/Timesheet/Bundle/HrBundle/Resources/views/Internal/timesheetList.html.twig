@@ -1,14 +1,14 @@
 {% if users is defined and users|length %}
 <select id="timesheetUserSelect">
 	<option value="0"> - Please select - </option>
-	<option value="-1"{% if selectedUserId == -1 %} selected{% endif %}> - Latest 10 active - </option>
+	{% if users|length != 1 %}<option value="-1"{% if selectedUserId == -1 %} selected{% endif %}> - Latest 10 active - </option>{% endif %}
 	{% for u in users %}
 		<option value="{{ u.id }}"{% if selectedUserId == u.id %} selected{% endif %}>{{ (u.title~' '~u.firstName~' '~u.lastName)|trim }}</option>
 	{% endfor %}
 </select>
 {% endif %}
 <div class="currentMonth">{{ currentMonth }}</div>
-{% if timesheet is defined and timesheet|length %}|{% for userName,t1 in timesheet %}| <a href="#{{ userName }}">{{ userName }}</a> |{% endfor %}|
+{% if timesheet is defined and timesheet|length %}{% if users is defined and users|length>1 %}|{% for userName,t1 in timesheet %}| <a href="#{{ userName }}">{{ userName }}</a> |{% endfor %}|{% endif %}
 <br>[<span class="showhideButton" name="showhide" column="columnHide">Show</span> full dedails]{% endif %}
 {% if timesheet is defined and timesheet|length %}
 <table>

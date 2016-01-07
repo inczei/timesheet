@@ -112,8 +112,8 @@
 			{% if t2[0]['OvertimeAgreed'] is defined and t2[0]['OvertimeAgreed'] > 0 %}<br/><i>({{ (t2[0]['OvertimeAgreed']/60)|number_format(2) }}{% set ota=ota+t2[0]['OvertimeAgreed'] %})</i>{% endif %}
 		</td>
 		<td>{% spaceless %}{% if t2[1]['holidays'] is defined and t2[1]['holidays']|length %}{% for h in t2[1]['holidays'] %}<div class="holidayClass">{{ h['name'] }}</div>{% if holidaysummary['_'~h['typeId']]['num'] is defined %}{% set tmp=holidaysummary['_'~h['typeId']]['num'] %}{% set tmp=tmp+1 %}{% else %}{% set tmp=1 %}{% endif %}{% set holidaysummary=holidaysummary|merge({('_'~h['typeId']):{'name':(h['name']), 'num':tmp}}) %}{% endfor %}{% endif %}{% endspaceless %}</td>
-		<td>{{ t2[1]['comment'] }}</td>
-		<td>{{ t2[2]['comment'] }}</td>
+		<td>{% if t2[1]['comment'] is defined and t2[1]['comment']|length %}{{ t2[1]['comment'] }}{% endif %}</td>
+		<td>{% if t2[2]['comment'] is defined and t2[2]['comment']|length %}{{ t2[2]['comment'] }}{% endif %}</td>
 	</tr>
 	{% endfor %}
 	<tr>

@@ -53,6 +53,21 @@ class AjaxController extends Controller
 
 	    	$userManager = $this->container->get('fos_user.user_manager');
 	    	$functions = $this->get('timesheet.hr.functions');
+		    
+	    	$securityContext = $this->container->get('security.context');
+    		$sysadmin=false;
+    		if ($securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
+    			// authenticated REMEMBERED, FULLY will imply REMEMBERED (NON anonymous)
+    			if (TRUE === $securityContext->isGranted('ROLE_SYSADMIN')) {
+    				// we don't need to check domain is sysadmin logged in
+    				$sysadmin=true;
+    			}
+    		}
+	    	if ($sysadmin) {
+	    		$domainId=null;
+	    	} else {
+	    		$domainId=$functions->getDomainId($request->getHttpHost());
+	    	}
 	    	
 	    	$user=$userManager->findUserBy(array('id'=>$id));
 	    	
@@ -60,9 +75,9 @@ class AjaxController extends Controller
 
 	    		$data['content'].=$this->renderView('TimesheetHrBundle:Ajax:userinfo.html.twig', array(
 	    			'user' 		=> $user,
-	    			'roles'		=> $functions->getAvailableRoles(),
-	    			'groups'	=> $functions->getGroups(),
-	    			'locations'	=> $functions->getLocation(),
+	    			'roles'		=> $functions->getAvailableRoles(array('ROLE_SYSADMIN')),
+	    			'groups'	=> $functions->getGroups($domainId),
+	    			'locations'	=> $functions->getLocation(null, true, $domainId),
 	    			'titles'	=> $functions->getTitles(),
 	    			'countries' => Intl::getRegionBundle()->getCountryNames()
 	    		));
@@ -106,12 +121,13 @@ error_log('userlistAction');
     		$name=$params['name'];
     		$group=((isset($params['group']))?($params['group']):(''));
     		$domain=((isset($params['domain']))?($params['domain']):(''));
-// error_log('domain:'.$domain);
     		$qualification=((isset($params['qualification']))?($params['qualification']):(''));
-    		$base=$params['base'];
+// error_log('domain:'.$domain.', group:'.$group.', qualification:'.$qualification);
+			$base=$params['base'];
     		$listType=$params['listType'];
     		
     		$users=$functions->getUsersList(null, (strlen($name)?$name:null), false, (strlen($group)?$group:null), (strlen($qualification)?$qualification:null), null, true, (($domain)?($domain):($domainId)));
+// error_log('found users:'.print_r($users, true));
     		if (isset($users[-1]['found'])) {
     			$found=$users[-1]['found'];
     			unset($users[-1]);
@@ -1326,20 +1342,31 @@ error_log('swap:'.print_r($swap, true));
 	    	$session->set('timesheet', $calendar);
     	}
 
+    	$securityContext = $this->container->get('security.context');
+    	$role='ROLE_USER';
+    	if ($securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
+    		// authenticated REMEMBERED, FULLY will imply REMEMBERED (NON anonymous)
+    		if (TRUE === $securityContext->isGranted('ROLE_ADMIN')) {
+    			$role='ROLE_ADMIN';
+    		} elseif (TRUE === $securityContext->isGranted('ROLE_MANAGER')) {
+    			$role='ROLE_MANAGER';
+    		}
+    	}
+// error_log('selectedUserId:'.$selectedUserId);
     	$domainId=$functions->getDomainId($request->getHttpHost());
 // error_log('selectedUserId:'.$selectedUserId);
-		$users=$functions->getUsersForManager($this->getUser());
+		$users=$functions->getUsersForManager($this->getUser(), 0, $role);
 // error_log('4 memory:'.memory_get_usage());
-		$timesheet=$functions->getTimesheet($userId, $timestamp, $usersearch, $session, $domainId, $selectedUserId, $functions->getUsersForManager($this->getUser(), (($selectedUserId>0)?(0):(10))));
+		$timesheet=$functions->getTimesheet($userId, $timestamp, $usersearch, $session, $domainId, $selectedUserId, $functions->getUsersForManager($this->getUser(), (($selectedUserId>0)?(0):(10)), $role));
 // error_log('5 memory:'.memory_get_usage());
     	$content=$this->renderView('TimesheetHrBundle:Internal:timesheetList.html.twig', array(
-	    		'base'		=> $base,
-				'currentMonth'=> date('F Y', $timestamp),
-    			'isManager'	=> $functions->isManager(),
-    			'users'		=> $users,
-    			'selectedUserId'	=> $selectedUserId,
-    			'timestamp'	=> $timestamp,
-	   			'timesheet'	=> $timesheet
+	    		'base'			=> $base,
+				'currentMonth'	=> date('F Y', $timestamp),
+    			'isManager'		=> $functions->isManager(),
+    			'users'			=> $users,
+    			'selectedUserId'=> $selectedUserId,
+    			'timestamp'		=> $timestamp,
+	   			'timesheet'		=> $timesheet
 	    	));
     	
     	if ($request->isXmlHttpRequest()) {
@@ -1363,7 +1390,6 @@ error_log('swap:'.print_r($swap, true));
 
     public function scheduleListAction($locationId='0', $timestamp='0', $func='', $usersearch='', $groupsearch='', $qualificationsearch='', $base='') {
 error_log('scheduleListAction');
-
     	$week=array();
 		$locationsUrl=array();
     	$request=$this->getRequest();
@@ -1468,7 +1494,7 @@ error_log('scheduleListAction');
 //    	$locationId=null;
     	$securityContext = $this->container->get('security.context');
     	$currentUser=$this->getUser();
-    	if (TRUE === $securityContext->isGranted('ROLE_MANAGER')) {
+    	if (!$locationId && TRUE === $securityContext->isGranted('ROLE_MANAGER')) {
 // error_log('manager');
     		if ($currentUser->getLocationAdmin()) {
 // error_log('location manager');

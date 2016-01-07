@@ -74,6 +74,7 @@ use Zend\Math\Rand;
 use Zend\Stdlib\Message;
 use Timesheet\Bundle\HrBundle\Entity\UserPhotos;
 use \DateTime;
+use Symfony\Component\Validator\Constraints\True;
 
 class DefaultController extends Controller
 {
@@ -166,6 +167,10 @@ class DefaultController extends Controller
 
     public function loginAction() {
     	
+    	if ($this->get("security.context")->isGranted('ROLE_USER')) {
+    		return $this->redirect($this->generateUrl('timesheet_hr_homepage'));
+    	}
+
     	$message='';
     	$session = $this->get('session');
     	$session->set('menu', Constants::MENU_LOGIN);
@@ -786,6 +791,7 @@ error_log('not allowed...redirect to homepage');
     		if ($timestamp) {
     			$calendar['timestamp']=$timestamp;
     		}
+// error_log('calendar:'.print_r($calendar, true));
     		$session->set('schedule', $calendar);
     	
     		return $this->redirect($this->generateUrl('timesheet_hr_schedule'));
@@ -806,7 +812,9 @@ error_log('not allowed...redirect to homepage');
     			}
     			$calendar['timestamp']=$timestamp;
     			$session->set('schedule', $calendar);
+// error_log('locationId in session:'.$locationId);
     		} else {
+// error_log('locationId without session');
     			$timestamp=time();
     			$calendar=array('locationId'=>0, 'timestamp'=>$timestamp);
     			$session->set('schedule', $calendar);
@@ -1403,14 +1411,13 @@ error_log('not allowed...redirect to homepage');
     
     
     public function usersAction($action, $param1, $param2) {
-
-    	$securityContext = $this->container->get('security.context');
-    	if (!$securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED') || (TRUE !== $securityContext->isGranted('ROLE_ADMIN') && TRUE !== $securityContext->isGranted('ROLE_SYSADMIN'))) {
+error_log('usersAction');
+    	if (True !== $this->get("security.context")->isGranted('ROLE_MANAGER')) {
 error_log('not allowed...redirect to homepage');
     		return $this->redirect($this->generateUrl('timesheet_hr_homepage'));
-    	}
     	
-    	$sysadmin=(TRUE === $securityContext->isGranted('ROLE_SYSADMIN'));
+    	}
+    	$sysadmin=(TRUE === $this->get('security.context')->isGranted('ROLE_SYSADMIN'));
     	$functions=$this->get('timesheet.hr.functions');
     	$domainId=$functions->getDomainId($this->getRequest()->getHttpHost());
     	$base=$this->getRequest()->attributes->get('_route');
@@ -1467,7 +1474,7 @@ error_log('not allowed...redirect to homepage');
     				}
 
     				$currentUser=$this->getUser();
-    				$userForm=$this->createForm(new RegisterType($functions->getGroups($domainId), $functions->getLocation(null, true, $domainId), $functions->getAvailableRoles($currentUser->getRoles()), $functions->getTitles(), $user, $new, (($sysadmin)?($functions->getCompanies()):(null))));
+    				$userForm=$this->createForm(new RegisterType($functions->getGroups($sysadmin?null:$domainId), $functions->getLocation(null, true, $sysadmin?null:$domainId), $functions->getAvailableRoles($currentUser->getRoles()), $functions->getTitles(), $user, $new, (($sysadmin)?($functions->getCompanies()):(null))));
 
     				$userForm->handleRequest($this->getRequest());
     	
@@ -1479,6 +1486,7 @@ error_log('not allowed...redirect to homepage');
 	    					$message='Valid';
 	    					$generatedUsername='';
 	    					$data=$userForm->getData();
+error_log('data:'.print_r($data, true));
 	    					$userManager = $this->container->get('fos_user.user_manager');
 	    					if ($new && $domainId && strlen($data['username'])<3) {
 // error_log('generate username');
@@ -1522,25 +1530,32 @@ error_log('not allowed...redirect to homepage');
 	    					$user->setRoles(array($data['role']));
 	    					if (isset($data['domainId'])) {
 	    						$user->setDomainId($data['domainId']);
+	    					} else {
+	    						$user->setDomainId($domainId);
 	    					}
+	    					$gAdmin=false;
+	    					$lAdmin=false;
 	    					switch ($data['role']) {
 	    						case 'ROLE_ADMIN' : {
-	    							$user->setGroupAdmin(true);
-	    							$user->setLocationAdmin(true);
+	    							$gAdmin=true;
+	    							$lAdmin=true;
 	    							break;
 	    						}
 	    						case 'ROLE_USER' : {
-	    							$user->setGroupAdmin(false);
-	    							$user->setLocationAdmin(false);
 	    							break;
 	    						}
 	    						default : {
-	    							$user->setGroupAdmin((isset($data['groupAdmin']) && $data['groupAdmin'])?true:false);
-	    							$user->setLocationAdmin((isset($data['locationAdmin']) && $data['locationAdmin'])?true:false);
+	    							$gAdmin=((isset($data['groupAdmin']) && $data['groupAdmin']));
+	    							$lAdmin=((isset($data['locationAdmin']) && $data['locationAdmin']));
 	    							break;
 	    						}
 	    					}
+error_log('gAdmin:'.($gAdmin?'true':'false'));
+error_log('lAdmin:'.($lAdmin?'true':'false'));
+	    					$user->setGroupAdmin($gAdmin);
+	    					$user->setLocationAdmin($lAdmin);
 	    					try {
+//error_log('not saving...');
 	    						$userManager->updateUser($user);
 							} catch (\Exception $e) {
 								if (strpos($e->getMessage(), '1062') === false) {
@@ -2067,13 +2082,13 @@ error_log('not allowed...redirect to homepage');
     
     
     public function adminAction($action, $param1, $param2) {
-error_log('adminAction');
-    	$securityContext = $this->container->get('security.context');
-    	if (!$securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED') || (TRUE !== $securityContext->isGranted('ROLE_ADMIN'))) {
+    	if (!$this->get("security.context")->isGranted('ROLE_ADMIN')) {
 error_log('not allowed...redirect to homepage');
     		return $this->redirect($this->generateUrl('timesheet_hr_homepage'));
-    	}
     	
+    	}
+    	 
+error_log('adminAction');
     	$admin=array();
     	$functions=$this->get('timesheet.hr.functions');
     	$domainId=$functions->getDomainId($this->getRequest()->getHttpHost());
@@ -2173,6 +2188,7 @@ error_log('not allowed...redirect to homepage');
 
 		    			$qualification->setTitle(''.$data['title']);
 		    			$qualification->setComments(''.$data['comments']);
+		    			$qualification->setDomainId($domainId);
 		    			
 		    			if ($new) {
 		    				$qualification->setCreatedOn(new \DateTime('now'));
@@ -2593,13 +2609,14 @@ error_log('else');
 	    		$links[]=array('url'=>$this->generateUrl('timesheet_hr_holiday'), 'name'=>'Holiday', 'active'=>($active == Constants::MENU_HOLIDAY));
     			$residentsSubmenu[]=array('url'=>$this->generateUrl('residents_hr_list'), 'name'=>'Residents List', 'active'=>false);
 	    		$links[]=array('sub'=>$residentsSubmenu, 'url'=>$this->generateUrl('residents_hr_dashboard'), 'name'=>'Residents', 'active'=>($active == Constants::MENU_RESIDENTS));
-    		} else {
+    		}
+    		if (TRUE === $securityContext->isGranted('ROLE_SYSADMIN')) {
     			$sysadminSubmenu[]=array('url'=>$this->generateUrl('timesheet_hr_users', array('action'=>'clean')), 'name'=>'Users', 'active'=>false);
-    			$sysadminSubmenu[]=array('url'=>$this->generateUrl('residents_hr_list', array('action'=>'clean')), 'name'=>'Residents List', 'active'=>false);
-    			$sysadminSubmenu[]=array('url'=>$this->generateUrl('timesheet_hr_reset'), 'name'=>'Reset', 'active'=>false);
-    			$links[]=array('sub'=>$sysadminSubmenu, 'url'=>$this->generateUrl('timesheet_hr_sysadmin'), 'name'=>'Sysadmin', 'active'=>($active == Constants::MENU_SYSADMIN));    		}
-    		if (TRUE === $securityContext->isGranted('ROLE_ADMIN') || TRUE === $securityContext->isGranted('ROLE_MANAGER')) {
-
+//    			$sysadminSubmenu[]=array('url'=>$this->generateUrl('residents_hr_list', array('action'=>'clean')), 'name'=>'Residents', 'active'=>false);
+//    			$sysadminSubmenu[]=array('url'=>$this->generateUrl('timesheet_hr_reset'), 'name'=>'Reset', 'active'=>false);
+    			$links[]=array('sub'=>$sysadminSubmenu, 'url'=>$this->generateUrl('timesheet_hr_sysadmin'), 'name'=>'Sysadmin', 'active'=>($active == Constants::MENU_SYSADMIN));
+    		}
+    		if (TRUE !== $securityContext->isGranted('ROLE_SYSADMIN') && (TRUE === $securityContext->isGranted('ROLE_ADMIN') || TRUE === $securityContext->isGranted('ROLE_MANAGER'))) {
     			$locationId=null;
     			if (TRUE === $securityContext->isGranted('ROLE_MANAGER')) {
     				if ($currentUser->getLocationAdmin()) {
@@ -2622,7 +2639,7 @@ error_log('else');
 				}
     		}
 	    	
-	    	if (TRUE === $securityContext->isGranted('ROLE_ADMIN')) {
+	    	if (TRUE === $securityContext->isGranted('ROLE_ADMIN') && TRUE !== $securityContext->isGranted('ROLE_SYSADMIN')) {
 			// only for ADMIN
     			$adminSubmenu[]=array('url'=>$this->generateUrl('timesheet_hr_users', array('action'=>'clean')), 'name'=>'Users', 'active'=>false);
     			$adminSubmenu[]=array('url'=>$this->generateUrl('timesheet_hr_locations', array('action'=>'clean')), 'name'=>'Locations', 'active'=>false);
@@ -2644,10 +2661,10 @@ error_log('else');
     
     public function sysadminAction($action, $param1, $param2) {
     	
-    	$securityContext = $this->container->get('security.context');
-    	if (!$securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED') || (TRUE !== $securityContext->isGranted('ROLE_SYSADMIN'))) {
+    	if (!$this->get("security.context")->isGranted('ROLE_SYSADMIN')) {
 error_log('not allowed...redirect to homepage');
-    		return $this->redirect($this->generateUrl('timesheet_hr_homepage'));
+			return $this->redirect($this->generateUrl('timesheet_hr_homepage'));
+
     	}
 
     	$em=$this->getDoctrine()->getManager();
@@ -3227,11 +3244,11 @@ error_log('timesheetreportAction');
     
     	$facade = $this->get('ps_pdf.facade');
     	$response = new Response();
-    
+//error_log('userId:'.$userid);    
     	$user=$this->getDoctrine()
     		->getRepository('TimesheetHrBundle:User')
-    		->findOneBy(array('id'=>$userid));
-    
+    		->findOneBy(array('username'=>$userid));
+//error_log('user:'.print_r($user, true));    
     	$this->render(sprintf('TimesheetHrBundle:Pdf:TimesheetReport.%s.twig', 'pdf'), array(
     			'name' => trim($user->getTitle().' '.$user->getFirstName().' '.$user->getLastName()),
     			'username' => $user->getUsername(),

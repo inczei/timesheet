@@ -3,23 +3,14 @@ security:
         FOS\UserBundle\Model\UserInterface: sha512
 
     role_hierarchy:
-        ROLE_ADMIN:       ROLE_USER
-        ROLE_SUPER_ADMIN: ROLE_ADMIN
+        ROLE_MANAGER:     ROLE_USER
+        ROLE_ADMIN:       [ROLE_MANAGER,ROLE_USER]
+        ROLE_SYSADMIN:    [ROLE_ADMIN,ROLE_ADMIN,ROLE_USER]
 
     providers:
       fos_userbundle:
         id: fos_user.user_provider.username
 
-#        main:
-#            entity:
-#                class: Timesheet\Bundle\HrBundle\Entity\User
-#                property: username
-#        in_memory:
-#            memory:
-#                users:
-#                    user:  { password: userpass, roles: [ 'ROLE_USER' ] }
-#                    admin: { password: adminpass, roles: [ 'ROLE_ADMIN' ] }
-#
     firewalls:
       main:
         pattern: ^/
