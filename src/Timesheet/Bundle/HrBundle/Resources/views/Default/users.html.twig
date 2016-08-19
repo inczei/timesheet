@@ -17,6 +17,11 @@
 <h2>Contract</h2>
 {{ include('TimesheetHrBundle:Includes:contract_form.html.twig', { 'form': contractForm }) }}
 </div>
+{% elseif userdbscheckForm is defined and userdbscheckForm|length %}
+<div class="registrationList">
+<h2>DBS Check</h2>
+{{ include('TimesheetHrBundle:Includes:userdbscheck_form.html.twig', { 'form': userdbscheckForm }) }}
+</div>
 {% elseif uservisaForm is defined and uservisaForm|length %}
 <div class="registrationList">
 <h2>Visa</h2>

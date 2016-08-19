@@ -1,0 +1,33 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+<table>
+	<tr>
+		<td></td>
+		<td>{{ form_label(form.title) }}{{ form_errors(form.title) }}</td>
+		<td>{{ form_widget(form.title) }}</td>
+		<td></td>
+	</tr>
+	<tr>
+		<td></td>
+		<td>{{ form_label(form.status) }}{{ form_errors(form.status) }}</td>
+		<td>{{ form_widget(form.status) }}</td>
+		<td></td>
+	</tr>
+	{% if form.domainId is defined %}
+	<tr>
+		<td></td>
+		<td>{{ form_label(form.domainId) }}{{ form_errors(form.domainId) }}</td>
+		<td>{{ form_widget(form.domainId) }}</td>
+		<td></td>
+	</tr>
+	{% endif %}
+	<tr>
+		<td></td>
+		<td align="left">{{ form_widget(form.cancel) }}</td>
+		<td align="right">{{ form_widget(form.submit) }}</td>
+		<td></td>
+	</tr>
+</table>
+{{ form_widget(form.id) }}
+{{ form_widget(form._token) }}
+{{ form_end(form) }}

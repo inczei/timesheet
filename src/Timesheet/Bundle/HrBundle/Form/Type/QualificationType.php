@@ -49,10 +49,10 @@ class QualificationType extends AbstractType
     			'label'=>'Submit',
     			'attr'=>array('class'=>'submitButton')
     		))
-   			->add('cancel', 'submit', array(
+   			->add('cancel', 'button', array(
    				'label'=>'Cancel',
    				'attr'=>array('formnovalidate'=>true),
-    			'validation_groups'=>false
+//    			'validation_groups'=>false
     		));
    			if (isset($this->domains) && count($this->domains)) {
    				$builder

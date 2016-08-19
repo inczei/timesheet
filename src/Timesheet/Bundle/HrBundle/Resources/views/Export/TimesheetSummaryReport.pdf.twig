@@ -1,0 +1,70 @@
+<pdf>
+	<page page-size="A3-landscape">
+		<span font-size="14">Date: {{ date }}</span>
+		<br/>
+		<br/>
+		{% if report is defined and report|length %}
+<table font-size="6" text-align="center" width="1200">
+	<tr font-size="5">
+		<td text-align="center">Payrol Number</td>
+		<td text-align="center" width="80">Name</td>
+		{% for d in dates %}		
+		<td text-align="center">{{ d }}</td>
+		{% endfor %}
+		<td text-align="center">Breaks</td>
+		<td text-align="center">Additions</td>
+		<td text-align="center">Final Calc</td>
+		<td text-align="center">Total Hours</td>
+		<td text-align="center">Deduction</td>
+		<td text-align="center">Overtime</td>
+		<td text-align="center">Agreed Ovetime</td>
+		<td text-align="center">Period of Sickness/Off</td>
+		<td text-align="center">No of Days Sickness/Off</td>
+		<td text-align="center">Lateness &lt;{{ gracePeriod }}mins</td>
+		<td text-align="center">Lateness &gt;{{ gracePeriod }}mins</td>
+		<td text-align="center">Hours Late</td>
+		<td text-align="center">Leave Early &lt;{{ gracePeriod }}mins</td>
+		<td text-align="center">Leave Early &gt;{{ gracePeriod }}mins</td>
+		<td text-align="center">Hours Leave Early</td>
+		<td text-align="center">No of Sickness (Days)</td>
+		<td text-align="center">No of Off (Days)</td>
+		<td text-align="center">No of Holidays (Days)</td>
+	</tr>
+	{% for sum in report %}
+	{% set userId=sum['UserId'] %}
+	<tr>
+		<td text-align="right">{{ users[userId]['payrolCode'] }}</td>
+		<td text-align="left">{{ (users[userId]['title']~' '~users[userId]['firstName']~' '~users[userId]['lastName'])|trim }}</td>
+		{% for dk,d in dates %}		
+		<td text-align="center">
+			{% if sum[dk]['type'] is defined %}{% if sum[dk]['type'] is defined and (sum[dk]['type']=='Holiday' or sum[dk]['type']=='Dayoff' or sum[dk]['type']=='Incorrect') %}{{ sum[dk]['typesign'] }}{% else %}{% endif %}{% endif %}
+			{% if sum[dk]['times']['WorkTime'] is defined and sum[dk]['times']['WorkTime']>0 %}{{ (sum[dk]['times']['WorkTime']/60)|number_format(2) }}{% else %}{% endif %}
+		</td>
+		{% endfor %}
+		<td text-align="right">{% if (sum['Breaks'] is defined and sum['Breaks'] > 0) %}{{ sum['Breaks'] }}{% endif %}</td>
+		<td text-align="right">{% if (sum['Additions'] is defined and sum['Additions'] > 0) %}{{ sum['Additions'] }}{% endif %}</td>
+		<td text-align="right">{% if (sum['FinalCalc'] is defined and sum['FinalCalc'] > 0) %}{{ (sum['FinalCalc']/60)|number_format(2) }}{% endif %}</td>
+		<td text-align="right">{% if (sum['TotalHours'] is defined and sum['TotalHours'] > 0) %}{{ (sum['TotalHours']/60)|number_format(2) }}{% endif %}</td>
+		<td text-align="right">{% if (sum['Deductions'] is defined and sum['Deductions'] > 0) %}{{ (sum['Deductions']/60)|number_format(2) }}{% endif %}</td>
+		<td text-align="right">{% if (sum['Overtime'] is defined and sum['Overtime'] > 0) %}{{ (sum['Overtime']/60)|number_format(2) }}{% endif %}</td>
+		<td text-align="right">{% if (sum['AgreedOvertime'] is defined and sum['AgreedOvertime'] > 0) %}{{ (sum['AgreedOvertime']/60)|number_format(2) }}{% endif %}</td>
+		<td text-align="right">{% if (sum['PeriodOfSicknessOff'] is defined and sum['PeriodOfSicknessOff'] > 0) %}{{ sum['PeriodOfSicknessOff'] }}{% endif %}</td>
+		<td text-align="right">{% if (sum['DaysOfSicknessOff'] is defined and sum['DaysOfSicknessOff'] > 0) %}{{ sum['DaysOfSicknessOff'] }}{% endif %}</td>
+		<td text-align="right">{% if (sum['LateLess'] is defined and sum['LateLess'] > 0) %}{{ sum['LateLess'] }}{% endif %}</td>
+		<td text-align="right">{% if (sum['LateMore'] is defined and sum['LateMore'] > 0) %}{{ sum['LateMore'] }}{% endif %}</td>
+		<td text-align="right">{% if (sum['Late'] is defined and sum['Late'] > 0) %}{{ (sum['Late']/60)|number_format(2) }}{% endif %}</td>
+		<td text-align="right">{% if (sum['LeaveLess'] is defined and sum['LeaveLess'] > 0) %}{{ sum['LeaveLess'] }}{% endif %}</td>
+		<td text-align="right">{% if (sum['LeaveMore'] is defined and sum['LeaveMore'] > 0) %}{{ sum['LeaveMore'] }}{% endif %}</td>
+		<td text-align="right">{% if (sum['Leave'] is defined and sum['Leave'] > 0) %}{{ (sum['Leave']/60)|number_format(2) }}{% endif %}</td>
+		<td text-align="right">{% if (sum['DaysOfSickness'] is defined and sum['DaysOfSickness'] > 0) %}{{ sum['DaysOfSickness'] }}{% endif %}</td>
+		<td text-align="right">{% if (sum['DaysOfOff'] is defined and sum['DaysOfOff'] > 0) %}{{ sum['DaysOfOff'] }}{% endif %}</td>
+		<td text-align="right">{% if (sum['DaysOfHolidays'] is defined and sum['DaysOfHolidays'] > 0) %}{{ sum['DaysOfHolidays'] }}{% endif %}</td>
+	</tr>
+	{% endfor %}
+</table>
+		{% endif %}
+		<br/>
+		<br/>
+		{{ footer }}
+	</page>
+</pdf>

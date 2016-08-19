@@ -1,0 +1,45 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+<table>
+	<tr>
+		<td>{{ form_label(form.username) }}{{ form_errors(form.username) }}</td>
+		<td>{{ form_widget(form.username) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.payrolCode) }}{{ form_errors(form.payrolCode) }}</td>
+		<td>{{ form_widget(form.payrolCode) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.firstName) }}{{ form_errors(form.firstName) }}</td>
+		<td>{{ form_widget(form.firstName) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.lastName) }}{{ form_errors(form.lastName) }}</td>
+		<td>{{ form_widget(form.lastName) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.typeId) }}{{ form_errors(form.typeId) }}</td>
+		<td>{{ form_widget(form.typeId) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.disclosureNo) }}{{ form_errors(form.disclosureNo) }}</td>
+		<td>{{ form_widget(form.disclosureNo) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.issueDate) }}{{ form_errors(form.issueDate) }}</td>
+		<td>{{ form_widget(form.issueDate) }}</td>
+		<td> </td>
+		<td> </td>
+		<td> </td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.notes) }}{{ form_errors(form.notes) }}</td>
+		<td colspan="4">{{ form_widget(form.notes) }}</td>
+	</tr>
+	<tr>
+		<td colspan="2" align="left">{{ form_widget(form.cancel) }}</td>
+		<td> </td>
+		<td colspan="2" align="right">{{ form_widget(form.submit) }}</td>
+	</tr>
+</table>
+{{ form_widget(form.id) }}
+{{ form_widget(form.userId) }}
+{{ form_widget(form._token) }}
+{{ form_end(form) }}

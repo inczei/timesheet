@@ -14,8 +14,46 @@
 		<td>{{ form_widget(form.startTime) }}</td>
 	</tr>
 	<tr>
+		<td>{{ form_label(form.strictBreak) }}{{ form_errors(form.strictBreak) }}</td>
+		<td>{{ form_widget(form.strictBreak) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.startBreak) }}{{ form_errors(form.startBreak) }}</td>
+		<td>{{ form_widget(form.startBreak) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.finishBreak) }}{{ form_errors(form.finishBreak) }}</td>
+		<td>{{ form_widget(form.finishBreak) }}</td>
+	</tr>
+	<tr>
 		<td>{{ form_label(form.finishTime) }}{{ form_errors(form.finishTime) }}</td>
 		<td>{{ form_widget(form.finishTime) }}</td>
+	</tr>
+	<tr>
+		<td colspan="2"><hr></td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.fpStartTime) }}{{ form_errors(form.fpStartTime) }}</td>
+		<td>{{ form_widget(form.fpStartTime) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.fpStartBreak) }}{{ form_errors(form.fpStartBreak) }}</td>
+		<td>{{ form_widget(form.fpStartBreak) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.fpFinishBreak) }}{{ form_errors(form.fpFinishBreak) }}</td>
+		<td>{{ form_widget(form.fpFinishBreak) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.fpFinishTime) }}{{ form_errors(form.fpFinishTime) }}</td>
+		<td>{{ form_widget(form.fpFinishTime) }}</td>
+	</tr>
+	<tr>
+		<td colspan="2"><hr></td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.minWorkTime) }}{{ form_errors(form.minWorkTime) }}</td>
+		<td>{{ form_widget(form.minWorkTime) }}</td>
 	</tr>
 	<tr>
 		<td>{{ form_label(form.days) }}{{ form_errors(form.days) }}</td>

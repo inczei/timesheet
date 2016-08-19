@@ -5,8 +5,13 @@
 		<td>{{ form_label(form.title) }}{{ form_errors(form.title) }}</td>
 		<td>{{ form_widget(form.title) }}</td>
 		<td> </td>
+	{% if form.fpEnrol is defined %}
+		<td colspan="2">{{ form_label(form.fpEnrol) }}{{ form_errors(form.fpEnrol) }}
+		{{ form_widget(form.fpEnrol) }}</td>
+	{% else %}
 		<td> </td>
 		<td> </td>
+	{% endif %}
 	</tr>
 	<tr>
 		<td>{{ form_label(form.firstName) }}{{ form_errors(form.firstName) }}</td>
@@ -21,6 +26,13 @@
 		<td> </td>
 		<td>{{ form_label(form.nationality) }}{{ form_errors(form.nationality) }}</td>
 		<td>{{ form_widget(form.nationality) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.maritalStatus) }}{{ form_errors(form.maritalStatus) }}</td>
+		<td>{{ form_widget(form.maritalStatus) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.ethnic) }}{{ form_errors(form.ethnic) }}</td>
+		<td>{{ form_widget(form.ethnic) }}</td>
 	</tr>
 	<tr>
 		<td>{{ form_label(form.email) }}{{ form_errors(form.email) }}</td>

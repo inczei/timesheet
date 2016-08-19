@@ -25,7 +25,6 @@ class UserQualifications
 
     /**
      * @var integer
-     *
      * @ORM\Column(name="userId", type="integer")
      */
     private $userId;
@@ -40,7 +39,7 @@ class UserQualifications
     /**
      * @var integer
      *
-     * @ORM\Column(name="levelId", type="integer", nullable=true)
+     * @ORM\Column(name="levelId", type="integer")
      */
     private $levelId;
     

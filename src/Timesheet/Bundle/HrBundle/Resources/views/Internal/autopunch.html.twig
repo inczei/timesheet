@@ -1,0 +1,51 @@
+{% extends 'TimesheetHrBundle:Default:base.html.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<div class="message">{% spaceless %}
+	{% if message is defined and message|length %}
+	<div class="loginMessage">{{ message }}</div>
+	{% endif %}
+{% endspaceless %}</div>
+<div class="statusList">
+<table>
+	<tr>
+		<td align="left"><a href="{{ path('timesheet_hr_autopunch', {'userId': userId, 'date': prevDate|date('Y-m-d')}) }}"> << {{ prevDate|date('d/m/Y') }}</a></td>
+		<td> </td>
+		<td align="right"><a href="{{ path('timesheet_hr_autopunch', {'userId': userId, 'date': nextDate|date('Y-m-d')}) }}">{{ nextDate|date('d/m/Y') }} >> </a></td>
+	</tr>
+</table>
+</div>
+<div class="statusList">
+<table>
+	<tr>
+		<th>User ID</th>
+		<th>Username</th>
+		<th>Location</th>
+		<th>IP</th>
+		<th>Start Date</th>
+		<th>Time</th>
+		<th>Punch In</th>
+		<th>Finish Date</th>
+		<th>Time</th>
+		<th>Punch Out</th>
+	</tr>
+{% if data is defined and data|length %}
+	{% for d in data %}	
+	<tr>
+		<td>{{ d.userId }}</td>
+		<td>{{ d.username }}</td>
+		<td>{{ d.location }}</td>
+		<td>{{ d.ip }}</td>
+		<td>{{ d.startTime|date('d/m/Y') }}</td>
+		<td>{{ d.startTime|date('H:i') }}</td>
+		<td{% if d.punchIn|date('H:i')>d.startTime|date('H:i') %} style="color: red"{% endif %}>{{ d.punchIn|date('H:i') }}</td>
+		<td>{{ d.finishTime|date('d/m/Y') }}</td>
+		<td>{{ d.finishTime|date('H:i') }}</td>
+		<td{% if d.punchOut|date('H:i')<d.finishTime|date('H:i') %} style="color: red"{% endif %}>{{ d.punchOut|date('H:i') }}</td>
+	</tr>
+	{% endfor %}
+{% endif %}
+</table>
+</div>
+{% endblock %}

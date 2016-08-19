@@ -1,0 +1,60 @@
+{% if messages is defined and messages|length %}
+{% for m in messages %}
+<div class="warning">{{ m }}</div>
+{% endfor %}
+{% endif %}
+{% if fpreader is defined and fpreader|length %}
+<br>
+<div class="listType max500">
+Number of users:{{ fpusers|length }}<br>
+<table>
+	<tr>
+		<th>Device ID</th>
+		<th>Device Name</th>
+		<th>IP Address:Port</th>
+		<th>Platform</th>
+		<th>Version</th>
+		<th>Serial Number</th>
+		<th>Status</th>
+		<th>Last Access</th>
+		<th>Comment</th>
+		<th>Company name</th>
+	</tr>
+	<tr>
+		<td align="center">{{ fpreader.deviceId }}</a></td>
+		<td align="center">{{ fpreader.deviceName }}</td>
+		<td align="center">{{ fpreader.ipAddress }}:{{ fpreader.port }}</td>
+		<td align="center">{{ fpreader.platform }}</td>
+		<td align="center">{{ fpreader.version }}</td>
+		<td align="center">{{ fpreader.serialnumber }}</td>
+		<td align="center">{% if fpreader.status!=0 %}Active{% else %}Inactive{% endif %}</td>
+		<td align="center">{{ fpreader.lastAccess|date('d/m/Y H:i:s') }}</td>
+		<td align="center">{{ fpreader.comment }}</a></td>
+		<td align="center">{% if companies[fpreader.domainId] is defined %}{{ companies[fpreader.domainId] }}{% else %}{{ fpreader.domainId }}{% endif %}</td>
+	</tr>
+</table>
+{% if fpusers is defined and fpusers|length %}
+<hr>
+<table>
+	<tr>
+		<th>Reader User ID</th>
+		<th>Reader User Name</th>
+		<th>Local User ID</th>
+		<th>Local User Name</th>
+		<th>Stored Fingerprints</th>
+	</tr>
+	{% for u in fpusers %}
+	<tr>
+		<td align="right">{{ u.readerId }}</td>
+		<td align="center">{% if u.readerName is defined and u.readerName|length %}{{ u.readerName }}{% endif %}</td>
+		<td align="right">{% if u.localId is defined and u.localId|length %}{{ u.localId }}{% endif %}</td>
+		<td align="center">{% if u.localName is defined and u.localName|length %}{{ u.localName }}{% endif %}</td>
+		<td align="right">{% if u.fp is defined and u.fp>0 %}{{ u.fp }}{% else %}0{% endif %}</td>
+	</tr>
+	{% endfor %}
+</table>
+</div>
+{% endif %}
+{% else %}
+No information
+{% endif %}

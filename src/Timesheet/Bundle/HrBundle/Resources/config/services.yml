@@ -42,3 +42,12 @@ services:
     userbundle_service:
         class: FOS\UserBundle\Doctrine\UserManager
         arguments: [@fos_user.user_manager]
+        
+    timesheet.exception_listener:
+        class: Timesheet\Bundle\HrBundle\EventListener\ExceptionListener
+        arguments: [@router]
+        tags:
+          - { name: kernel.event_listener, event: kernel.exception }
+    fos_user.doctrine_registry:
+        alias: doctrine
+        

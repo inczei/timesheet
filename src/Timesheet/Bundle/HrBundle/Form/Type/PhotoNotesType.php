@@ -61,10 +61,10 @@ class PhotoNotesType extends AbstractType
     			'label'=>'Update',
     			'attr'=>array('class'=>'submitButton')
     		))
-    		->add('cancel', 'submit', array(
+    		->add('cancel', 'button', array(
    				'label'=>'Cancel',
    				'attr'=>array('formnovalidate'=>true),
-    			'validation_groups'=>false
+//    			'validation_groups'=>false
     		));
     	if ($this->actionUrl) {
 error_log('actionUrl:'.$this->actionUrl);

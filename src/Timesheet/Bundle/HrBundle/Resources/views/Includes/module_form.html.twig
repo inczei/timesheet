@@ -1,0 +1,21 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+<table>
+	<tr>
+		<td>{{ form_label(form.name) }}{{ form_errors(form.name) }}</td>
+		<td>{{ form_widget(form.name) }}</td>
+	</tr>
+	{% if form.companies is defined and form.companies|length %}
+	<tr>
+		<td>{{ form_label(form.companies) }}{{ form_errors(form.companies) }}</td>
+		<td>{{ form_widget(form.companies) }}</td>
+	</tr>	
+	{% endif %}
+	<tr>
+		<td align="left">{{ form_widget(form.cancel) }}</td>
+		<td align="right">{{ form_widget(form.submit) }}</td>
+	</tr>
+</table>
+{{ form_widget(form.id) }}
+{{ form_widget(form._token) }}
+{{ form_end(form) }}

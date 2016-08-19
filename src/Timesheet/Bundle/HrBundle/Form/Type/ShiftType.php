@@ -36,7 +36,10 @@ class ShiftType extends AbstractType
         	->add('title', 'text', array(
     			'label'=>'Title:',
         		'required'=>true,
-    			'data'=>((isset($this->shift))?($this->shift->getTitle()):(''))
+    			'data'=>((isset($this->shift))?($this->shift->getTitle()):('')),
+        		'attr'=>array(
+        			'style'=>'width: 99%'
+        		)
     		))
     		->add('locationId', 'choice', array(
         		'choices'=>$this->locations,
@@ -54,6 +57,28 @@ class ShiftType extends AbstractType
     			),
     			'data'=>((isset($this->shift))?($this->shift->getStartTime()):(''))
     		))
+    		->add('strictBreak', 'checkbox', array(
+    			'label'=>'Strict break time:',
+        		'required'=>false,
+    			'data'=>((isset($this->shift))?($this->shift->getStrictBreak()):(''))
+    		))
+    		->add('startBreak', 'time', array(
+    			'label'=>'Start break:',
+    			'widget'=>'choice',
+    			'minutes'=>array(0,15,30,45),
+    			'required'=>false,
+    			'attr'=>array(
+    				'class'=>'timeEntry'	
+    			),
+    			'data'=>((isset($this->shift))?($this->shift->getStartBreak()):(''))
+    		))
+    		->add('finishBreak', 'time', array(
+    			'label'=>'Finish break:',
+    			'widget'=>'choice',
+    			'minutes'=>array(0,15,30,45),
+    			'required'=>false,
+    			'data'=>((isset($this->shift))?($this->shift->getFinishBreak()):(''))
+    		))
     		->add('finishTime', 'time', array(
     			'label'=>'Finish time:',
     			'widget'=>'choice',
@@ -61,7 +86,45 @@ class ShiftType extends AbstractType
     			'required'=>true,
     			'data'=>((isset($this->shift))?($this->shift->getFinishTime()):(''))
     		))
-        	->add('days', 'hidden', array(
+    		->add('fpStartTime', 'time', array(
+    			'label'=>'FP Start time:',
+    			'widget'=>'choice',
+    			'minutes'=>array(0,15,30,45),
+    			'required'=>false,
+    			'empty_value'=>'Please select',
+    			'attr'=>array(
+    				'class'=>'timeEntry'	
+    			),
+    			'data'=>((isset($this->shift))?($this->shift->getFpStartTime()):(''))
+    		))
+    		->add('fpFinishTime', 'time', array(
+    			'label'=>'FP Finish time:',
+    			'widget'=>'choice',
+    			'minutes'=>array(0,15,30,45),
+    			'required'=>false,
+    			'empty_value'=>'Please select',
+    			'data'=>((isset($this->shift))?($this->shift->getFpFinishTime()):(''))
+    		))
+    		->add('fpStartBreak', 'time', array(
+    			'label'=>'FP Start Break time:',
+    			'widget'=>'choice',
+    			'minutes'=>array(0,15,30,45),
+    			'required'=>false,
+    			'empty_value'=>'Please select',
+    			'attr'=>array(
+    				'class'=>'timeEntry'	
+    			),
+    			'data'=>((isset($this->shift))?($this->shift->getFpStartBreak()):(''))
+    		))
+    		->add('fpFinishBreak', 'time', array(
+    			'label'=>'FP Finish Break time:',
+    			'widget'=>'choice',
+    			'minutes'=>array(0,15,30,45),
+    			'required'=>false,
+    			'empty_value'=>'Please select',
+    			'data'=>((isset($this->shift))?($this->shift->getFpFinishBreak()):(''))
+    		))
+    		->add('days', 'hidden', array(
     			'label'=>'Days:',
         		'required'=>false
     		))
@@ -100,14 +163,21 @@ class ShiftType extends AbstractType
         		'required'=>false,
         		'data'=>((isset($this->days[0]))?($this->days[0]):(false))
     		))
+    		->add('minWorkTime', 'number', array(
+    			'label'=>'Minimum Working Time (minutes):',
+        		'required'=>false,
+    			'data'=>((isset($this->shift))?($this->shift->getMinWorkTime()):(''))
+    		))
     		->add('submit', 'submit', array(
     			'label'=>'Submit',
-    			'attr'=>array('class'=>'submitButton')
+    			'attr'=>array(
+    				'class'=>'submitButton'
+    			)
     		))
-   			->add('cancel', 'submit', array(
+   			->add('cancel', 'button', array(
    				'label'=>'Cancel',
    				'attr'=>array('formnovalidate'=>true),
-    			'validation_groups'=>false
+//    			'validation_groups'=>false
     		));
     }
 

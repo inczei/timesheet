@@ -5,6 +5,13 @@
 <br>
 <span class="message">{% if message is defined and message|length %}<b>{{ message|raw }}</b>{% else %} {% endif %}
 </span>
+{% if autologout is defined and autologout|length %}
+<div class="statusList">
+	{% for al in autologout %}
+		Click <a href="{{ al.url }}">here</a> to switch {{ al.name }}<br>
+	{% endfor %}
+</div>
+{% endif %}
 {% if problems is defined and problems|length %}
 <div class="statusList">
 	<ul>

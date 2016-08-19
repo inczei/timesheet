@@ -1,0 +1,54 @@
+<pdf>
+	<page page-size="A4">
+		<span font-size="14">Sickness and Lateness in {{ date }}</span>
+		<br/>
+		<br/>
+		{% if report is defined and report|length %}
+<table font-size="6" text-align="center" width="800">
+	<tr font-size="5">
+		<td text-align="center" width="30">Payrol Number</td>
+		<td text-align="center" width="80">Name</td>
+		<td text-align="center">Lateness &lt;{{ gracePeriod }}mins</td>
+		<td text-align="center">Lateness &gt;{{ gracePeriod }}mins</td>
+		<td text-align="center">Number of Lateness</td>
+		<td text-align="center">Periods of Sickness</td>
+		<td text-align="center">Days of Sickness</td>
+		<td text-align="center">Days of Off (Unpaid Leave)</td>
+		<td text-align="center">Days of Sickness/Off</td>
+		{% if holidays is defined and holidays==true %}
+		<td text-align="center">Days of Holiday</td>
+		{% endif %}
+	</tr>
+	{% for sum in report %}
+	{% set userId=sum['UserId'] %}
+	{% set lateLess=0 %}
+	{% set lateMore=0 %}
+	{% set daysOfSO=0 %}
+	{% if (sum['LateLess'] is defined and sum['LateLess'] > 0) %}{% set lateLess=lateLess+sum['LateLess'] %}{% endif %}
+	{% if (sum['LateMore'] is defined and sum['LateMore'] > 0) %}{% set lateMore=lateLess+sum['LateMore'] %}{% endif %}
+	{% if (sum['LeaveLess'] is defined and sum['LeaveLess'] > 0) %}{% set lateLess=lateMore+sum['LeaveLess'] %}{% endif %}
+	{% if (sum['LeaveMore'] is defined and sum['LeaveMore'] > 0) %}{% set lateMore=lateMore+sum['LeaveMore'] %}{% endif %}
+	{% if (sum['DaysOfSickness'] is defined and sum['DaysOfSickness'] > 0) %}{% set daysOfSO=daysOfSO+sum['DaysOfSickness'] %}{% endif %}
+	{% if (sum['DaysOfOff'] is defined and sum['DaysOfOff'] > 0) %}{% set daysOfSO=daysOfSO+sum['DaysOfOff'] %}{% endif %}
+	<tr>
+		<td text-align="right">{{ users[userId]['payrolCode'] }} </td>
+		<td text-align="left"> {{ (users[userId]['title']~' '~users[userId]['firstName']~' '~users[userId]['lastName'])|trim }}</td>
+		<td text-align="right">{{ lateLess }} </td>
+		<td text-align="right">{{ lateMore }} </td>
+		<td text-align="right">{{ (lateLess+lateMore) }} </td>
+		<td text-align="right">{% if (sum['PeriodsOfSickness'] is defined and sum['PeriodsOfSickness'] > 0) %}{{ sum['PeriodsOfSickness'] }}{% else %}0{% endif %} </td>
+		<td text-align="right">{% if (sum['DaysOfSickness'] is defined and sum['DaysOfSickness'] > 0) %}{{ sum['DaysOfSickness'] }}{% else %}0{% endif %} </td>
+		<td text-align="right">{% if (sum['DaysOfOff'] is defined and sum['DaysOfOff'] > 0) %}{{ sum['DaysOfOff'] }}{% else %}0{% endif %} </td>
+		<td text-align="right">{{ daysOfSO }} </td>
+		{% if holidays is defined and holidays==true %}
+		<td text-align="right">{% if (sum['DaysOfHolidays'] is defined and sum['DaysOfHolidays'] > 0) %}{{ sum['DaysOfHolidays'] }}{% else %}0{% endif %} </td>
+		{% endif %}
+	</tr>
+	{% endfor %}
+</table>
+		{% endif %}
+		<br/>
+		<br/>
+		{{ footer }}
+	</page>
+</pdf>

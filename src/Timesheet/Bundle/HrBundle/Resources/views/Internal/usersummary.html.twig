@@ -16,7 +16,7 @@
 		<td>Working hours in the next month : <b>{{ data.nextmonth|number_format(1) }}</b>{% if data.nextmonth > 0 %} <a title="Click here to download your next monthly timings" target="_blank" href="{{ path('timesheet_hr_monthlyreport', { 'timestamp': data.timestampnextmonth, 'user': userId }) }}">Download</a>{% endif %}</td>
 	</tr>
 	<tr>
-		<td>Current status : <b>{{ data.status }}</b></td>
+		<td>Current status : <b>{{ data.status }}</b><span id="coordinates"></span></td>
 		<td> </td>
 		<td>Remaining holidays until Today : <b>{{ data.holidays|number_format(1) }}</b></td>
 		<td> </td>
@@ -25,7 +25,7 @@
 	<tr>
 		<td><a href="{{ path('timesheet_hr_messages') }}">Messages{% if data.unread is defined and data.unread > 0 %} ({{ data.unread }}){% endif %}</a></td>
 		<td> </td>
-		<td> </td>
+		<td>{% if data.role is defined and data.role!='ROLE_USER' %}<a class="showRequest" data-userid="{{ userId }}" data-url="{{ path('timesheet_ajax_staffstatus') }}" base-url="{{ base }}" href="javascript:void(0)" title="Click here to see your staff current status">Your staff status</a>{% endif %}</td>
 		<td> </td>
 		<td data-date="" data-action="confirmnew" data-refresh="{{ base }}" name="calendarCell" base-url="" data-url="{{ path('timesheet_ajax_addrequest') }}"><a href="javascript:void(0)">{% if data.requests is defined and data.requests|length %}You have {{ data.requests }} request{% if data.requests != 1 %}s{% endif %} to reply{% endif %}</a></td>
 	</tr>
@@ -42,7 +42,7 @@
 		<td>{% if data.nextshift is defined and data.nextshift|length %}
 			<u>Next Shift:</u>
 				{% for ns in data.nextshift %}
-					<br>{{ ns.date|date('d/m/Y') }} {{ ns.title }} ({{ ns.startTime|date('H:i') }}-{{ ns.finishTime|date('H:i') }})
+					<br>{{ ns.date|date('d M Y') }} {{ ns.title }} ({{ ns.startTime|date('H:i') }}-{{ ns.finishTime|date('H:i') }})
 				{% endfor %}
 			{% endif %}
 		</td>
@@ -105,4 +105,17 @@
 <input type="hidden" id="swapapprovedeny" data-url="{{ path('timesheet_ajax_swapapprovedeny') }}" data-base="{{ base }}">
 {% endif %}
 </div>
+<script>
+var times=20;
+var t=0;
+var myInterval=setInterval(function() {
+	if (typeof(getLocation) == 'function' && $('#coordinates') != 'undefined') {
+		if (t == 0) {
+			var formatText='<br/><span>Your current position</span><br/><span id="latitude">%lat</span>, <span id="longitude">%lon</span> (<a href="http://maps.google.com?q=%lat,%lon" target="_blank">map</a>)';
+			getLocation('coordinates', formatText, {{ domainId }});
+		}
+		if (++t > times) t=0;
+	}	
+}, 500);
+</script>
 {% endif %}

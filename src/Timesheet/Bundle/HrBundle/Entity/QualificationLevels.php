@@ -24,7 +24,7 @@ class QualificationLevels
     /**
      * @var string
      *
-     * @ORM\Column(name="level", type="string", length=4)
+     * @ORM\Column(name="level", type="string", length=4, unique=true)
      */
     private $level;
 

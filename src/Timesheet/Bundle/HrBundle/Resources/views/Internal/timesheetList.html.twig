@@ -1,19 +1,20 @@
-{% if users is defined and users|length %}
+{% if users is defined and users|length>1 %}
 <select id="timesheetUserSelect">
 	<option value="0"> - Please select - </option>
+	<option value="-2"{% if selectedUserId == -2 %} selected{% endif %}> - All - </option>
 	{% if users|length != 1 %}<option value="-1"{% if selectedUserId == -1 %} selected{% endif %}> - Latest 10 active - </option>{% endif %}
 	{% for u in users %}
 		<option value="{{ u.id }}"{% if selectedUserId == u.id %} selected{% endif %}>{{ (u.title~' '~u.firstName~' '~u.lastName)|trim }}</option>
 	{% endfor %}
-</select>
+</select>&nbsp;&nbsp;&nbsp;<span class="refreshButton" title="Click here to refresh"></span>
 {% endif %}
 <div class="currentMonth">{{ currentMonth }}</div>
-{% if timesheet is defined and timesheet|length %}{% if users is defined and users|length>1 %}|{% for userName,t1 in timesheet %}| <a href="#{{ userName }}">{{ userName }}</a> |{% endfor %}|{% endif %}
-<br>[<span class="showhideButton" name="showhide" column="columnHide">Show</span> full dedails]{% endif %}
+{% if timesheet is defined and timesheet|length %}{% if users is defined and users|length>1 %}|{% for userId,t1 in timesheet %}| <span class="scrollTo" data-id="{{ userId }}">{{ (users[userId]['title']~' '~users[userId]['firstName']~' '~users[userId]['lastName'])|trim }}</span> |{% endfor %}|{% endif %}
+<br>[<span class="showhideButton" name="showhide" column="columnHide">Show</span> full details]{% endif %}
 {% if timesheet is defined and timesheet|length %}
+<span class="scrollTop" title="Click here to scroll up">Up</span>
 <table>
-{% for userName,t1 in timesheet %}
-{% set userId=0 %}
+{% for userId,t1 in timesheet %}
 {% set tah=0 %}
 {% set tahOrig=0 %}
 {% set ah=0 %}
@@ -27,8 +28,8 @@
 {% set leaveless=0 %}
 {% set leavemore=0 %}
 {% set holidaysummary=[] %}
-	<tr class="header" id="{{ userName }}">
-		<th colspan="{% if isManager %}15{% else %}14{% endif %}"><h2>{{ userName }}</h2></th>
+	<tr class="header" id="{{ userId }}">
+		<th colspan="{% if isManager %}15{% else %}14{% endif %}"><h2>{% if users is defined and users|length and users[userId] is defined %}{{ (users[userId]['title']~' '~users[userId]['firstName']~' '~users[userId]['lastName'])|trim }}{% else %}{{ userId }}{% endif %}</h2></th>
 		<th colspan="10" class="columnHide"></th>
 	</tr>
 	<tr>
@@ -46,18 +47,18 @@
 	</tr>
 	<tr>
 		<th colspan="2">Date</th>
-		<th>Sign In</th>
-		<th>Sign Out</th>
-		<th>Sign In</th>
-		<th>Sign Out</th>
-		<th><i>[Original]</i></th>
-		<th><i>(Deducted)</i></th>
+		<th class="fixWidth">Sign In</th>
+		<th class="fixWidth">Sign Out</th>
+		<th class="fixWidth">Sign In</th>
+		<th class="fixWidth">Sign Out</th>
+		<th class="fixWidth"><i>[Original]</i></th>
+		<th class="fixWidth"><i>(Deducted)</i></th>
+		<th class="fixWidth"> </th>
+		<th class="fixWidth"> </th>
+		<th class="fixWidth"><i>(Agreed)</i></th>
 		<th> </th>
-		<th> </th>
-		<th><i>(Agreed)</i></th>
-		<th> </th>
-		<th>Employee</th>
-		<th>Manager</th>
+		<th>In</th>
+		<th>Out</th>
 		{% if isManager %}<th> </th>{% endif %}
 		<th class="columnHide">Lunch Start</th>
 		<th class="columnHide">Lunch Finish</th>
@@ -86,7 +87,7 @@
 	{% else %}
 		{% set noDate2=0 %}
 	{% endif %}
-	<tr{% if t2[0]['class'] is defined and t2[0]['class']|length %} class="{{ t2[0]['class'] }}"{% endif %}{% if t2[0]['comment'] is defined and t2[0]['comment']|length %} title="{{ t2[0]['comment'] }}"{% endif %}>
+	<tr class="simple {% if t2[0]['class'] is defined and t2[0]['class']|length %} {{ t2[0]['class'] }}{% endif %}"{% if t2[0]['comment'] is defined and t2[0]['comment']|length %} title="{{ t2[0]['comment'] }}"{% endif %}>
 		<td>{{ date|date('d/m/Y') }}</td>
 		<td>{{ date|date('D') }}</td>
 		<td>
@@ -95,8 +96,8 @@
 		<td>
 			{% if t2[0]['agreedFinish'] is defined and t2[0]['agreedFinish'] %}{{ t2[0]['agreedFinish']|date('H:i') }}{% else %}{% endif %}
 		</td>
-		<td{% if noDate1 == 1 and t2[0]['userId'] is defined %} class="addPunch" data-typeid="1" data-type="Sign In" data-username="{{ userName }}" data-date="{{ date }}" data-userid="{{ t2[0]['userId'] }}"{% endif %}>
-			<div{% if t2[0]['Late'] is defined and t2[0]['Late'] > 0 %} class="PunchIncorrect"{% endif %}{% if t2[1]['location'] is defined and t2[1]['location']|length>0 %} title="Location: {{ t2[1]['location'] }}"{% endif %}>
+		<td{% if (noDate1 == 1 and t2[0]['userId'] is defined) or (isAdmin is defined and isAdmin==true) %} class="{% if isAdmin is defined and isAdmin==true %}editPunch{% else %}addPunch{% endif %}" data-typeid="1" data-type="Sign In" data-username="{{ users[userId]['username'] }}" data-date="{{ date }}" data-datedisplay="{{ date|date('d/m/Y') }}" data-origdatetime="{% if t2[1]['timestamp'] is defined and t2[1]['timestamp'] %}{{ t2[1]['timestamp']|date('Y-m-d H:i:s') }}{% else %}{% endif %}" data-origtime="{% if t2[1]['timestamp'] is defined and t2[1]['timestamp'] %}{{ t2[1]['timestamp']|date('H:i') }}{% else %}{% endif %}" data-userid="{{ t2[0]['userId'] }}"{% endif %}>
+			<div{% if t2[0]['Late'] is defined and t2[0]['Late'] > 0 %} class="PunchIncorrect"{% endif %}{% if t2[1]['location'] is defined and t2[1]['location']|length>0 %} title="Location: {{ t2[1]['location'] }}{% if t2[1]['ipAddress'] is defined and t2[1]['ipAddress']|length %} ({{ t2[1]['ipAddress'] }}){% endif %}"{% endif %}>
 			{% if t2[1]['timestamp'] is defined and t2[1]['timestamp'] %}
 				{{ t2[1]['timestamp']|date('H:i') }}
 			{% else %}
@@ -105,9 +106,11 @@
 				{% endif %}
 			{% endif %}
 			</div>
+			{% if t2[2]['location'] is defined and t2[1]['location'] == '' and t2[1]['ipAddress'] is defined and t2[1]['ipAddress']|length %}<div class="warning" title="Unknown location ({{ t2[1]['ipAddress'] }})">Unknown location</div>{% endif %}
+			{% if t2[1]['createdBy'] is defined and t2[1]['createdBy']!=t2[1]['userId'] %}Entered by {{ t2[1]['createdByName'] }}{% endif %}
 		</td>
-		<td{% if noDate2 == 1 and t2[0]['userId'] is defined %} class="addPunch" data-typeid="2" data-type="Sign Out" data-username="{{ userName }}" data-date="{{ date }}" data-datedisplay="{{ date|date('d/m/Y') }}" data-userid="{{ t2[0]['userId'] }}"{% endif %}>
-			<div{% if t2[0]['Leave'] is defined and t2[0]['Leave'] > 0 %} class="PunchIncorrect"{% endif %}{% if t2[2]['location'] is defined and t2[2]['location']|length>0 %} title="Location: {{ t2[2]['location'] }}"{% endif %}>
+		<td{% if (noDate2 == 1 and t2[0]['userId'] is defined) or (isAdmin is defined and isAdmin==true) %} class="{% if isAdmin is defined and isAdmin==true %}editPunch{% else %}addPunch{% endif %}" data-typeid="2" data-type="Sign Out" data-username="{{ users[userId]['username'] }}" data-date="{{ date }}" data-datedisplay="{{ date|date('d/m/Y') }}" data-origdatetime="{% if t2[2]['timestamp'] is defined and t2[2]['timestamp'] %}{{ t2[2]['timestamp']|date('Y-m-d H:i:s') }}{% else %}{% endif %}" data-origtime="{% if t2[2]['timestamp'] is defined and t2[2]['timestamp'] %}{{ t2[2]['timestamp']|date('H:i') }}{% else %}{% endif %}" data-userid="{{ t2[0]['userId'] }}"{% endif %}>
+			<div{% if t2[0]['Leave'] is defined and t2[0]['Leave'] > 0 %} class="PunchIncorrect"{% endif %}{% if t2[2]['location'] is defined and t2[2]['location']|length>0 %} title="Location: {{ t2[2]['location'] }}{% if t2[2]['ipAddress'] is defined and t2[2]['ipAddress']|length %} ({{ t2[2]['ipAddress'] }}){% endif %}"{% endif %}>
 			{% if t2[2]['timestamp'] is defined and t2[2]['timestamp'] %}
 				{{ t2[2]['timestamp']|date('H:i') }}
 			{% else %}
@@ -116,21 +119,23 @@
 				{% endif %}
 			{% endif %}
 			</div>
+			{% if t2[2]['location'] is defined and t2[2]['location'] == '' and t2[2]['ipAddress'] is defined and t2[2]['ipAddress']|length %}<div class="warning" title="Unknown location ({{ t2[2]['ipAddress'] }})">Unknown location</div>{% endif %}
+			{% if t2[2]['createdBy'] is defined and t2[2]['createdBy']!=t2[2]['userId'] %}Entered by {{ t2[2]['createdByName'] }}{% endif %}
 		</td>
 		<td>
-			{% if t2[0]['AgreedTime'] is defined and t2[0]['AgreedTime']>0 %}{{ (t2[0]['AgreedTime']/60)|number_format(2) }}{% set tah=tah+t2[0]['AgreedTime'] %} Hr{% endif %}
+			{% if t2[0]['AgreedTime'] is defined and (t2[0]['AgreedTime']>0) %}{{ (t2[0]['AgreedTime']/60)|number_format(2) }}{% set tah=tah+t2[0]['AgreedTime'] %} Hr{% endif %}
 			{% if t2[0]['AgreedTimeOrig'] is defined and t2[0]['AgreedTimeOrig']>0 %}<br><i>[{{ (t2[0]['AgreedTimeOrig']/60)|number_format(2) }}{% set tahOrig=tahOrig+t2[0]['AgreedTimeOrig'] %} Hr]</i>{% endif %}
 		</td>
 		<td>
-			{% if t2[0]['WorkTime'] is defined and t2[0]['WorkTime']>0 %}{{ (t2[0]['WorkTime']/60)|number_format(2) }}{% set ah=ah+t2[0]['WorkTime'] %} Hr
+			{% if t2[0]['WorkTime'] is defined and (t2[0]['WorkTime']>0  or (t2[0]['Late'] is defined and t2[0]['Late'] > 0) or (t2[0]['Leave'] is defined and t2[0]['Leave'] > 0)) %}{{ (t2[0]['WorkTime']/60)|number_format(2) }}{% set ah=ah+t2[0]['WorkTime'] %} Hr
 			{% if t2[0]['Deducted'] is defined and t2[0]['Deducted'] > 0 %}<br>({{ (t2[0]['Deducted']/60)|number_format(2) }}{% set ahd=ahd+t2[0]['Deducted'] %} Hr){% endif %}
 			{% endif %}
 		</td>
-		<td>{% if t2[0]['Late'] is defined and t2[0]['Late'] > 0 %}{{ (t2[0]['Late']/60)|number_format(2) }}<br>{{ (t2[0]['Late'])|number_format(0) }}{% set lates=lates+t2[0]['Late'] %} min{% endif %}</td>
-		<td>{% if t2[0]['Leave'] is defined and t2[0]['Leave'] > 0 %}{{ (t2[0]['Leave']/60)|number_format(2) }}<br>{{ (t2[0]['Leave'])|number_format(0) }}{% set leave=leave+t2[0]['Leave'] %} min{% endif %}</td>
+		<td>{% if t2[0]['Late'] is defined and t2[0]['Late'] > 0 %}{{ (t2[0]['Late']/60)|number_format(2) }} Hr<br>{{ (t2[0]['Late'])|number_format(0) }}{% set lates=lates+t2[0]['Late'] %} min{% endif %}</td>
+		<td>{% if t2[0]['Leave'] is defined and t2[0]['Leave'] > 0 %}{{ (t2[0]['Leave']/60)|number_format(2) }} Hr<br>{{ (t2[0]['Leave'])|number_format(0) }}{% set leave=leave+t2[0]['Leave'] %} min{% endif %}</td>
 		<td>
-			{% if t2[0]['Overtime'] is defined and t2[0]['Overtime'] > 0 %}{{ (t2[0]['Overtime']/60)|number_format(2) }}{% if t2[0]['Overtime']>=15 %}<span class="up"> </span>{% endif %}<br>{{ (t2[0]['Overtime'])|number_format(0) }}{% set ot=ot+t2[0]['Overtime'] %} min{% endif %}
-			{% if t2[0]['OvertimeAgreed'] is defined and t2[0]['OvertimeAgreed'] > 0 %}<br><i>({{ (t2[0]['OvertimeAgreed']/60)|number_format(2) }}{% set ota=ota+t2[0]['OvertimeAgreed'] %})</i>{% endif %}
+			{% if t2[0]['Overtime'] is defined and t2[0]['Overtime'] > 0 %}{{ (t2[0]['Overtime']/60)|number_format(2) }} Hr{% if t2[0]['Overtime']>=15 %}<span class="up"> </span>{% endif %}<br>{{ (t2[0]['Overtime'])|number_format(0) }}{% set ot=ot+t2[0]['Overtime'] %} min{% endif %}
+			{% if t2[0]['OvertimeAgreed'] is defined and t2[0]['OvertimeAgreed'] > 0 %}<br><i>({{ (t2[0]['OvertimeAgreed']/60)|number_format(2) }} Hr{% set ota=ota+t2[0]['OvertimeAgreed'] %})</i>{% endif %}
 		</td>
 		<td>{% spaceless %}{% if t2[1]['holidays'] is defined and t2[1]['holidays']|length %}{% for h in t2[1]['holidays'] %}<div class="holidayClass" style="color: #{{ h['textColor'] }}; background-color: #{{ h['backgroundColor'] }}; border: #{{ h['borderColor'] }} solid 2px;" title="{% if h['comment'] is defined and h['comment']|length %}{{ h['comment'] }}{% endif %}{{ '\n'|raw }}{% if h['acceptedComment'] is defined and h['acceptedComment']|length  %}Manager:{{ h['acceptedComment'] }}{% endif %}">{{ h['name'] }}</div>{% if holidaysummary['_'~h['typeId']]['num'] is defined %}{% set tmp=holidaysummary['_'~h['typeId']]['num'] %}{% set tmp=tmp+1 %}{% else %}{% set tmp=1 %}{% endif %}{% set holidaysummary=holidaysummary|merge({('_'~h['typeId']):{'name':(h['name']), 'num':tmp}}) %}{% endfor %}{% endif %}{% endspaceless %}</td>
 		<td>{% spaceless %}{% if t2[1]['comment'] is defined and t2[1]['comment']|length %}<div{% if t2[1]['comment']|length>30 %} title="{{ t2[1]['comment'] }}"{% endif %}>{{ t2[1]['comment']|length>30?t2[1]['comment']|slice(0,30) ~ '...':t2[1]['comment'] }}</div>{% endif %}{% endspaceless %}</td>
@@ -206,7 +211,7 @@
 	</tr>
 	{% endfor %}
 	<tr>
-		<th colspan="2"><b>Summary</b> <a href="{{ path('timesheet_hr_timesheetreport', { 'timestamp': timestamp, 'userid': userId }) }}" class="tsDownload" title="Download as PDF"> </a></th>
+		<th colspan="2"><b>Summary</b>&nbsp;&nbsp;&nbsp;<a href="{{ path('timesheet_hr_timesheetreport', { 'timestamp': timestamp, 'userid': userId }) }}" class="tsDownload" title="Download as PDF"></a></th>
 		<th> </th>
 		<th> </th>
 		<th> </th>
@@ -244,6 +249,83 @@
 	</tr>
 {% endfor %}
 </table>
+{% if summary is defined and summary|length %}
+<div class="listType">
+<table>
+	<tr>
+		<th>Payrol Number</th>
+		<th>Name</th>
+		{% for d in dates %}		
+		<th>{{ d }}</th>
+		{% endfor %}
+		<th>Breaks</th>
+		<th>Additions</th>
+		<th>Final Calc</th>
+		<th>Total Hours</th>
+		<th>Deduction</th>
+		<th>Overtime</th>
+		<th>Agreed Ovetime</th>
+		<th>Period of Sickness/Off</th>
+		<th>No of Days Sickness/Off</th>
+		<th>Lateness &lt;{{ gracePeriod }}mins</th>
+		<th>Lateness &gt;{{ gracePeriod }}mins</th>
+		<th>Hours Late</th>
+		<th>Leave Early &lt;{{ gracePeriod }}mins</th>
+		<th>Leave Early &gt;{{ gracePeriod }}mins</th>
+		<th>Hours Leave Early</th>
+		<th>No of Sickness (Days)</th>
+		<th>No of Off (Days)</th>
+		<th>No of Holidays (Days)</th>
+	</tr>
+	{% for sum in summary %}
+	{% set userId=sum['UserId'] %}
+	<tr>
+		<td align="right">{{ users[userId]['payrolCode'] }}</td>
+		<td align="left"><span class="scrollTo" data-id="{{ userId }}">{{ (users[userId]['title']~' '~users[userId]['firstName']~' '~users[userId]['lastName'])|trim }}</span></td>
+		{% for dk,d in dates %}		
+		<td align="right" style="{% if sum[dk]['typestyle'] is defined %}{{ sum[dk]['typestyle'] }}{% endif %}{% if ((sum[dk]['times']['Late'] is defined and sum[dk]['times']['Late']>0) or (sum[dk]['times']['Leave'] is defined and sum[dk]['times']['Leave']>0)) %};font-decoration: italic;{% endif %}{% if sum[dk]['type'] is defined %}{% if sum[dk]['type']=='Incorrect' %}font-weight: bold;{% endif %}{% if sum[dk]['type']=='Dayoff' %}color: white; background-color: #8e4216;{% endif %}{% endif %}"{% if ((sum[dk]['times']['Late'] is defined and sum[dk]['times']['Late']>0) or (sum[dk]['times']['Leave'] is defined and sum[dk]['times']['Leave']>0)) %} title="{% if (sum[dk]['times']['Late'] is defined and sum[dk]['times']['Late']>0) %}Late {% endif %}{% if (sum[dk]['times']['Leave'] is defined and sum[dk]['times']['Leave']>0) %}Leave Early{% endif %}"{% endif %}>
+			{% if sum[dk]['type'] is defined %}{% if sum[dk]['type'] is defined and (sum[dk]['type']=='Holiday' or sum[dk]['type']=='Dayoff' or sum[dk]['type']=='Incorrect') %}{{ sum[dk]['typesign'] }}{% else %}{% endif %}{% endif %}
+			{% if sum[dk]['times']['WorkTime'] is defined and sum[dk]['times']['WorkTime']>0 %}{{ (sum[dk]['times']['WorkTime']/60)|number_format(2) }}{% else %}{% endif %}
+		</td>
+		{% endfor %}
+		<td align="right">{% if (sum['Breaks'] is defined and sum['Breaks'] > 0) %}{{ sum['Breaks'] }}{% endif %}</td>
+		<td align="right">{% if (sum['Additions'] is defined and sum['Additions'] > 0) %}{{ sum['Additions'] }}{% endif %}</td>
+		<td align="right">{% if (sum['FinalCalc'] is defined and sum['FinalCalc'] > 0) %}{{ (sum['FinalCalc']/60)|number_format(2) }}{% endif %}</td>
+		<td align="right">{% if (sum['TotalHours'] is defined and sum['TotalHours'] > 0) %}{{ (sum['TotalHours']/60)|number_format(2) }}{% endif %}</td>
+		<td align="right">{% if (sum['Deductions'] is defined and sum['Deductions'] > 0) %}{{ (sum['Deductions']/60)|number_format(2) }}{% endif %}</td>
+		<td align="right">{% if (sum['Overtime'] is defined and sum['Overtime'] > 0) %}{{ (sum['Overtime']/60)|number_format(2) }}{% endif %}</td>
+		<td align="right">{% if (sum['AgreedOvertime'] is defined and sum['AgreedOvertime'] > 0) %}{{ (sum['AgreedOvertime']/60)|number_format(2) }}{% endif %}</td>
+		<td align="right">{% if (sum['PeriodOfSicknessOff'] is defined and sum['PeriodOfSicknessOff'] > 0) %}{{ sum['PeriodOfSicknessOff'] }}{% endif %}</td>
+		<td align="right">{% if (sum['DaysOfSicknessOff'] is defined and sum['DaysOfSicknessOff'] > 0) %}{{ sum['DaysOfSicknessOff'] }}{% endif %}</td>
+		<td align="right">{% if (sum['LateLess'] is defined and sum['LateLess'] > 0) %}{{ sum['LateLess'] }}{% endif %}</td>
+		<td align="right">{% if (sum['LateMore'] is defined and sum['LateMore'] > 0) %}{{ sum['LateMore'] }}{% endif %}</td>
+		<td align="right">{% if (sum['Late'] is defined and sum['Late'] > 0) %}{{ (sum['Late']/60)|number_format(2) }}{% endif %}</td>
+		<td align="right">{% if (sum['LeaveLess'] is defined and sum['LeaveLess'] > 0) %}{{ sum['LeaveLess'] }}{% endif %}</td>
+		<td align="right">{% if (sum['LeaveMore'] is defined and sum['LeaveMore'] > 0) %}{{ sum['LeaveMore'] }}{% endif %}</td>
+		<td align="right">{% if (sum['Leave'] is defined and sum['Leave'] > 0) %}{{ (sum['Leave']/60)|number_format(2) }}{% endif %}</td>
+		<td align="right">{% if (sum['DaysOfSickness'] is defined and sum['DaysOfSickness'] > 0) %}{{ sum['DaysOfSickness'] }}{% endif %}</td>
+		<td align="right">{% if (sum['DaysOfOff'] is defined and sum['DaysOfOff'] > 0) %}{{ sum['DaysOfOff'] }}{% endif %}</td>
+		<td align="right">{% if (sum['DaysOfHolidays'] is defined and sum['DaysOfHolidays'] > 0) %}{{ sum['DaysOfHolidays'] }}{% endif %}</td>
+	</tr>
+	{% endfor %}
+	<tr>
+		<td colspan="2"> <a href="{{ path('timesheet_hr_timesheetreportsummary', { 'timestamp': timestamp, 'userid': selectedUserId, 'filetype': 'pdf' }) }}" class="tssDownload" title="Download summary as PDF">PDF </a> <a href="{{ path('timesheet_hr_timesheetreportsummary', { 'timestamp': timestamp, 'userid': selectedUserId, 'filetype': 'csv' }) }}" class="tssDownload" title="Download summary as CSV">CSV </a> </td>
+		<td colspan="8">Summary Report</td>
+		<td colspan="{{ (10+(dates|length)) }}"><hr/></td>
+	</tr>
+	<tr>
+		<td colspan="2">  <a href="{{ path('timesheet_hr_latenessreport', { 'timestamp': timestamp, 'userid': selectedUserId, 'filetype': 'pdf' }) }}" class="tssDownload" title="Download summary as PDF">PDF </a> <a href="{{ path('timesheet_hr_latenessreport', { 'timestamp': timestamp, 'userid': selectedUserId, 'filetype': 'csv' }) }}" class="tssDownload" title="Download summary as CSV">CSV </a> </td>
+		<td colspan="8">Sickness  and Lateness Report</td>
+		<td colspan="{{ (10+(dates|length)) }}"><hr/></td>
+	</tr>
+	<tr>
+		<td colspan="2">  <a href="{{ path('timesheet_hr_latenessreport', { 'timestamp': timestamp, 'userid': selectedUserId, 'filetype': 'pdf', 'holidays': 1 }) }}" class="tssDownload" title="Download summary as PDF">PDF </a> <a href="{{ path('timesheet_hr_latenessreport', { 'timestamp': timestamp, 'userid': selectedUserId, 'filetype': 'csv', 'holidays': 1 }) }}" class="tssDownload" title="Download summary as CSV">CSV </a> </td>
+		<td colspan="8">Holidays, Sickness and Lateness Report</td>
+		<td colspan="{{ (10+(dates|length)) }}"><hr/></td>
+	</tr>
+</table>
+</div>
+{% endif %}
 <input type="hidden" id="addPunch" data-url="{{ path('timesheet_ajax_addpunch') }}" data-base="{{ path('timesheet_ajax_timesheetlist') }}">
 {% if isManager %}<input type="hidden" id="tsc_ajaxurl" data-ajaxurl="{{ path('timesheet_ajax_timesheetcheck') }}">{% endif %}
 {% else %}

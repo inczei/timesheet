@@ -24,14 +24,14 @@ class Companies
     /**
      * @var string
      *
-     * @ORM\Column(name="domain", type="string", length=50)
+     * @ORM\Column(name="domain", type="string", length=50, unique=true)
      */
     private $domain;
     
     /**
      * @var string
      *
-     * @ORM\Column(name="companyname", type="string", length=50)
+     * @ORM\Column(name="companyname", type="string", length=50, unique=true)
      */
     private $companyname;
 
@@ -74,6 +74,13 @@ class Companies
     /**
      * @var integer
      *
+     * @ORM\Column(name="minhoursforlunch", type="integer", nullable=true, options={"comment":"Minimum working hours for lunch time"})
+     */
+    private $minhoursforlunch = 6;
+    
+    /**
+     * @var integer
+     *
      * @ORM\Column(name="lunchtime", type="integer", nullable=true, options={"comment":"Paid lunch time in minutes"})
      */
     private $lunchtime;
@@ -84,6 +91,27 @@ class Companies
      * @ORM\Column(name="lunchtimeUnpaid", type="integer", nullable=true, options={"comment":"Unpaid lunch time in minutes"})
      */
     private $lunchtimeUnpaid;
+    
+    /**
+     * @var integer
+     *
+     * @ORM\Column(name="rounding", type="integer", nullable=true, options={"comment":"Rounding minutes"})
+     */
+    private $rounding = 15;
+    
+    /**
+     * @var integer
+     *
+     * @ORM\Column(name="grace", type="integer", nullable=true, options={"comment":"Grace period in minutes"})
+     */
+    private $grace;
+    
+    /**
+     * @var integer
+     *
+     * @ORM\Column(name="autologout", type="integer", nullable=true, options={"comment":"Auto logout time in minutes"})
+     */
+    private $autologout;
     
     
     /**
@@ -258,6 +286,29 @@ class Companies
     }
 
     /**
+     * Set minhoursforlunch
+     *
+     * @param integer $minhoursforlunch
+     * @return Companies
+     */
+    public function setMinHoursForLunch($minhoursforlunch)
+    {
+        $this->minhoursforlunch = $minhoursforlunch;
+
+        return $this;
+    }
+
+    /**
+     * Get minhoursforlunch
+     *
+     * @return integer
+     */
+    public function getMinHoursForLunch()
+    {
+        return $this->minhoursforlunch;
+    }
+    
+    /**
      * Set lunchtime
      *
      * @param integer $lunchtime
@@ -301,5 +352,74 @@ class Companies
     public function getLunchtimeUnpaid()
     {
         return $this->lunchtimeUnpaid;
+    }
+    
+    /**
+     * Set rounding
+     *
+     * @param integer $rounding
+     * @return Companies
+     */
+    public function setRounding($rounding)
+    {
+        $this->rounding = $rounding;
+
+        return $this;
+    }
+
+    /**
+     * Get rounding
+     *
+     * @return integer
+     */
+    public function getRounding()
+    {
+        return $this->rounding;
+    }
+    
+    /**
+     * Set grace
+     *
+     * @param integer $grace
+     * @return Companies
+     */
+    public function setGrace($grace)
+    {
+        $this->grace = $grace;
+
+        return $this;
+    }
+
+    /**
+     * Get grace
+     *
+     * @return integer
+     */
+    public function getGrace()
+    {
+        return $this->grace;
+    }
+    
+    /**
+     * Set autologout
+     *
+     * @param integer $autologout
+     * @return Companies
+     */
+    public function setAutologout($autologout)
+    {
+        $this->autologout = $autologout;
+
+        return $this;
+    }
+
+    /**
+     * Get autologout
+     *
+     * @return integer
+     */
+    public function getAutologout()
+    {
+        return $this->autologout;
     }
 }

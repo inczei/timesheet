@@ -127,7 +127,58 @@ $(document).ready(function(){
         return false;
     });
 
+    $('body').delegate('span[class=scrollTop]', 'click', function(){
+    	$('html, body').animate({scrollTop:0}, 'slow');
+    	return false;
+    });
+    
+    
+    $('body').delegate('span[class=scrollTo]', 'click', function(){
+    	var pos=$('#'+$(this).attr('data-id')).offset().top;
+    	$('html, body').animate({scrollTop: pos}, 'slow');
+    	return false;
+    });
 
+    
+    $('body').delegate('td[name=updatereader],td[name=syncreaderusers],td[name=resetreader],td[name=readeradminpwd],td[name=downloadattn],td[name=showallattn]', 'click', function(){
+    	addWaitPopup();
+    	$.ajax({
+			url: $(this).attr('data-url'),
+			dataType: 'json',
+			timeout: 240000,
+			beforeSend: function() {
+				$('body').css('cursor', 'progress');
+			}
+		})
+		.error(function(jqXHR, status, errorThrown) {
+			alert('ajax error');
+			removeMessage();
+			removeWaitPopup();
+			$('body').css('cursor', 'auto');
+		})
+		.done(function(data) {
+			removeMessage();
+			removeWaitPopup();
+			$('body').css('cursor', 'auto');
+			$('<div></div>').appendTo('body')
+	    	.html('<div>'+data.content+'</div>')
+	    	.dialog({
+	    		modal: true,
+	    		title: data.title,
+	    		zIndex: 2000,
+	    		autoOpen: true,
+	    		width: 'auto',
+	    		resizable: false,
+	    		close: function (event, ui) {
+	    			$(this).remove();
+	    		}
+	    	});
+		});
+    });
+
+
+
+    /*
     $('body').delegate('#config_submit', 'click', function(e) {
     	e.preventDefault();
         $.ajax({
@@ -138,7 +189,7 @@ $(document).ready(function(){
             	value: $('#config_value').val()
             },
             success: function(data) {
-            	if (data.error.length) {
+            	if (typeof data.error != 'undefined' && data.error.length) {
             		alert(data.error);
             	} else {
             		window.location=$('#config_url').val();
@@ -146,7 +197,7 @@ $(document).ready(function(){
             }
         });
     });
-    
+*/    
     $('body').delegate('select[class=swapUser1],select[class=swapUser2],select[class=swapShift1],select[class=swapShift2]', 'change', function(){
         var dSelected = $(this).val();
         var dClass=$(this).attr('class');
@@ -232,7 +283,7 @@ $(document).ready(function(){
 		showDateTime('div[class=clock]');
 	};
 	$('body').delegate('input[class=dateInput]', 'focus', function() {
-		$(this).datepicker({dateFormat: 'dd/mm/yy'});
+		$(this).datepicker({dateFormat: 'dd/mm/yy', firstDay: 1});
 	});
 	$('body').delegate('input[class=timeInput]', 'focus', function() {
 		$(this).timepicker({minutes: { interval: 15 }});
@@ -379,7 +430,7 @@ $(document).ready(function(){
 		var delay=0;
 		if (($(this).attr('name') == 'userSearch') || ($(this).attr('name') == 'domainSearch')) {
 			if ($('#lastSearch').val() != name || $('#lastDomain').val() != domain) {
-				var delay=1500;
+				var delay=500;
 				$('#lastSearch').val(name);
 				$('#lastDomain').val(domain);
 			}
@@ -575,20 +626,22 @@ $(document).ready(function(){
 	});
 
 
-	$('body').delegate('td[class=addPunch]', 'click', function () {
+	$('body').delegate('td[class=addPunch],td[class=editPunch]', 'click', function () {
 		var type=$(this).attr('data-type');
 		var typeId=$(this).attr('data-typeid');
 		var date=$(this).attr('data-date');
 		var dateDisplay=$(this).attr('data-datedisplay');
+		var origdatetime=$(this).attr('data-origdatetime');
+		var origtime=$(this).attr('data-origtime');
 		var userId=$(this).attr('data-userid');
 		var username=$(this).attr('data-username');
 		var ajaxUrl=$('#addPunch').attr('data-url');
 
 		$('<div></div>').appendTo('body')
 		   	.html('<div>'+
-   				'<h3>Would you like to add '+type+' for '+username+' on '+dateDisplay+'</h3>'+
+   				'<h3>Would you like to add/change '+type+' time for '+username+' on '+dateDisplay+'</h3>'+
    				'<table>'+
-   				'<tr><td>Time:</td><td><input type="text" class="timeInput" id="addPunchTime" value=""></td></tr>'+
+   				'<tr><td>Time:</td><td><input type="text" class="timeInput" size="5" id="addPunchTime" value="'+origtime+'"></td></tr>'+
    				'<tr><td>Comment:</td><td><input type="text" id="addPunchComment" value=""></td></tr>'+
    				'</div>')
 		   	.dialog({
@@ -603,7 +656,7 @@ $(document).ready(function(){
 		   				var apTime=$('#addPunchTime').val();
 		   				var apComment=$('#addPunchComment').val();
 		   				$(this).dialog("close");
-		   				ajaxAddPunch(ajaxUrl, typeId, userId, date, apTime, apComment);
+		   				ajaxAddPunch(ajaxUrl, typeId, userId, date, apTime, apComment, origdatetime);
 		   				ajaxRefresh('timesheetDiv', '', '', '');		   				
 		   			},
 		   			'No': function () {
@@ -729,18 +782,14 @@ $(document).ready(function(){
 		
 	});
 	
-	$('body').delegate('input[id=usersearch]', 'change', function () {
+	$('body').delegate('input[id=usersearch],select[id=timesheetUserSelect]', 'change', function () {
 		ajaxRefresh('timesheetDiv', '', $('#usersearch').val(), $('#timesheetUserSelect').val());
 	});
 
-	$('body').delegate('select[id=timesheetUserSelect]', 'change', function () {
+	$('body').delegate('button[class="refreshButton"],input[id=usersearchButton]', 'click', function () {
 		ajaxRefresh('timesheetDiv', '', $('#usersearch').val(), $('#timesheetUserSelect').val());
 	});
 
-	$('body').delegate('input[id=usersearchButton]', 'click', function () {
-		ajaxRefresh('timesheetDiv', '', $('#usersearch').val(), $('#timesheetUserSelect').val());
-	});
-	
 	$('body').delegate('span[class=switchMonth]', 'click', function () {
 		ajaxRefresh($(this).attr('data-div'), $(this).attr('name'), '', '');
 	});
@@ -782,6 +831,10 @@ $(document).ready(function(){
 		});
 	});
 
+	$('body').delegate('button[id$=cancel]', 'click', function () {
+		$(this).closest('form').submit();
+	});
+	
 	$('body').delegate('button[name=onclickmenu]', 'click', function () {
 		if ($(this).attr('question')) {
 			if (!confirm($(this).attr('question'))) {
@@ -918,7 +971,26 @@ function ajaxSchedule(action, targetId, date, locationId, shiftId, userId) {
 		})
 		.done(function(data) {
 			if (data.error.length) {
-				alert(data.error);
+				$('<div id="dialog" title="Error"></div>').appendTo('body')
+				.html('<div id="container">'+data.error+'</div>')
+				.dialog({
+					modal: true,
+					zIndex: 2000,
+					autoOpen: true,
+					width: 400,
+					height: 'auto',
+					minHeight: 'auto',
+					position: ['center', 20],
+					resizable: false,
+			   		buttons: {
+			   			'OK': function () {
+			   				$(this).dialog("close");
+			   			}
+			   		},
+					close: function (event, ui) {
+						$(this).remove();
+					}
+				});
 			}
 			$('#shft'+targetId).html(data.content)
 				.css({ opacity: 1 });
@@ -1080,8 +1152,9 @@ function ajaxRefresh(div, func, usersearch, selectedUserId) {
 	var locationId=$('#'+div).attr('data-locationid');
 	var timestamp=$('#'+div).attr('data-timestamp');
 
+	removeMessage();
 	$('#'+div).fadeOut(100);
-	$('#'+div).html('<h2><img src="/web/bundles/timesheethr/images/ajax-loader.gif" alt="Loading..."></h2>').fadeIn(100);
+	$('#'+div).html('<p>Please wait... <img src="'+assetsBaseDir+'images/ajax-loader.gif" alt="Please wait..."></p>').fadeIn(100);
 	$.ajax({
 		url: url,
 		method: 'POST',
@@ -1100,7 +1173,7 @@ function ajaxRefresh(div, func, usersearch, selectedUserId) {
 		$('#'+div).fadeIn(100);
 	})
 	.done(function(data) {
-		if (data.error.length > 0) {
+		if (typeof data.error !== 'undefined' && data.error.length > 0) {
 			alert(data.error);
 		}
 		if (typeof $('#dialog') != 'undefined') {
@@ -1111,7 +1184,7 @@ function ajaxRefresh(div, func, usersearch, selectedUserId) {
 }
 
 
-function ajaxAddPunch(url, typeId, userId, date, time, comment) {
+function ajaxAddPunch(url, typeId, userId, date, time, comment, origdatetime) {
 	$.ajax({
 		url: url,
 		method: 'POST',
@@ -1122,7 +1195,8 @@ function ajaxAddPunch(url, typeId, userId, date, time, comment) {
 			typeId: typeId,
 			date: date,
 			time: time,
-			comment: comment
+			comment: comment,
+			origdatetime: origdatetime
 		},
 	})
 	.error(function(jqXHR, status, errorThrown) {
@@ -1137,7 +1211,6 @@ function ajaxAddPunch(url, typeId, userId, date, time, comment) {
 		}
 	});
 }
-
 
 function showMessage(message) {
 	$('<div></div>').appendTo('body')
@@ -1217,4 +1290,94 @@ function ajaxTimesheetCheck(ajaxurl, date, userid, comment) {
 		}
 		ajaxRefresh('timesheetDiv', '', '', '');
 	});
+}
+
+function addWaitPopup() {
+	$('<div id="waitPopup"></div>').append('body')
+		.html('<p>Please wait... <img src="'+assetsBaseDir+'images/ajax-loader.gif" alt="Please wait..."></p>')
+		.dialog({
+			modal: true,
+			title: 'Please wait...',
+			zIndex: 2000,
+			autoOpen: true,
+			width: 'auto',
+			resizable: false,
+			close: function (event, ui) {
+				$(this).remove();
+			}
+		});
+}
+function removeWaitPopup() {
+	$('#waitPopup').remove();
+}
+function removeMessage() {
+	$('div[class=message]').html('');
+}
+
+window.addEventListener('scroll', function() {
+	if ($('span.scrollTop') != 'undefined') {
+	    if (window.pageYOffset >= 100) {
+	    	$('span.scrollTop').css('display', 'inline');
+	    } else {
+	    	$('span.scrollTop').css('display', 'none');
+	    }
+	}
+});
+
+function getLocation(divId, formatText, domainid, ajaxurl, lat, long, enableDiv) {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+        	var ref={latitude: 0, longitude: 0};
+        	ref.latitude = position.coords.latitude;
+        	ref.longitude = position.coords.longitude;
+        	if (typeof(domainid) != 'undefined' && typeof(ajaxurl) != 'undefined') {
+	        	$.ajax({
+	        		url: ajaxurl,
+	        		method: 'POST',
+	        		dataType: 'json',
+	        		async: true,
+	        		data: {
+	        			action: 'position',
+	        			domainid: domainid,
+	        			ref: ref
+	        		},
+	        	})
+	        	.error(function(jqXHR, status, errorThrown) {
+	        		if (typeof('enableDiv') != 'undefined')  {
+        				$('#'+enableDiv).hide();
+	        		}
+	        		alert('ajax error');
+	        	})
+	        	.done(function(data) {
+	        		if (data.error.length > 0) {
+	        			alert(data.error);
+	        		}
+	            	if (divId) {
+	            		$('#'+divId).html(formatText.replace(/%lat/g, ref.latitude).replace(/%lon/g, ref.longitude)+', distance to '+data.location+' is '+data.distance+' m');
+	            	}
+	        		if (typeof('lat') != 'undefined') $('#'+lat).val(ref.latitude);
+	        		if (typeof('long') != 'undefined') $('#'+long).val(ref.longitude);
+	        		if (typeof('enableDiv') != 'undefined')  {
+	        			if (data.distance != 'Unknown') {
+	        				$('#'+enableDiv).show();
+	        			} else {
+	        				$('#'+enableDiv).hide();
+	        			}
+	        		}
+	        		
+	        	});
+        	} else if (typeof(domainid) != 'undefined' && typeof(ajaxurl) == 'undefined') {
+            	if (divId) {
+            		$('#'+divId).html(formatText.replace(/%lat/g, ref.latitude).replace(/%lon/g, ref.longitude));
+            	}
+        	}
+        	return ref;
+        });
+    }
+    return null;
+}
+function calculateDistance(lat1, lat2) {
+	var φ1 = lat1.toRadians(), φ2 = lat2.toRadians(), Δλ = (lon2-lon1).toRadians(), R = 6371e3; // gives d in metres
+	var d = Math.acos( Math.sin(φ1)*Math.sin(φ2) + Math.cos(φ1)*Math.cos(φ2) * Math.cos(Δλ) ) * R;
+	return d;
 }

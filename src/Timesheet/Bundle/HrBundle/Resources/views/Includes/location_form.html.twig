@@ -20,6 +20,9 @@
 		<td colspan="4">{{ form_widget(form.ipaddress) }}</td>
 	</tr>
 	<tr>
+		<th colspan="5">Contacts</th>
+	</tr>
+	<tr>
 		<td>{{ form_label(form.phoneLandline) }}{{ form_errors(form.phoneLandline) }}</td>
 		<td>{{ form_widget(form.phoneLandline) }}</td>
 		<td> </td>
@@ -55,6 +58,22 @@
 		<td>{{ form_widget(form.addressPostcode) }}</td>
 	</tr>
 	<tr>
+		<th colspan="5">Location</th>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.latitude) }}{{ form_errors(form.latitude) }}</td>
+		<td>{{ form_widget(form.latitude) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.longitude) }}{{ form_errors(form.longitude) }}</td>
+		<td>{{ form_widget(form.longitude) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.radius) }}{{ form_errors(form.radius) }}</td>
+		<td>{{ form_widget(form.radius) }}</td>
+		<td> </td>
+		<td colspan="2"> <span id="coordinates"></span> </td>
+	</tr>
+	<tr>
 		<td colspan="2" align="left">{{ form_widget(form.cancel) }}</td>
 		<td> </td>
 		<td colspan="2" align="right">{{ form_widget(form.submit) }}</td>
@@ -66,5 +85,13 @@
 {% if add is defined and add|length %}
 <hr>
 <h2>Add staff member requirements</h2>
-{# dump(add) #}
 {% endif %}
+<script>
+var myInterval=setInterval(function() {
+	if (typeof(getLocation) == 'function' && $('#coordinates') != 'undefined') {
+		var formatText='<span>Current position</span><br/><span id="latitude">%lat</span>, <span id="longitude">%lon</span> (<a href="http://maps.google.com?q=%lat,%lon" target="_blank">map</a>)';
+		getLocation('coordinates', formatText, {{ domainId }});
+		clearInterval(myInterval);
+	}	
+}, 200);
+</script>

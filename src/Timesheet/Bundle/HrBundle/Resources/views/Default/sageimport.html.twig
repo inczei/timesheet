@@ -1,0 +1,20 @@
+{% extends 'TimesheetHrBundle:Default:base.html.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<div class="message">
+{% if message is defined and message|length %}
+<div class="loginMessage">{{ message }}</div>
+{% endif %}
+</div>
+{% if importForm is defined and importForm|length %}
+<div class="registrationList">
+<h2>Import Sage XML file</h2>
+{{ include('TimesheetHrBundle:Includes:sageimport_form.html.twig', { 'form': importForm }) }}
+</div>
+{% else %}
+<div class="statusList">
+...
+</div>
+{% endif %}
+{% endblock %}

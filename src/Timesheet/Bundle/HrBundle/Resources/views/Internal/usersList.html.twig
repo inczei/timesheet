@@ -1,3 +1,4 @@
+<span class="scrollTop" title="Click here to scroll up">Up</span>
 {% if users is defined and users|length %}
 <table>
 	<tr>
@@ -8,6 +9,7 @@
 		<th>Current Status</th>
 		<th>Contract</th>
 		<th>Visa</th>
+		<th>DBS Check</th>
 		<th>Holidays</th>
 		<th>Timing Preference</th>
 		<th>Qualifications</th>
@@ -25,6 +27,7 @@
 			<div name="hiddenTable" class="contractsTable{{ u.id }}">
 			<table>
 				<tr>
+					<th title="Job Title">Title</th>
 					<th title="Contract Start Date">CSD</th>
 					<th title="Contract End Date">CED</th>
 					<th title="Agreed Weekly Hours">AWH</th>
@@ -38,6 +41,7 @@
 				</tr>
 				{% for c in u.contracts %}
 				<tr>
+					<td title="{{ c.jobDescription }}">{% if jobtitles[c.jobTitleId] is defined %}{{ jobtitles[c.jobTitleId] }}{% else %}{{ c.jobTitleId }}{% endif %}</td>
 					<td>{{ c.csd|date('d/m/Y') }}</td>
 					<td>{% if c.ced == null %} - {% else %}{{ c.ced|date('d/m/Y') }}{% endif %}</td>
 					<td>{{ c.awh }}</td>
@@ -69,7 +73,7 @@
 					<th>Valid from-to</th>
 					<th> </th>
 				</tr>
-				{% for v in u.visas%}
+				{% for v in u.visas %}
 				<tr{% if v.notes is defined and v.notes|length %} title="{{ v.notes }}"{% endif %}>
 					<td>{{ v.title }}</td>
 					<td>{{ v.startDate|date('d/m/Y') }} - {% if v.notExpire %}{% else %}{{ v.endDate|date('d/m/Y') }}{% endif %}</td>
@@ -80,6 +84,30 @@
 			</div>
 			{% endif %}
 			<a href="{{ path(base, {'action': 'editvisa', 'param1': u.id, 'param2': '0' }) }}">Add Visa</a>
+		</td>
+		<td>
+			{% if u.dbs is defined and u.dbs|length %}
+			<div name="showhide" column="dbsTable{{ u.id }}">Show</div>
+			<div name="hiddenTable" class="dbsTable{{ u.id }}">
+			<table>
+				<tr>
+					<th>Type</th>
+					<th>Disclosure No</th>
+					<th>Valid from</th>
+					<th> </th>
+				</tr>
+				{% for d in u.dbs %}
+				<tr{% if d.notes is defined and d.notes|length %} title="{{ d.notes }}"{% endif %}>
+					<td>{{ d.title }}</td>
+					<td>{{ d.disclosureNo }}</td>
+					<td>{{ d.issueDate|date('d/m/Y') }}</td>
+					<td><a href="{{ path(base, {'action': 'editdbs', 'param1': u.id, 'param2': d.id }) }}">Edit</a></td>
+				</tr>				
+				{% endfor %}
+			</table>
+			</div>
+			{% endif %}
+			<a href="{{ path(base, {'action': 'editdbs', 'param1': u.id, 'param2': '0' }) }}">Add DBS Check</a>
 		</td>
 		<td>
 			{% if u.holidays.list is defined and u.holidays.list|length %}

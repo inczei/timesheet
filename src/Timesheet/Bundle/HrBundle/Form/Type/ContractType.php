@@ -17,12 +17,14 @@ class ContractType extends AbstractType
 	private $contract;
 	private $user;
 	private $holidayCalculations;
+	private $jobTitles;
 	
-	public function __construct($contract, $user, $holidayCalculations)
+	public function __construct($contract, $user, $holidayCalculations, $jobTitles)
 	{
 		$this->contract = $contract;
 		$this->user = $user;
 		$this->holidayCalculations = $holidayCalculations;
+		$this->jobTitles = $jobTitles;
 	}
 	
     public function buildForm(FormBuilderInterface $builder, array $options)
@@ -59,6 +61,17 @@ class ContractType extends AbstractType
     			'required'=>false,
     			'read_only'=>true,
     			'data'=>((isset($this->user))?($this->user->getLastName()):(''))
+    		))
+    		->add('jobTitleId', 'choice', array(
+    			'choices'=>$this->jobTitles,
+    			'label'=>'Job Title:',
+    			'required'=>false,
+    			'data'=>((isset($this->contract))?($this->contract->getJobTitleId()):(''))
+    		))
+    		->add('jobDescription', 'text', array(
+    			'label'=>'Job Description:',
+    			'required'=>false,
+    			'data'=>((isset($this->contract))?($this->contract->getJobDescription()):(''))
     		))
     		->add('csd', 'date', array(
     			'label'=>'Contract Start Date:',
@@ -140,10 +153,10 @@ class ContractType extends AbstractType
     			'label'=>'Submit',
     			'attr'=>array('class'=>'submitButton')
     		))
-   			->add('cancel', 'submit', array(
+   			->add('cancel', 'button', array(
    				'label'=>'Cancel',
    				'attr'=>array('formnovalidate'=>true),
-    			'validation_groups'=>false
+//    			'validation_groups'=>false
     		));
     	
     }

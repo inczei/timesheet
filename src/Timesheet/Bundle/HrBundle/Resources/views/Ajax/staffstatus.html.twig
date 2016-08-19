@@ -1,0 +1,24 @@
+{% if list is defined and list|length %}
+<table>
+	<tr>
+		<th>Username</th>
+		<th>Full name</th>
+		<th>Status</th>
+		<th>Date/Time</th>
+		<th>Location</th>
+		<th>Comment</th>
+	</tr>
+{% for l in list %}
+	<tr>
+		<td>{{ l.username }}</td>
+		<td>{{ l.fullname }}</td>
+		<td>{{ l.status }}</td>
+		<td>{{ l.timestamp|date('d/m/Y H:i') }}</td>
+		<td title="IP Address: {{ l.ipAddress }}">{% if locations[l.ipAddress] is defined and locations[l.ipAddress]|length %}{{ locations[l.ipAddress] }}{% else %}{{ l.ipAddress }}{% endif %}</td>
+		<td>{{ l.comment }}</td>
+	</tr>
+{% endfor %}
+</table>
+{% else %}
+<p>You have no staff status available</p>
+{% endif %}

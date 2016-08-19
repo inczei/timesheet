@@ -102,6 +102,43 @@
 	</tr>
 	{% endfor %}
 {% endif %}
+{% if multipleshift is defined and multipleshift|length %}
+	<tr>
+		<td colspan="6"><br><br></td>
+	</tr>
+	<tr>
+		<th colspan="6">Multiple shift allocation<br>{{ dump(multipleshift) }}</th>
+	</tr>
+	<tr>
+		<th colspan="2">Name</th>
+		<th colspan="4">Shifts</th>
+	</tr>
+	{% for lId,m in multipleshift %}
+		{% for uId,shift in m %}
+	<tr>
+		<td colspan="2">{% if users[uId] is defined and users[uId] %}{{ (users[uId].firstName~' '~users[uId].lastName)|trim }}{% else %}{% endif %}</td>
+		<td colspan="2">{% if shift is defined and shift|length %}{% for sId in shift %}{% if shifts[lId][sId] is defined and shifts[lId][sId] %}{{ shifts[lId][sId]['title'] }}<br>{% endif %}{% endfor %}{% endif %}</td>
+		<td colspan="2">{% if shift is defined and shift|length %}{% for sId in shift %}{% if shifts[lId][sId] is defined and shifts[lId][sId] %}{{ shifts[lId][sId]['timings'] }}<br>{% endif %}{% endfor %}{% endif %}</td>
+	</tr>
+		{% endfor %}
+	{% endfor %}
+{% endif %}
+{% if tooclose is defined and tooclose|length %}
+	<tr>
+		<td colspan="6"><br><br></td>
+	</tr>
+	<tr>
+		<th colspan="6">Not enough rest between shifts</th>
+	</tr>
+	<tr>
+		<th colspan="6">Name</th>
+	</tr>
+	{% for tc in tooclose %}
+	<tr>
+		<td colspan="6">{% if users[tc.userId] is defined and users[tc.userId] %}{{ (users[tc.userId].firstName~' '~users[tc.userId].lastName)|trim }}{% else %}{% endif %}</td>
+	</tr>
+	{% endfor %}
+{% endif %}
 </table>
 </div>
 {% else %}

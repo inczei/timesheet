@@ -1,0 +1,41 @@
+{% extends 'TimesheetHrBundle:Default:base.html.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block header %}{% endblock %}
+{% block content %}
+<div class="message">
+{% if message is defined and message|length %}
+<div class="loginMessage">{{ message }}</div>
+{% endif %}
+</div>
+{% if templateForm is defined and templateForm|length %}
+<div class="registrationList">
+<h2>Template</h2>
+{{ include('TimesheetHrBundle:Includes:template_form.html.twig', { 'form': templateForm }) }}
+</div>
+{% else %}
+<div class="statusList">
+<a href="{{ path('timesheet_hr_templates', {'action': 'new'}) }}">New template</a>
+{% if templates is defined and templates|length %}
+<table>
+	<tr>
+		<th>Name</th>
+		<th>Comment</th>
+		<th>Page</th>
+		<th colspan="2">Format</th>
+		<th>Status</th>
+	</tr>
+	{% for t in templates %}
+	<tr>
+		<td><a href="{{ path('timesheet_hr_templates', {'action': 'edit', 'param1': t.id}) }}">{{ t.name }}</a></td>
+		<td>{{ t.comment }}</td>
+		<td>{% if pages[t.pageId] is defined %}{{ pages[t.pageId] }}{% else %}????{% endif %}</td>
+		<td>{% if formats[t.format] is defined %}{{ formats[t.format] }}{% else %}????{% endif %}</td>
+		<td><a href="{{ path('timesheet_hr_templates', {'action': 'editformat', 'param1': t.id}) }}" title="Click here to edit format">Edit</a></td>
+		<td>{% if t.available %}Available{% else %}Hidden{% endif %}</td>
+	</tr>
+	{% endfor %}
+</table>
+{% endif %}
+</div>
+{% endif %}
+{% endblock %}

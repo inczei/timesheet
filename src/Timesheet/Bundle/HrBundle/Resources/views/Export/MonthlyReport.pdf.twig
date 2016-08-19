@@ -38,8 +38,9 @@
 					{% if rep.timings is defined and rep.timings|length %}
 					<td width="40" text-align="center"><br/><br/>
 						{% for k,r in rep.timings %}
+							{{ r.title }}<br/>
 							{% if k>0 %}<br/>{% endif %}
-							{{ r.startTime|slice(0,5) }} - {{ r.finishTime|slice(0,5) }} at {{ r.name }}
+							{{ r.startTime|date('H:i') }} - {{ r.finishTime|date('H:i') }} at {{ r.name }}
 						{% endfor %}<br/><br/>
 						{% if rep.holidays is defined and rep.holidays|length %}
 							{% for h in rep.holidays %}
@@ -54,7 +55,7 @@
 									{{ h.name }}<br/>
 								{% endfor %}
 							{% else %}
-							 - - -
+							<br/> - - - <br/><br/>
 							{% endif %}
 							<br/><br/>
 						</td>

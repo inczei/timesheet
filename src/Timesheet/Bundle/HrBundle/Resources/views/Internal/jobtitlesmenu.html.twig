@@ -1,0 +1,19 @@
+<h2>Job Titles</h2>
+<a href="{{ path(base, {'action': 'editjobtitle', 'param1': '0' }) }}">New job title</a>
+{% if jobtitles is defined and jobtitles|length %}
+<table>
+	<tr>
+		<th>Title</th>
+		<th>Status</th>
+		{% if domainId is defined and domainId > 0 %}{% else %}<th>Company</th>{% endif %}
+	</tr>
+	{% for jt in jobtitles %}
+	<tr>
+		<td><a href="{{ path(base, {'action': 'editjobtitle', 'param1': jt.id }) }}" title="Click here to edit">{{ jt.title }}</a></td>
+		<td>{% if jt.active == 0 %}Inactive{% else %}Active{% endif %}</td>
+		{% if domainId is defined and domainId > 0 %}{% else %}<td>{% if domains[jt.domainId] is defined and domains[jt.domainId]|length %}{{ domains[jt.domainId] }}{% else %}????{% endif %}</td>{% endif %}
+	</tr>
+	{% endfor %}
+</table>
+{% endif %}
+<hr>

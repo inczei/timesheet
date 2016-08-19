@@ -16,6 +16,13 @@
 		<td>{{ form_widget(form.lastName) }}</td>
 	</tr>
 	<tr>
+		<td>{{ form_label(form.jobTitleId) }}{{ form_errors(form.jobTitleId) }}</td>
+		<td>{{ form_widget(form.jobTitleId) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.jobDescription) }}{{ form_errors(form.jobDescription) }}</td>
+		<td>{{ form_widget(form.jobDescription) }}</td>
+	</tr>
+	<tr>
 		<td>{{ form_label(form.csd) }}{{ form_errors(form.csd) }}</td>
 		<td>{{ form_widget(form.csd) }}</td>
 		<td> </td>

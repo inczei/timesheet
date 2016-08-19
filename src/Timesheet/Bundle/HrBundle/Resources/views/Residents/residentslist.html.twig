@@ -2,7 +2,11 @@
 {% block title %}{{ title }}{% endblock %}
 {% block header %}{% endblock %}
 {% block content %}
-{% if message is defined and message|length %}<span class="message"><b>{{ message|raw }}</b></span>{% else %}{% endif %}
+<div class="message">
+{% if message is defined and message|length %}
+<div class="loginMessage">{{ message }}</div>
+{% endif %}
+</div>
 {% if form is defined and form|length %}
 <div class="registrationList">
 {% if readOnly is defined and readOnly==true %}

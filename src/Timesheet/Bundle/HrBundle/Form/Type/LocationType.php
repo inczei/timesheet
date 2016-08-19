@@ -95,6 +95,18 @@ class LocationType extends AbstractType
     			),
     			'data'=>((isset($this->location))?($this->location->getAddressPostcode()):(''))
     		))
+    		->add('latitude', 'number', array(
+    			'label'=>'Latitude:',
+    			'data'=>((isset($this->location))?($this->location->getLatitude()):(''))
+    		))
+    		->add('longitude', 'number', array(
+    			'label'=>'Longitude:',
+    			'data'=>((isset($this->location))?($this->location->getLongitude()):(''))
+    		))
+    		->add('radius', 'number', array(
+    			'label'=>'Radius (m):',
+    			'data'=>((isset($this->location))?($this->location->getRadius()):(''))
+    		))
     		->add('active', 'choice', array(
     			'choices'=>array('1'=>'Active', '0'=>'Inactive'),
     			'label'=>'Status:',
@@ -117,10 +129,10 @@ class LocationType extends AbstractType
     			'label'=>'Submit',
     			'attr'=>array('class'=>'submitButton')
     		))
-   			->add('cancel', 'submit', array(
+   			->add('cancel', 'button', array(
    				'label'=>'Cancel',
    				'attr'=>array('formnovalidate'=>true),
-    			'validation_groups'=>false
+//    			'validation_groups'=>false
     		));
    			
     }

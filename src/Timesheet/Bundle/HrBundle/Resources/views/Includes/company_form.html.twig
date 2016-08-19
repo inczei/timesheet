@@ -30,12 +30,52 @@
 		<td> </td>
 	</tr>
 	<tr>
+		<td>{{ form_label(form.minhoursforlunch) }}{{ form_errors(form.minhoursforlunch) }}</td>
+		<td>{{ form_widget(form.minhoursforlunch) }}</td>
+		<td> </td>
+		<td> </td>
+		<td> </td>
+	</tr>
+	<tr>
 		<td>{{ form_label(form.lunchtime) }}{{ form_errors(form.lunchtime) }}</td>
 		<td>{{ form_widget(form.lunchtime) }}</td>
 		<td> </td>
 		<td>{{ form_label(form.lunchtimeUnpaid) }}{{ form_errors(form.lunchtimeUnpaid) }}</td>
 		<td>{{ form_widget(form.lunchtimeUnpaid) }}</td>
 	</tr>
+	<tr>
+		<td>{{ form_label(form.rounding) }}{{ form_errors(form.rounding) }}</td>
+		<td>{{ form_widget(form.rounding) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.grace) }}{{ form_errors(form.grace) }}</td>
+		<td>{{ form_widget(form.grace) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.autologout) }}{{ form_errors(form.autologout) }}</td>
+		<td>{{ form_widget(form.autologout) }}</td>
+		<td> </td>
+		<td> </td>
+		<td> </td>
+	</tr>
+{% if form.adminUsername is defined %}
+	<tr>
+		<td colspan="5"><hr></td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.adminUsername) }}{{ form_errors(form.adminUsername) }}</td>
+		<td>{{ form_widget(form.adminUsername) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.adminPassword) }}{{ form_errors(form.adminPassword) }}</td>
+		<td>{{ form_widget(form.adminPassword) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.adminEmail) }}{{ form_errors(form.adminEmail) }}</td>
+		<td>{{ form_widget(form.adminEmail) }}</td>
+		<td> </td>
+		<td> </td>
+		<td> </td>
+	</tr>
+{% endif %}
 	<tr>
 		<td colspan="2">{{ form_widget(form.cancel) }}</td>
 		<td> </td>

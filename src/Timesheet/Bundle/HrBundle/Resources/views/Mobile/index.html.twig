@@ -1,0 +1,14 @@
+{% extends 'TimesheetHrBundle:Mobile:base.html.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block extraheader %}
+	<link rel="manifest" href="{{ path('timesheet_mobile_manifest') }}">
+	<meta name="application-name" content="Timesheet">
+{% endblock %}
+{% block header %}<h2><img src="{{ asset('favicon.png') }}" alt="" width="25" height="25"> {{ title }}</h2>{% endblock %}
+{% block content %}
+<p>How to install mobile version:<br/>
+<br/>
+Chrome users:<br/>
+Click on the menu on the right top corner of your screen then select the "Add to Home screen". Will appear a popup window, asking the application name, click "Add" to add to your home screen.<br/>
+...</p>
+{% endblock %}

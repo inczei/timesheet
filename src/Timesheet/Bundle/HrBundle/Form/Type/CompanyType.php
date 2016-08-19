@@ -76,7 +76,12 @@ class CompanyType extends AbstractType
         		'empty_value'=>' - Please select - ',
         		'data'=>((isset($this->company))?($this->company->getHCT()):(''))
     		))
-        	->add('lunchtime', 'number', array(
+        	->add('minhoursforlunch', 'number', array(
+    			'label'=>'Minimum working hours for lunch time (hours):',
+        		'required'=>false,
+        		'data'=>((isset($this->company))?($this->company->getMinHoursForLunch()):(''))
+    		))
+    		->add('lunchtime', 'number', array(
     			'label'=>'Paid Lunchtime (minutes):',
         		'required'=>false,
         		'data'=>((isset($this->company))?($this->company->getLunchtime()):(''))
@@ -86,15 +91,48 @@ class CompanyType extends AbstractType
         		'required'=>false,
         		'data'=>((isset($this->company))?($this->company->getLunchtimeUnpaid()):(''))
     		))
+        	->add('autologout', 'number', array(
+    			'label'=>'Auto logout (minutes):',
+        		'required'=>false,
+        		'data'=>((isset($this->company))?($this->company->getAutologout()):(''))
+    		))
+        	->add('rounding', 'number', array(
+    			'label'=>'Rounding (minutes):',
+        		'required'=>false,
+        		'data'=>((isset($this->company))?($this->company->getRounding()):(''))
+    		))
+    		->add('grace', 'number', array(
+    			'label'=>'Grace period (minutes):',
+        		'required'=>false,
+        		'data'=>((isset($this->company))?($this->company->getGrace()):(''))
+    		))
     		->add('submit', 'submit', array(
     			'label'=>'Submit',
     			'attr'=>array('class'=>'submitButton')
     		))
-   			->add('cancel', 'submit', array(
+   			->add('cancel', 'button', array(
    				'label'=>'Cancel',
    				'attr'=>array('formnovalidate'=>true),
-    			'validation_groups'=>false
+//    			'validation_groups'=>false
     		));
+   		if (!isset($this->company) || !$this->company->getId()) {
+   			$builder
+   				->add('adminUsername', 'text', array(
+   					'label'=>'Admin Username:',
+   					'required'=>true,
+   					'data'=>''
+   				))
+   				->add('adminPassword', 'password', array(
+   					'label'=>'Admin Password:',
+   					'required'=>true,
+   					'data'=>''
+   				))
+   				->add('adminEmail', 'email', array(
+   					'label'=>'Admin E-mail:',
+   					'required'=>true,
+   					'data'=>''
+   				));
+   		}
     }
 
     public function getName()

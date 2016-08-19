@@ -24,7 +24,7 @@
 			{% endfor %}
 		{% endif %}
 		</td>
-		<td>{% if l.ipaddress|length %}{% for ip in l.ipaddress %}{{ ip.IpAddress }}<br>{% endfor %}{% else %}Not specified{% endif %}</td>
+		<td>{% if l.ipaddress|length %}{% for ip in l.ipaddress %}{{ ip.ipAddress }}<br>{% endfor %}{% else %}Not specified{% endif %}</td>
 		<td>{% if l.active %}Active{% else %}Inactive{% endif %}</td>
 	</tr>
 	{% endfor %}

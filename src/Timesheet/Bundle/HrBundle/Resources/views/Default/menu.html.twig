@@ -14,7 +14,7 @@
 	</li>
 {% endfor %}
 {% if app.user.username is defined and app.user.username|length %}
-	<li class="loggedIn">Logged in as<br><b>{{ (app.user.title~' '~app.user.firstName~' '~app.user.lastName)|trim }}</b><br><a href="{{ path('fos_user_security_logout') }}" title="Click here to log out">Logout</a></li>
+	<li class="loggedIn">{% if app.request.cookies.has('ts_alo') %}<span class="warning">Auto logout on</span><br>{% endif %}Logged in as<br><b>{{ (app.user.title~' '~app.user.firstName~' '~app.user.lastName)|trim }}</b><br><a href="{{ path('fos_user_security_logout') }}" title="Click here to log out">Logout</a></li>
 {% endif %}
 </ul>
 </div>

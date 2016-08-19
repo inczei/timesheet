@@ -8,7 +8,8 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 /**
  * @ORM\Entity
  * @ORM\Table(name="Users", uniqueConstraints={
- * @ORM\UniqueConstraint(name="username_domain_idx", columns={"username", "domainId"})})
+ * @ORM\UniqueConstraint(name="username_domain_idx", columns={"username", "domainId"}),
+ * @ORM\UniqueConstraint(name="fullname_domain_idx", columns={"title", "firstName", "lastName", "domainId"})})
  * @ORM\AttributeOverrides({
  *      @ORM\AttributeOverride(name="usernameCanonical", column=@ORM\Column(type="string", name="username_canonical", length=255, unique=false, nullable=false)),
  *      @ORM\AttributeOverride(name="email", column=@ORM\Column(type="string", name="email", length=255, unique=false, nullable=true)),
@@ -34,6 +35,16 @@ class User extends BaseUser
      * @ORM\Column(type="datetime", nullable=true)
      */
     protected $lastTime;
+
+    /**
+     * @ORM\Column(type="string", length=15, nullable=true)
+     */
+    protected $lastIpAddress;
+
+    /**
+     * @ORM\Column(type="text", nullable=true)
+     */
+    protected $lastComment;
     
     /**
      * @ORM\Column(type="integer")
@@ -166,9 +177,35 @@ class User extends BaseUser
     private $exEmail = false;
     
     /**
-     * @ORM\Column(type="integer")
+     * @ORM\Column(name="domainId", type="integer")
      */
     protected $domainId = 1;
+    
+    /**
+     * @ORM\Column(name="taxCode", type="string", length=10)
+     */
+    protected $taxCode = '';
+    
+    /**
+     * @ORM\Column(name="niCategory", type="string", length=2)
+     */
+    protected $NICategory = '';
+    
+    /**
+     * @ORM\Column(name="paymentFrequency", type="string", length=10)
+     */
+    protected $paymentFrequency = '';
+    
+    /**
+     * @ORM\Column(name="maritalStatus", type="string", length=15)
+     */
+    protected $maritalStatus = '';
+    
+    /**
+     * @ORM\Column(name="ethnic", type="string", length=15)
+     */
+    protected $ethnic = '';
+    
     
     
     
@@ -179,6 +216,10 @@ class User extends BaseUser
         $this->loginRequired = true;
         $this->groupId = 0;
         $this->locationId = 0;
+        $this->taxCode = '';
+        $this->NICategory = '';
+        $this->paymentFrequency = '';
+        $this->maritalStatus = '';
     }
 
     /**
@@ -283,6 +324,52 @@ class User extends BaseUser
         return $this->lastTime;
     }
 
+    /**
+     * Set lastIpAddress
+     *
+     * @param string $lastIpAddress
+     * @return User
+     */
+    public function setLastIpAddress($lastIpAddress)
+    {
+        $this->lastIpAddress = $lastIpAddress;
+
+        return $this;
+    }
+
+    /**
+     * Get lastIpAddress
+     *
+     * @return string
+     */
+    public function getLastIpAddress()
+    {
+        return $this->lastIpAddress;
+    }
+    
+    /**
+     * Set lastComment
+     *
+     * @param string $lastComment
+     * @return User
+     */
+    public function setLastComment($lastComment)
+    {
+        $this->lastComment = $lastComment;
+
+        return $this;
+    }
+
+    /**
+     * Get lastComment
+     *
+     * @return string
+     */
+    public function getLastComment()
+    {
+        return $this->lastComment;
+    }
+    
     /**
      * Set groupId
      *
@@ -862,5 +949,131 @@ class User extends BaseUser
     public function getDomainId()
     {
         return $this->domainId;
+    }
+
+    /**
+     * Set taxCode
+     *
+     * @param string $taxCode
+     * @return User
+     */
+    public function setTaxCode($taxCode)
+    {
+    	$this->taxCode = $taxCode;
+    
+    	return $this;
+    }
+    
+    /**
+     * Get taxCode
+     *
+     * @return string
+     */
+    public function getTaxCode()
+    {
+    	return $this->taxCode;
+    }
+    
+    /**
+     * Set niCategory
+     *
+     * @param string $niCategory
+     * @return User
+     */
+    public function setNICategory($niCategory)
+    {
+    	$this->NICategory = $niCategory;
+    
+    	return $this;
+    }
+    
+    /**
+     * Get niCategory
+     *
+     * @return string
+     */
+    public function getNICategory()
+    {
+    	return $this->NICategory;
+    }
+    
+    /**
+     * Set paymentFrequency
+     *
+     * @param string $paymentFrequency
+     * @return User
+     */
+    public function setPaymentFrequency($paymentFrequency)
+    {
+    	$this->paymentFrequency = $paymentFrequency;
+    
+    	return $this;
+    }
+    
+    /**
+     * Get paymentFrequency
+     *
+     * @return string
+     */
+    public function getPaymentFrequency()
+    {
+    	return $this->paymentFrequency;
+    }
+    
+    /**
+     * Set maritalStatus
+     *
+     * @param string $maritalStatus
+     * @return User
+     */
+    public function setMaritalStatus($maritalStatus)
+    {
+    	$this->maritalStatus = $maritalStatus;
+    
+    	return $this;
+    }
+    
+    /**
+     * Get maritalStatus
+     *
+     * @return string
+     */
+    public function getMaritalStatus()
+    {
+    	return $this->maritalStatus;
+    }
+    
+    /**
+     * Set ethnic
+     *
+     * @param string $ethnic
+     * @return User
+     */
+    public function setEthnic($ethnic)
+    {
+    	$this->ethnic = $ethnic;
+    
+    	return $this;
+    }
+    
+    /**
+     * Get ethnic
+     *
+     * @return string
+     */
+    public function getEthnic()
+    {
+    	return $this->ethnic;
+    }
+    
+    
+    /**
+     * Get full name
+     *
+     * @return string 
+     */
+    public function getFullName()
+    {
+        return trim($this->title.' '.$this->firstName.' '.$this->lastName);
     }
 }

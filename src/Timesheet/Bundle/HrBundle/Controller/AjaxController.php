@@ -12,6 +12,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Timesheet\Bundle\HrBundle\Entity\Config;
+use Timesheet\Bundle\HrBundle\Entity\Constants;
 use Timesheet\Bundle\HrBundle\Entity\Groups;
 use Timesheet\Bundle\HrBundle\Entity\Info;
 use Timesheet\Bundle\HrBundle\Entity\Location;
@@ -20,6 +21,7 @@ use Timesheet\Bundle\HrBundle\Entity\Status;
 use Timesheet\Bundle\HrBundle\Entity\SwapRequest;
 use Timesheet\Bundle\HrBundle\Entity\Timing;
 use Timesheet\Bundle\HrBundle\Entity\User;
+use Timesheet\Bundle\HrBundle\Form\Type\FPRUserAllocationType;
 use Timesheet\Bundle\HrBundle\Form\Type\HolidayRequestType;
 use Timesheet\Bundle\HrBundle\Form\Type\PhotoNotesType;
 use Timesheet\Bundle\HrBundle\Form\Type\SwapRequestType;
@@ -36,15 +38,20 @@ use Symfony\Component\Serializer\Encoder\JsonEncoder;
 use Symfony\Component\Serializer\Normalizer\GetSetMethodNormalizer;
 use Symfony\Component\HttpFoundation;
 use \Symfony\Component\Validator\Constraints\DateTime;
-// use Timesheet\Bundle\HrBundle\Entity\Timesheet\Bundle\HrBundle\Entity;
-// use Timesheet\Bundle\HrBundle\Form\Type\Timesheet\Bundle\HrBundle\Form\Type;
+// use both zk library
+use Timesheet\Bundle\HrBundle\Classes\ZKLib;
+use Timesheet\Bundle\HrBundle\Classes\TAD;
+use Timesheet\Bundle\HrBundle\Classes\TADFactory;
 
+use Timesheet\Bundle\HrBundle\Entity\FPReaderUsers;
+use Timesheet\Bundle\HrBundle\Entity\FPReaderAttendance;
+use Timesheet\Bundle\HrBundle\Entity\FPReaderToUser;
 
 class AjaxController extends Controller
 {
 
     public function userinfoAction($id) {
-
+error_log('userinfoAction');
 		$request=$this->getRequest();
 		if ($request->isXmlHttpRequest()) {
 	    	$data=array(
@@ -55,6 +62,7 @@ class AjaxController extends Controller
 	    	$functions = $this->get('timesheet.hr.functions');
 		    
 	    	$securityContext = $this->container->get('security.context');
+	    	$admin=false;
     		$sysadmin=false;
     		if ($securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
     			// authenticated REMEMBERED, FULLY will imply REMEMBERED (NON anonymous)
@@ -62,24 +70,41 @@ class AjaxController extends Controller
     				// we don't need to check domain is sysadmin logged in
     				$sysadmin=true;
     			}
+    			$admin=(TRUE === $securityContext->isGranted('ROLE_ADMIN'));
     		}
 	    	if ($sysadmin) {
 	    		$domainId=null;
 	    	} else {
 	    		$domainId=$functions->getDomainId($request->getHttpHost());
 	    	}
-	    	
 	    	$user=$userManager->findUserBy(array('id'=>$id));
-	    	
+	    	if ($admin) {
+	    		$fpuser=$functions->getFPUsersByLocalId($id);
+	    		$fpusers=$functions->getFPUsers();
+	    		$fpreaders=$functions->getFPReaders($domainId);
+	    		$fpreaderids=array();
+	    		$fpreaderNames=array();
+	    		foreach ($fpreaders as $fpr) {
+	    			$fpreaderids[]=$fpr['id'];
+	    			$fpreaderNames[$fpr['id']]=$fpr['ipAddress'].':'.$fpr['port'];
+	    		}
+	    		$fprForm=$this->createForm(new FPRUserAllocationType($fpreaders, $fpusers, $fpuser, $fpreaderNames, $id, $this->generateUrl('timesheet_ajax_savereaderallocation')));
+	    	} else {
+	    		$fpuser=array();
+	    	}
 	    	if ($user) {
-
 	    		$data['content'].=$this->renderView('TimesheetHrBundle:Ajax:userinfo.html.twig', array(
 	    			'user' 		=> $user,
-	    			'roles'		=> $functions->getAvailableRoles(array('ROLE_SYSADMIN')),
+	    			'fpuser'	=> $fpuser,
+	    			'fprForm'	=> ((isset($fprForm))?($fprForm->createView()):(null)),
+	    			'fpreaders'	=> ((isset($fprForm))?($fpreaderids):(null)),
+	    			'roles'		=> $functions->getAvailableRoles(array('ROLE_SYSADMIN'), $user->getRoles()),
 	    			'groups'	=> $functions->getGroups($domainId),
 	    			'locations'	=> $functions->getLocation(null, true, $domainId),
 	    			'titles'	=> $functions->getTitles(),
-	    			'countries' => Intl::getRegionBundle()->getCountryNames()
+	    			'countries' => Intl::getRegionBundle()->getCountryNames(),
+	    			'maritalStatuses'	=> Constants::maritalStatuses,
+	    			'ethnics'	=> $functions->getEthnics()
 	    		));
 	    	}
 	    		    	
@@ -91,6 +116,83 @@ class AjaxController extends Controller
 		}
     }
 
+    
+    public function savereaderallocationAction() {
+error_log('savereaderallocationAction');
+    	$request=$this->getRequest();
+    	if ($request->isXmlHttpRequest()) {
+    		$data=array('error'=>false);
+    		
+    		$params=$request->request->all();
+			$formData=((isset($params['fpruserallocation']))?($params['fpruserallocation']):(null));
+			if ($formData) {
+				$localId=((isset($formData['localId']))?($formData['localId']):(null));
+				$readers=array();
+				foreach ($formData as $k=>$v) {
+					if (substr($k, 0, 4) == 'user') {
+						$tmp=preg_replace('/[^0-9]/', '', $k);
+						if (!in_array($tmp, $readers) && $tmp) {
+							$readers[$tmp]=$v;
+						}
+					}
+				}
+				if ($localId && count($readers)) {
+					// we have local user ID, reader IDs and readers' userID
+error_log('localId:'.$localId.', readers:'.print_r($readers, true));
+    				$em=$this->getDoctrine()->getManager();
+    				
+    				$qb=$em->createQueryBuilder();
+	    			$qb->delete('TimesheetHrBundle:FPReaderToUser', 'fprtu')
+	    				->where($qb->expr()->eq('fprtu.userId', $localId))
+						->andWhere($qb->expr()->in('fprtu.readerId', array_keys($readers)));
+	    			
+	    			$query=$qb->getQuery();
+// error_log('DQL:'.$query->getDql());
+					try {
+	    				$query->execute();
+					} catch (\Exception $e) {
+						error_log('error:'.$e->getMessage());	
+					}
+					$error=false;
+	    			foreach ($readers as $k=>$v) {
+	    				if ($v) {
+// error_log('reader '.$k.'='.$v);
+	    					$fprtu=new FPReaderToUser();
+	    					$fprtu->setReaderId($k);
+	    					$fprtu->setUserId($localId);
+	    					$fprtu->setReaderUserId($v);
+	    					
+	    					try {
+	    						$em->persist($fprtu);
+	    						$em->flush($fprtu);
+	    					} catch (\Exception $e) {
+	    						if (strpos($e->getMessage(), '1062') === false) {
+	    							error_log('Database error:'.$e->getMessage());
+	    							$data['error']='Unable to save';
+	    						} else {
+// error_log('fprtu:'.print_r($fprtu, true));
+	    							error_log('Already allocated');
+	    						}
+	    						$error=true;
+	    					}
+	    				}
+	    			}
+    				if ($error) {
+    					$data['cause']='Unable to save';
+    				} else {
+    					$data['cause']='Saved successfully';
+    				}
+				}
+			}
+			
+    		return new JsonResponse($data);
+    	} else {
+			error_log('not ajax request...');
+				
+			return $this->redirect($this->generateUrl('timesheet_hr_homepage'), 302);
+		}
+    }
+    
 
     public function userlistAction() {
 error_log('userlistAction');
@@ -175,7 +277,8 @@ error_log('userlistAction');
     				'lunchtime'	=> $functions->getConfig('lunchtime', $domainId),
     				'lunchtimeUnpaid'	=> $functions->getConfig('lunchtimeUnpaid', $domainId),
    					'domainId'		=> $domainId,
-   					'domains'		=> (($domainId)?(null):($functions->getDomains()))
+   					'domains'		=> (($domainId)?(null):($functions->getDomains())),
+    				'jobtitles'		=> $functions->getJobTitles()
     						
 	    		));
     		}
@@ -211,14 +314,18 @@ error_log('userlistAction');
 		    		$locationId=$params['locationId'];
 		    		$shiftId=$params['shiftId'];
 		    		$userId=$params['userId'];
-		    		
+error_log(1);
 		    		$data['error']=$functions->allocateUserToSchedule($date, $locationId, $shiftId, $userId);
-		    		$data['content']=$functions->getAllocationList($date, $locationId, $shiftId);
+error_log(2);
+					$data['content']=$functions->getAllocationList($date, $locationId, $shiftId);
+error_log(3);
 		    		$data['location']=$functions->getAllocationForLocation($locationId, $date);
+error_log(4);
 		    		$data['showhide']='rs_showhide|rq_showhide';
 		    		$data['dayId']=date('w', strtotime($date));
 		    		$data['dayProblem']=$functions->isDailyScheduleProblem($locationId, $date);
-    				break;
+error_log(5);
+					break;
     			}
     			case 'remove' : {
 		    		$date=substr($params['date'], 0, 4).'-'.substr($params['date'], 4, 2).'-'.substr($params['date'], 6, 2);
@@ -410,6 +517,39 @@ error_log('userlistAction');
     }
     
     
+    public function staffstatusAction() {
+    
+    	$request=$this->getRequest();
+    	if ($request->isXmlHttpRequest()) {
+    		$data=array(
+   				'content'=>'',
+   				'title'=>'Current status'
+    		);
+    
+    		$params=$request->request->all();
+    
+    		$base=$params['base'];
+    		$userId=((isset($params['userid']))?($params['userid']):(''));
+    
+    		$functions = $this->get('timesheet.hr.functions');
+    		$domainId=$functions->getDomainId($request->getHttpHost());
+    		$list=$functions->getCurrentStatusesForManager($userId);
+// error_log('list:'.print_r($list, true));    		
+    	    $data['content']=$this->renderView('TimesheetHrBundle:Ajax:staffstatus.html.twig', array(
+    			'base'		=> $base,
+    	    	'list'		=> $list,
+    	    	'locations'	=> $functions->getLocation(null, true, $domainId)
+    		));
+
+    	    return new JsonResponse($data);
+    	} else {
+    		error_log('not ajax request...');
+    
+    		return $this->redirect($this->generateUrl('timesheet_hr_homepage'), 302);
+    	}
+    }
+    
+    
     public function addrequestAction() {
 error_log('addrequestAction');    
     	$request=$this->getRequest();
@@ -471,7 +611,7 @@ error_log('admin');
 			    		if ($users) {
 			    			foreach ($users as $k=>$v) {
 								if ($k>=0) {
-			    					$usernames[$v['id']]=trim($v['firstName'].' '.$v['lastName']).' ('.$v['username'].')';
+			    					$usernames[$v['id']]=trim($v['title'].' '.$v['firstName'].' '.$v['lastName']).' ('.$v['username'].')';
 								}
 			    			}
 			    		}
@@ -645,7 +785,7 @@ error_log('admin');
     					$qb->andWhere('r.accepted=0');
     				}
 
-    				$results=$qb->getQuery()->getArrayResult();
+    				$results=$qb->getQuery()->useResultCache(true)->getArrayResult();
     				if ($results) {
     					if (!$admin) {
     						$data['title'].=' for '.trim($currentUser->getFirstName().' '.$currentUser->getLastName());
@@ -1283,7 +1423,8 @@ error_log('swap:'.print_r($swap, true));
     
 
     public function timesheetListAction($userId='0', $timestamp='0', $func='', $usersearch='', $selectedUserId='') {
-// error_log('ajax timesheetList');    	
+error_log('ajax timesheetList');    	
+error_log('1.selectedUserId:'.$selectedUserId);
     	$request=$this->getRequest();
 
     	$base=$request->attributes->get('_route');
@@ -1296,7 +1437,9 @@ error_log('swap:'.print_r($swap, true));
     			$userId=$calendar['userId'];
     		} else {
     			$user=$this->getUser();
-    			$userId=$user->getId();
+    			if (isset($user) && is_object($user)) {
+    				$userId=$user->getId();
+    			}
     		}
     		if (isset($calendar['timestamp'])) {
     			$timestamp=$calendar['timestamp'];
@@ -1341,7 +1484,7 @@ error_log('swap:'.print_r($swap, true));
     		$calendar['timestamp']=mktime(0, 0, 0, date('m'), 1, date('Y'));
 	    	$session->set('timesheet', $calendar);
     	}
-
+error_log('2.selectedUserId:'.$selectedUserId);
     	$securityContext = $this->container->get('security.context');
     	$role='ROLE_USER';
     	if ($securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
@@ -1354,20 +1497,49 @@ error_log('swap:'.print_r($swap, true));
     	}
 // error_log('selectedUserId:'.$selectedUserId);
     	$domainId=$functions->getDomainId($request->getHttpHost());
-// error_log('selectedUserId:'.$selectedUserId);
-		$users=$functions->getUsersForManager($this->getUser(), 0, $role);
-// error_log('4 memory:'.memory_get_usage());
-		$timesheet=$functions->getTimesheet($userId, $timestamp, $usersearch, $session, $domainId, $selectedUserId, $functions->getUsersForManager($this->getUser(), (($selectedUserId>0)?(0):(10)), $role));
+		$users=$functions->getUsersForManager($this->getUser(), '', 0, $role);
+		if (isset($users) && is_array($users) && count($users)==1) {
+			// if we have only 1 user, that is the selected user, show only those details, no list of users
+			$tmp=array_keys($users);
+			if (is_array($tmp)) {
+				$selectedUserId=reset($tmp);
+			}
+		}
+// error_log('users:'.print_r($users, true));
+error_log('3.selectedUserId:'.$selectedUserId);
+//		$users2=$functions->getUsersForManager($this->getUser(), (($selectedUserId>0)?(0):((($selectedUserId == -1 )?(10):(0)))), $role);
+// error_log('getTimesheet: userId:'.$userId.', timestamp:'.$timestamp.', usersearch:'.$usersearch.', domainId:'.$domainId.', selectedUserId:'.$selectedUserId.', users2:'.print_r($users2, true));
+		$timesheet=$functions->getTimesheet($userId, $timestamp, $usersearch, $session, $domainId, $selectedUserId, $functions->getUsersForManager($this->getUser(), (($selectedUserId>0)?(0):((($selectedUserId == -1 )?(10):(0)))), $role));
 // error_log('5 memory:'.memory_get_usage());
+		if (in_array($role, array('ROLE_MANAGER', 'ROLE_ADMIN'))) {
+			$summary=$functions->createTimesheetSummary($timesheet);
+		} else {
+			$summary=array();
+		}
+
+		$dates=array();
+		$d=1;
+		$d1=mktime(0, 0, 0, date('m', $timestamp), $d, date('Y', $timestamp));
+		$d_last=date('t', $timestamp);
+		while ($d <= $d_last) {
+			$dates[date('Y-m-d', $d1)]=date('D j', $d1);
+			$d1=mktime(0, 0, 0, date('m', $timestamp), ++$d, date('Y', $timestamp));
+		}
+
     	$content=$this->renderView('TimesheetHrBundle:Internal:timesheetList.html.twig', array(
-	    		'base'			=> $base,
-				'currentMonth'	=> date('F Y', $timestamp),
-    			'isManager'		=> $functions->isManager(),
-    			'users'			=> $users,
-    			'selectedUserId'=> $selectedUserId,
-    			'timestamp'		=> $timestamp,
-	   			'timesheet'		=> $timesheet
-	    	));
+	    	'base'			=> $base,
+			'currentMonth'	=> date('F Y', $timestamp),
+    		'isManager'		=> $functions->isManager(),
+    		'users'			=> $users,
+    		'selectedUserId'=> $selectedUserId,
+    		'userId'		=> $userId,
+    		'timestamp'		=> $timestamp,
+	   		'timesheet'		=> $timesheet,
+    		'summary'		=> $summary,
+    		'dates'			=> $dates,
+    		'gracePeriod'	=> $functions->getConfig('grace', $domainId),
+    		'isAdmin'		=> (in_array($role, array('ROLE_ADMIN', 'ROLE_MANAGER')))
+	    ));
     	
     	if ($request->isXmlHttpRequest()) {
 
@@ -1555,18 +1727,38 @@ error_log('scheduleListAction');
     public function addpunchAction() {
 		$request=$this->getRequest();
 		if ($request->isXmlHttpRequest()) {
-    	
+			$em=$this->getDoctrine()->getManager();
+			
 			$params=$request->request->all();
 			
 			$session=$this->get('session');
 			$timezone=$session->get('timezone');
 			$date=$params['date'].' '.$params['time'].':00';
+			$origDateTime=$params['origdatetime'];
+
 			$dt=new \DateTime($date, new \DateTimeZone($timezone));
 			$dt->setTimezone(new \DateTimeZone('UTC'));
 			
-			$user=$this->getDoctrine()
-    			->getRepository('TimesheetHrBundle:User')
-    			->findOneBy(array('id'=>$params['userId']));
+			if ($origDateTime) {
+				$odt=new \DateTime($origDateTime, new \DateTimeZone($timezone));
+				$odt->setTimezone(new \DateTimeZone('UTC'));
+				
+				$origInfo=$this->getDoctrine()
+					->getRepository('TimesheetHrBundle:Info')
+					->findOneBy(array('userId'=>$params['userId'], 'timestamp'=>$odt));
+
+				if ($origInfo) {
+error_log('origInfo:'.print_r($origInfo, true));
+					$origInfo->setDeleted(true);
+					$em->flush($origInfo);
+				} else {
+error_log('origInfo not found');
+				}
+			}
+			$currentUser=$this->getUser();			
+//			$user=$this->getDoctrine()
+//    			->getRepository('TimesheetHrBundle:User')
+//    			->findOneBy(array('id'=>$params['userId']));
 			
 			$info=new Info();
 			
@@ -1577,14 +1769,17 @@ error_log('scheduleListAction');
 			$info->setTimestamp($dt);
 			$info->setComment($params['comment']);
 			$info->setCreatedOn(new \DateTime('now'));
-			$info->setCreatedBy($user->getId());
+			$info->setCreatedBy($currentUser->getId());
 			
-			$em=$this->getDoctrine()->getManager();
-			
-			$em->persist($info);
-			$em->flush($info);
-			
-			if ($info->getId()) {
+			$error=false;
+			try {
+				$em->persist($info);
+				$em->flush($info);
+			} catch (\Exception $e) {
+				error_log('Database error:'.$e->getMessage());
+				$error=true;
+			}
+			if ($info->getId() && !$error) {
 				$ret=array(
 					'error'=>'',
 					'content'=>''// .print_r($params, true)
@@ -1635,7 +1830,7 @@ error_log('scheduleListAction');
 			
 			$query=$qb->getQuery();
 			
-			$results=$query->getArrayResult();
+			$results=$query->useResultCache(true)->getArrayResult();
 				
 			if ($results && count($results)) {
 				foreach ($results as $result) {
@@ -2253,11 +2448,19 @@ error_log('showdailyproblemsAction');
 						$allocated=$functions->getCurrentlyAllocatedStaff($locationId, $date->format('Y-m-d'));
 						$requiredQualifications=$functions->getCurrentlyRequiredQualifications($locationId, $date->format('Y-m-d'));
 						$allocatedQualifications=$functions->getCurrentlyAllocatedQualifications($locationId, $date->format('Y-m-d'));
+						$multiple=array();
+						$tooclose=array();
+						$timings=array();
 						$notrequired=array();
 						$users=array();
 						$tmpGroups=array();
 						if ($allocated && count($allocated)) {
 							foreach ($allocated as $a) {
+
+								$d1=new \DateTime($date->format('Y-m-d').' '.$a['startTime']->format('H:i:s'));
+								$d2=new \DateTime($date->format('Y-m-d').' '.$a['finishTime']->format('H:i:s'));
+								$timings[$a['userId']][]=array('start'=>$d1, 'finish'=>$d2);
+								
 								unset($tmpGroups);
 								$tmpGroups=array();
 								$tmpShiftId=$a['shiftId'];
@@ -2269,18 +2472,64 @@ error_log('showdailyproblemsAction');
 								if (!in_array($a['groupId'], $tmpGroups)) {
 									$notrequired[]=$a;
 								}
-								if (!isset($users[$a['userId']])) {
+								if (isset($users[$a['userId']])) {
+									$multiple[$locationId][$a['userId']][]=$a['shiftId'];
+								} else {
 									$users[$a['userId']]=$usersRepo->findOneBy(array('id'=>$a['userId']));
+									$multiple[$locationId][$a['userId']][]=$a['shiftId'];
+								}
+							}
+							if (isset($multiple[$locationId]) && is_array($multiple[$locationId])) {
+								if (count($multiple[$locationId])) {
+									foreach ($multiple[$locationId] as $mk=>$mv) {
+										if (count($mv)<=1) {
+											unset($multiple[$locationId][$mk]);
+										}
+									}
+									if (count($multiple[$locationId]) < 1) {
+										unset($multiple[$locationId]);
+									}
+								} else {
+									unset($multiple[$locationId]);
 								}
 							}
 						}
-
+						if (isset($timings) && $timings && count($timings)) {
+							foreach ($timings as $uId=>$timing) {
+								$ok=true;
+								if ($timing && count($timing) > 1) {
+									foreach ($timing as $tk1=>$t1) {
+										foreach ($timing as $tk2=>$t2) {
+											if ($tk1 != $tk2) {
+												$interval1=$t1['start']->diff($t2['finish']);
+												$i1=$interval1->format('%h')+60*$interval1->format('%i')+3600*$interval1->format('%s');
+												$interval2=$t1['finish']->diff($t2['start']);
+												$i2=$interval2->format('%h')+60*$interval2->format('%i')+3600*$interval2->format('%s');
+//	error_log('interval 1 is :'.$i1);
+//	error_log('interval 2 is :'.$i2);
+												if ($i1 < 8 || $i2 < 8) {
+													$ok=false;
+												}
+	
+											}
+										}
+									}
+								}
+								if (!$ok) {
+									$tooclose[]=array('date'=>$date, 'userId'=>$uId);
+								}
+							}
+						}
+// error_log('timings:'.print_r($timings, true));
+// error_log('too close:'.print_r($tooclose, true));
 						$data['content'].=$this->renderView('TimesheetHrBundle:Ajax:showdailyproblems.html.twig', array(
 							'location'	=> $location,
 							'shifts'	=> $functions->getShifts(null, null, $locationId, $domainId),
 							'date'		=> $date,
 							'required'	=> $required,
 							'notrequired' => $notrequired,
+							'multipleshift'	=> $multiple,
+							'tooclose'	=> $tooclose,
 							'allocated'	=> $allocated,
 							'requiredQualifications'=>$requiredQualifications,
 							'allocatedQualifications'=>$allocatedQualifications,
@@ -2295,6 +2544,825 @@ error_log('showdailyproblemsAction');
     	} else {
     		error_log('not ajax request...');
     		 
+    		return $this->redirect($this->generateUrl('timesheet_hr_homepage'), 302);
+    	}
+    }
+
+    
+    public function syncreaderusersAction($readerid=null) {
+error_log('syncreaderusersAction');
+    	$request=$this->getRequest();
+    	if ($request->isXmlHttpRequest()) {
+    		$data=array(
+    			'error'=>'',
+    			'title'=>'Fingerprint Reader Updated',
+    			'content'=>''
+    		);
+    		$functions = $this->get('timesheet.hr.functions');
+    		$messages=array();
+    		$fpusers=array();
+    		$localUsers=array();
+    		
+    		if ($readerid) {
+    			$fpreader=$this->getDoctrine()
+    				->getRepository('TimesheetHrBundle:FPReaders')
+    				->findOneBy(array('id'=>$readerid));
+    		}
+    		
+    		if ($fpreader) {
+
+    			$securityContext = $this->container->get('security.context');
+	    		$sysadmin=false;
+	    		if ($securityContext->isGranted('IS_AUTHENTICATED_REMEMBERED')) {
+	    			// authenticated REMEMBERED, FULLY will imply REMEMBERED (NON anonymous)
+	    			if (TRUE === $securityContext->isGranted('ROLE_SYSADMIN')) {
+	    				// we don't need to check domain is sysadmin logged in
+	    				$sysadmin=true;
+	    			}
+	    		}
+	    		$domainId=$fpreader->getDomainId();
+error_log(($sysadmin?'sysadmin':'user').', domain:'.$domainId);
+		    	$em=$this->getDoctrine()->getManager();
+		    	$qb=$em
+		    		->createQueryBuilder()
+		    		->select('u.id')
+		    		->addSelect('u.title')
+		    		->addSelect('u.firstName')
+		    		->addSelect('u.lastName')
+		    		->addSelect('u.isActive')
+		    		->from('TimesheetHrBundle:User', 'u');
+		    	
+		    	if ($domainId) {
+		    		$qb->andWhere('u.domainId=:dId')
+		    			->setParameter('dId', $domainId);
+		    	}
+		    	
+		    	$query=$qb->getQuery();
+		    	$results=$query->useResultCache(true)->getArrayResult();
+		    	// error_log('results:'.print_r($results, true));
+		    	if ($results && count($results)) {
+		    		foreach ($results as $v) {
+		    			$localUsers[$v['id']]=array(
+		    				'name'=>trim($v['title'].' '.$v['firstName'].' '.$v['lastName']),
+		    				'isActive'=>$v['isActive']
+		    			);
+		    		}
+		    			 
+		    	}
+		    	 
+		    	$tad=(new TADFactory(['ip'=>$fpreader->getIpAddress(), 'udp_port'=>$fpreader->getPort(), 'com_key'=>$fpreader->getPassword(), 'connection_timeout'=>10]))->get_instance();
+		    	 
+				if ($tad->is_alive()) {
+					$readerUsers=$tad->get_all_user_info()->get_response(['format'=>'array']);
+    				if ($readerUsers && count($readerUsers) && isset($readerUsers['Row'])) {
+	    				foreach ($readerUsers['Row'] as $rUser) {
+error_log('rUser:'.print_r($rUser, true));
+	    					$uid=$rUser['PIN'];
+	    					
+	    					$localUser=$this->getDoctrine()
+	    						->getRepository('TimesheetHrBundle:FPReaderToUser')
+	    						->findOneBy(array('readerId'=>$fpreader->getId(), 'readerUserId'=>$uid));
+// error_log('localUser:'.print_r($localUser, true));
+	    					if ($localUser) {
+	    						$lUserId=$localUser->getUserId();
+	    						$lUserName=((isset($localUsers[$lUserId]))?($localUsers[$lUserId]['name']):('Unknown user id'));
+	    						unset($localUsers[$lUserId]);
+	    					} else {
+	    						$lUserId=0;
+	    						$lUserName='Not specified';
+	    					}
+	    					$fpusers[]=array(
+	    						'readerId'=>$uid,
+	    						'readerName'=>$rUser['Name'],
+	    						'localId'=>$lUserId,
+	    						'localName'=>$lUserName,
+	    						'fp'=>0
+	    					);
+	    				}
+    				}
+    				if (!$sysadmin) {
+    					$fprtuRepo=$this->getDoctrine()->getRepository('TimesheetHrBundle:FPReaderToUser');
+    					
+    					if ($localUsers && count($localUsers)) {
+error_log('not registered in reader : '.count($localUsers).' person');
+							$shouldRegister=array();
+							foreach ($localUsers as $luId=>$luData) {
+								$luName=$luData['name'];
+//								$luActive=$luData['isActive'];
+error_log('registering:'.$luName);
+								// Temprarily reader's user id between 1 and 255
+								$sr=array('pin'=>$luId, 'pin2'=>$luId, 'name'=>$luName, 'password'=>'', 'privilege'=>Constants::LEVEL_USER);
+								$error=false;
+								try {
+									$tad->set_user_info($sr);
+								} catch (\Exception $e) {
+									$error=true;
+									error_log('Error in saving user in reader:'.$e->getMessage());
+								}
+								$remoteId=null;
+								if (!$error) {
+									$saved=$tad->get_user_info(array('pin'=>$luId))->get_response(['format'=>'array']);
+									if ($saved && isset($saved['Row'])) {
+										$remoteId=$saved['Row']['PIN'];
+error_log('remote id:'.$remoteId);
+									}
+								}
+						
+								$fprtu=$fprtuRepo->findBy(array('readerId'=>$readerid, 'userId'=>$luId));
+								if (!$fprtu) {
+									$fpusers[]=array(
+										'readerId'=>$remoteId,
+										'readerName'=>$luName,
+										'localId'=>$luId,
+										'localName'=>$luName,
+										'fp'=>0
+									);
+											
+									$fprtu=new FPReaderToUser();
+											
+									$fprtu->setReaderId($readerid);
+									$fprtu->setReaderUserId($luId);
+									$fprtu->setUserId($luId);
+									try {
+										$em->persist($fprtu);
+										$em->flush($fprtu);
+									} catch (\Exception $e) {
+	error_log('Error msg:'.$e->getMessage());
+										if (strpos($e->getMessage(), '1062') === false) {
+											if (strpos($e->getMessage(), 'EntityManager is closed') !== false) {
+												if (!$em->isOpen()) {
+													error_log('Entity manager is not open');
+													$em = $em->create($em->getConnection(), $em->getConfiguration());
+												}
+												if ($em->isOpen()) {
+	//													error_log('Entity manager is reopened');
+												} else {
+													error_log('Entity manager is closed');
+												}
+											} else {
+												error_log('Database error:'.$e->getMessage());
+											}
+										} else {
+											error_log('Already in the database, not inserted');
+										}
+									}
+								}
+							}
+
+							if (count($shouldRegister)) {
+								foreach ($shouldRegister as $sr) {
+									try {
+										$tad->set_user_info($sr);
+											
+									} catch (\Exception $e) {
+										error_log('Error in saving user in reader:'.$e->getMessage());
+									}
+								}
+							}
+						} else {
+							error_log('no new local user');
+						}
+    				} else {
+    					$messages[]='Not syncing with sysadmin';
+    				}
+    				
+    			} else {
+    				error_log('reader not connected');
+    				$messages[]='Fingerprint reader not connected';
+    			}
+    			
+    			if ($domainId) {
+    				$tmp=$functions->fpSyncFingerprint($domainId);
+    				error_log('Fingerprint sync status:'.print_r($tmp, true));
+    				if ($tmp && is_array($tmp) && count($tmp)) {
+    					foreach ($tmp as $k=>$t) {
+    						foreach ($fpusers as $k1=>$v1) {
+    							if (isset($v1['localId']) && $k==$v1['localId']) {
+    								$fpusers[$k1]['fp']=$t;
+    							}
+    								
+    						}
+    					}
+    				}
+    			}
+    		} else {
+    			error_log('reader not found');
+    			$messages[]='Fingerprint reader not found';
+    		}
+
+    		$data['content'].=$this->renderView('TimesheetHrBundle:Ajax:syncreaderusers.html.twig', array(
+    			'fpreader'	=> $fpreader,
+    			'messages'	=> $messages,
+    			'companies'	=> $functions->getCompanies(),
+    			'fpusers'	=> $fpusers
+    		));
+    		
+    		return new JsonResponse($data);
+    	} else {
+    		error_log('not ajax request...');
+    		 
+    		return $this->redirect($this->generateUrl('timesheet_hr_homepage'), 302);
+   		}
+    }
+    
+
+    public function resetreaderAction($readerid=null) {
+error_log('resetreaderAction');
+    	$request=$this->getRequest();
+    	if ($request->isXmlHttpRequest()) {
+    		$data=array(
+    			'error'=>'',
+    			'title'=>'Fingerprint Reader Resetted',
+    			'content'=>''
+    		);
+    		$messages=array();
+			$functions = $this->get('timesheet.hr.functions');
+						
+			if ($readerid) {
+				$fpreaders=$this->getDoctrine()
+					->getRepository('TimesheetHrBundle:FPReaders')
+					->findBy(array('id'=>$readerid));
+			} else {
+				$fpreaders=$this->getDoctrine()
+					->getRepository('TimesheetHrBundle:FPReaders')
+					->findAll();
+			}
+			foreach ($fpreaders as $fpr) {
+				if ($fpr->getIpAddress() && $fpr->getPort()) {
+					$zk = new ZKLib($fpr->getIpAddress(), $fpr->getPort());
+					$ret = $zk->connect();
+					sleep(1);
+					if ( $ret ) {
+						$zk->disableDevice();
+						sleep(1);
+						$zk->enableDevice();
+						sleep(1);
+						$zk->disconnect();
+						$messages[]='Reader resetted:'.$fpr->getDeviceId().' '.$fpr->getDeviceName().' at '.$fpr->getIpAddress().':'.$fpr->getPort();
+					} else {
+						$messages[]='Reader not connected:'.$fpr->getDeviceId().' '.$fpr->getDeviceName().' at '.$fpr->getIpAddress().':'.$fpr->getPort();
+					}
+				}
+			}
+			$data['content'].=$this->renderView('TimesheetHrBundle:Ajax:updatereader.html.twig', array(
+				'fpreaders'	=> $fpreaders,
+				'messages'	=> $messages,
+				'companies'	=> $functions->getCompanies()
+			));
+				
+       		return new JsonResponse($data);
+    	} else {
+    		error_log('not ajax request...');
+    		 
+    		return $this->redirect($this->generateUrl('timesheet_hr_homepage'), 302);
+    	}
+	}
+    
+    
+	public function readeradminpwdAction($readerid=null) {
+error_log('readeradminpwdAction');
+		$request=$this->getRequest();
+		if ($request->isXmlHttpRequest()) {
+			$data=array(
+				'error'=>'',
+				'title'=>'Fingerprint Reader Admin Password',
+				'content'=>''
+			);
+			$messages=array();
+	
+			if ($readerid) {
+				$fpreaders=$this->getDoctrine()
+					->getRepository('TimesheetHrBundle:FPReaders')
+					->findBy(array('id'=>$readerid));
+			}
+			foreach ($fpreaders as $fpr) {
+				$admin_found=false;
+				$zk=new ZKLib($fpr->getIpAddress(), $fpr->getPort());
+				$zk_connect=$zk->connect();
+				if ($zk_connect) {
+					$zk->disableDevice();
+					
+					$fpUser=$zk->getUser(999);
+// error_log('fpUser:'.print_r($fpUser, true));
+					if ($fpUser && is_array($fpUser) && count($fpUser)) {
+						foreach ($fpUser as $fpu) {
+							if ($fpu[2] == Constants::LEVEL_ADMIN) {
+								$admin_found=true;
+								$messages[]='Administrator User ID:'.$fpu[0];
+								$messages[]='Password:'.$fpu[3];
+							}
+						}
+					}
+					if (!$admin_found) {
+						$messages[]='No Administrator found on reader';
+					}
+					$zk->enableDevice();
+					$zk->disconnect();
+					
+				} else {
+					$messages[]='Reader not connected:'.$fpr->getDeviceId().' '.$fpr->getDeviceName().' at '.$fpr->getIpAddress().':'.$fpr->getPort();
+				}
+/*				
+				$tad=(new TADFactory(['ip'=>$fpr->getIpAddress(), 'udp_port'=>$fpr->getPort(), 'com_key'=>$fpr->getPassword(), 'connection_timeout'=>10]))->get_instance();
+				if ($tad) {
+					if ($tad->is_alive()) {
+						$r1=$tad->get_all_user_info()->get_response(['format'=>'array']);
+						if ($r1 && is_array($r1) && isset($r1['Row'])) {
+							foreach ($r1['Row'] as $u) {
+								if ($u['Privilege'] == Constants::LEVEL_ADMIN) {
+									$messages[]='Administrator User ID:'.$u['PIN2'];
+									$messages[]='Password:'.$u['Password'];
+								}
+							}
+						}
+					} else {
+						$messages[]='Reader not connected:'.$fpr->getDeviceId().' '.$fpr->getDeviceName().' at '.$fpr->getIpAddress().':'.$fpr->getPort();
+					}
+				}
+*/
+			}
+			$data['content'].=$this->renderView('TimesheetHrBundle:Ajax:updatereader.html.twig', array(
+				'messages'	=> $messages
+			));
+	
+			return new JsonResponse($data);
+		} else {
+			error_log('not ajax request...');
+			 
+			return $this->redirect($this->generateUrl('timesheet_hr_homepage'), 302);
+		}
+	}
+	
+    
+	public function downloadattnAction($readerid=null) {
+error_log('downloadattnAction');
+		$request=$this->getRequest();
+		if ($request->isXmlHttpRequest()) {
+			$data=array(
+				'error'=>'',
+				'title'=>'Fingerprint Reader Attendance Records',
+				'content'=>''
+			);
+			$em=$this->getDoctrine()->getManager();
+			$messages=array();
+			$records=array();
+	
+			if ($readerid) {
+				$fpreaders=$this->getDoctrine()
+					->getRepository('TimesheetHrBundle:FPReaders')
+					->findBy(array('id'=>$readerid));
+			}
+			foreach ($fpreaders as $fpr) {
+				$zk=new ZKLib($fpr->getIpAddress(), $fpr->getPort());
+				$zk_connect=$zk->connect();
+				if ($zk_connect) {
+					$zk->disableDevice();
+				
+					$attendance=$zk->getAttendance();
+					foreach ($attendance as $a) {
+						
+						$att=new FPReaderAttendance();
+						$att->setReaderId($readerid);
+						$att->setUserId($a[0]);
+						$att->setStatus(0);
+						$att->setVerified($a[2]);
+						$att->setTimestamp(new \DateTime($a[3]));
+						
+						$error=false;
+						try {
+							$em->persist($att);
+							$em->flush($att);
+						} catch (\Exception $e) {
+							$error=true;
+							if (strpos($e->getMessage(), '1062') === false) {
+								if (strpos($e->getMessage(), 'EntityManager is closed') !== false) {
+									if (!$em->isOpen()) {
+										$em = $em->create($em->getConnection(), $em->getConfiguration());
+									}
+									if ($em->isOpen()) {
+//										error_log('Entity manager is reopened');
+									} else {
+										error_log('Entity manager is closed');
+									}
+								} else {
+									error_log('Database error:'.$e->getMessage());
+								}
+							} else {
+//								error_log('Data already stored');
+							}
+						}
+						if (!$error) {
+							$records[]=$att;
+						}
+						
+					}
+					if (count($records) == 0) {
+						$messages[]='No new attendance record';
+					}
+
+					$zk->enableDevice();
+					$zk->disconnect();
+					
+				} else {
+					$messages[]='Reader not connected:'.$fpr->getDeviceId().' '.$fpr->getDeviceName().' at '.$fpr->getIpAddress().':'.$fpr->getPort();
+				}
+			}
+			$data['content'].=$this->renderView('TimesheetHrBundle:Ajax:updatereader.html.twig', array(
+				'messages'	=> $messages,
+				'records'	=> $records
+			));
+	
+			return new JsonResponse($data);
+		} else {
+			error_log('not ajax request...');
+			 
+			return $this->redirect($this->generateUrl('timesheet_hr_homepage'), 302);
+		}
+	}
+	
+	
+	public function showallattnAction($readerid=null) {
+error_log('showallattnAction');
+		$request=$this->getRequest();
+		if ($request->isXmlHttpRequest()) {
+			$data=array(
+				'error'=>'',
+				'title'=>'Fingerprint Reader Stored Attendance Records',
+				'content'=>''
+			);
+			$functions = $this->get('timesheet.hr.functions');
+			$em=$this->getDoctrine()->getManager();
+			$messages=array();
+			$records=array();
+			$usernames=array();
+			$fprecordstatuses=array();
+	
+			if ($readerid) {
+				$fpreaders=$this->getDoctrine()
+					->getRepository('TimesheetHrBundle:FPReaders')
+					->findBy(array('id'=>$readerid));
+			}
+			foreach ($fpreaders as $fpr) {
+				$qb=$em->createQueryBuilder()
+				
+					->select('fpa.userId')
+					->addSelect('fpa.status')
+					->addSelect('fpa.verified')
+					->addSelect('fpa.timestamp')
+					->addSelect('u.id')
+					->addSelect('u.title')
+					->addSelect('u.firstName')
+					->addSelect('u.lastName')
+					
+					->from('TimesheetHrBundle:FPReaderAttendance', 'fpa')
+					->leftJoin('TimesheetHrBundle:FPReaderToUser', 'fptu', 'WITH', 'fptu.readerId=:rId AND fpa.userId=fptu.readerUserId')
+					->leftJoin('TimesheetHrBundle:User', 'u', 'WITH', 'fptu.userId=u.id')
+					->where('fpa.readerId=:rId')
+					->orderBy('fpa.timestamp', 'ASC')
+					->setParameter('rId', $fpr->getId());
+				
+				$results=$qb->getQuery()->useResultCache(true)->getArrayResult();
+// error_log('results:'.print_r($results, true));
+				if ($results && count($results)) {
+					$shiftStatus=array();
+					foreach ($results as $r) {
+						$status=$r['status'];
+						if (!isset($usernames[$r['userId']])) {
+							$usernames[$r['userId']]=trim($r['title'].' '.$r['firstName'].' '.$r['lastName']);
+						}
+						$shift=$functions->getUserShiftStatus($r['id'], $r['timestamp'], $fpr->getLocationId(), $fpr->getDomainId());
+						if ($shift && is_array($shift) && count($shift) && isset($shift['shiftId']) && !is_null($shift['date'])) {
+							if (!isset($shiftStatus[$r['userId']][$shift['date']][$shift['shiftId']])) {
+// error_log('not exists, create');
+								$shiftStatus[$r['userId']][$shift['date']][$shift['shiftId']]=array(
+									'Check In'=>null,
+									'Check Out'=>null,
+									'Break Start'=>null,
+									'Break Finish'=>null,
+									'shiftId'=>$shift['shiftId'],
+									'shift'=>$shift['title'].' '.$shift['startTime']->format('H:i').'-'.$shift['finishTime']->format('H:i'),
+									'location'=>$shift['location']
+								);
+							}
+							if ($shift['status'] == 'Check In/Out') {
+								if (!isset($shiftStatus[$r['userId']][$shift['date']][$shift['shiftId']]['Check In'])) {
+// error_log('Check In not exists, status=Check In');
+									// 1st check in/out is check in
+									$shiftStatus[$r['userId']][$shift['date']][$shift['shiftId']]['Check In']=$r['timestamp'];
+//									$status='Check In';
+								} else {
+// error_log('Check In exists, status=Check Out');
+									// last check in/out is check out
+									$shiftStatus[$r['userId']][$shift['date']][$shift['shiftId']]['Check Out']=$r['timestamp'];
+//									$status='Check Out';
+								}
+							}
+							if ($shift['status'] == 'Break In/Out') {
+								if (!isset($shiftStatus[$r['userId']][$shift['date']][$shift['shiftId']]['Break Start'])) {
+									// 1st break in/out is break start
+									$shiftStatus[$r['userId']][$shift['date']][$shift['shiftId']]['Break Start']=$r['timestamp'];
+//									$status='Break Start';
+								} else {
+									// last break in/out is break finish
+									$shiftStatus[$r['userId']][$shift['date']][$shift['shiftId']]['Break Finish']=$r['timestamp'];
+//									$status='Break Finish';
+								}								
+							}
+						}
+
+						$records[]=array(
+							'UserId'=>$r['userId'],
+							'Status'=>$status,
+//							'Verified'=>Constants::fpReaderVerfyMethods[$r['verified']],
+							'Timestamp'=>$r['timestamp'],
+							'Shift'=>$shift,
+						);
+					}
+					foreach ($shiftStatus as $sUserId=>$v1) {
+						foreach ($v1 as $v2) {
+							foreach ($v2 as $v3) {
+								foreach ($v3 as $sStatus=>$sTS) {
+									if (!is_null($sTS) && in_array($sStatus, array('Check In','Check Out','Break Start','Break Finish'))) {
+										$fprecordstatuses[$sUserId][$sTS->format('Y-m-d H:i:s')]=array('status'=>$sStatus, 'shift'=>$sStatus);
+									}
+								}
+							}
+						}
+					}
+					foreach ($records as $k=>$v) {
+						if (isset($fprecordstatuses[$v['UserId']][$v['Timestamp']->format('Y-m-d H:i:s')]['status'])) {
+							$records[$k]['Status']=$fprecordstatuses[$v['UserId']][$v['Timestamp']->format('Y-m-d H:i:s')]['status'];
+						} else {
+							$records[$k]['Shift']['title']='';
+							$records[$k]['Status']='';
+						}
+					}
+				}
+			}
+			$data['content'].=$this->renderView('TimesheetHrBundle:Ajax:updatereader.html.twig', array(
+				'messages'		=> $messages,
+				'records'		=> $records,
+				'shiftStatus'	=> $shiftStatus,
+				'usernames'		=> $usernames
+			));
+	
+			return new JsonResponse($data);
+		} else {
+			error_log('not ajax request...');
+			 
+			return $this->redirect($this->generateUrl('timesheet_hr_homepage'), 302);
+		}
+	}
+	
+	
+	public function updatereaderAction($readerid=null) {
+error_log('updatereaderAction');
+    	$request=$this->getRequest();
+    	if ($request->isXmlHttpRequest()) {
+    		$data=array(
+    			'error'=>'',
+    			'title'=>'Fingerprint Reader Updated',
+    			'content'=>''
+    		);
+    		$messages=array();
+			$functions = $this->get('timesheet.hr.functions');
+						
+			if ($readerid) {
+				$fpreaders=$this->getDoctrine()
+					->getRepository('TimesheetHrBundle:FPReaders')
+					->findBy(array('id'=>$readerid));
+			} else {
+				$fpreaders=$this->getDoctrine()
+					->getRepository('TimesheetHrBundle:FPReaders')
+					->findAll();
+			}
+			$em=$this->getDoctrine()->getManager();
+			$readerUpdates=array();
+			foreach ($fpreaders as $fpr) {
+				if ($fpr->getIpAddress() && $fpr->getPort() && $fpr->getStatus()) {
+//					$updates=array('Users'=>0, 'UsersTotal'=>0, 'Attendance'=>0, 'AttendanceTotal'=>0);
+					$updates=array();
+						
+					$zk = new ZKLib($fpr->getIpAddress(), $fpr->getPort());
+					$ret = $zk->connect();
+					sleep(1);
+					if ( $ret ) {
+						$match='/((\~)(.*)(\=))|[^a-zA-Z0-9 ]/';
+						$zk->disableDevice();
+						sleep(1);
+						$changed=false;
+						$version=preg_replace($match, '', $zk->version());
+						if ($version != $fpr->getVersion()) {
+							$changed=true;
+							$fpr->setVersion($version);
+							$messages[]='Version number changed';
+error_log('version changed:'.$version);
+						}
+						$platform=preg_replace($match, '', $zk->platform());
+						if ($platform != $fpr->getPlatform()) {
+							$changed=true;
+							$fpr->setPlatform($platform);
+							$messages[]='Platform changed';
+error_log('platform changed:'.$platform);
+						}
+						$deviceName=preg_replace($match, '', $zk->deviceName());
+						if ($deviceName != $fpr->getDeviceName()) {
+							$changed=true;
+							$fpr->setDeviceName($deviceName);
+							$messages[]='Device name changed';
+error_log('device name changed:'.$zk->deviceName());
+						}
+						$serialNumber=preg_replace($match, '', $zk->serialNumber());
+						if ($serialNumber != $fpr->getSerialnumber()) {
+							$changed=true;
+							$fpr->setSerialnumber($serialNumber);
+							$messages[]='Serial number changed';
+error_log('serial number changed:'.$zk->serialNumber());
+						}
+						if ($changed) {
+							$fpr->setLastAccess(new \DateTime('now'));
+							$em->flush($fpr);
+						}
+/*						
+						$readerUsers=$zk->getUser();
+error_log('Users in Reader:'.count($readerUsers));
+						while(list($uid, $userdata) = each($readerUsers)) {
+							$newRUser=false;
+							$rUser=$this->getDoctrine()
+								->getRepository('TimesheetHrBundle:FPReaderUsers')
+								->findOneBy(array('readerId'=>$fpr->getId(), 'userId'=>$uid));
+							
+							if (!$rUser) {
+								$newRUser=true;
+								$rUser=new FPReaderUsers();
+								$rUser->setReaderId($fpr->getId());
+								$rUser->setUserId($uid);
+							} else {
+error_log('existing user:'.$rUser->getName());
+							}
+							$rUser->setRole($userdata[2]);
+							$rUser->setName($userdata[1]);
+							$rUser->setPassword($userdata[3]);
+							
+							$updates['UsersTotal']++;
+							if ($newRUser) {
+								$em->persist($rUser);
+								$updates['Users']++;
+							}
+//							$em->flush($rUser);
+							
+							$localUser=$this->getDoctrine()
+								->getRepository('TimesheetHrBundle:FPReaderToUser')
+								->findOneBy(array('readerId'=>$fpr->getId(), 'readerUserId'=>$uid));
+							if ($localUser) {
+								$user=$this->getDoctrine()
+									->getRepository('TimesheetHrBundle:User')
+									->findOneBy(array('id'=>$localUser->getUserId()));
+								if ($user) {
+									$name=trim($user->getTitle().' '.$user->getFirstName().' '.$user->getLastName());
+									try {
+										$zk->setUser((int)$uid, (int)$userdata[0], $name, '', 0);
+//										sleep(1);
+									} catch (\Exception $e) {
+										error_log('ZKLib error:'.$e->getMessage());
+									}
+								}
+							}
+								
+//							$em->flush();
+						}
+*/
+						
+/*
+error_log('read attendance');
+						$readerAttendance=$zk->getAttendance();
+error_log('attendance data:'.count($readerAttendance));
+						while(list($id, $attendancedata) = each($readerAttendance)) {
+							$newRAttendance=false;
+							$ts=new \Datetime($attendancedata[3]);
+							$rAttendance=$this->getDoctrine()
+								->getRepository('TimesheetHrBundle:FPReaderAttendance')
+								->findOneBy(array('readerId'=>$fpr->getId(), 'userId'=>$attendancedata[1], 'timestamp'=>$ts));
+							
+							if (!$rAttendance) {
+								$newRAttendance=true;
+								$rAttendance=new FPReaderAttendance();
+								$rAttendance->setReaderId($fpr->getId());
+								$rAttendance->setUserId($attendancedata[1]);
+								$rAttendance->setTimestamp($ts);
+error_log('new data:'.$ts->format('Y-m-d H:i:s'));
+							} else {
+error_log('old data');
+							}
+							$rAttendance->setStatus($attendancedata[2]);
+							
+							$updates['AttendanceTotal']++;
+							if ($newRAttendance) {
+								$em->persist($rAttendance);
+								$updates['Attendance']++;
+							}
+//							$em->flush($rAttendance);
+						}
+//						$zk->clearAttendance();
+// error_log('reader '.$fpr->getId().', updates:'.print_r($updates, true));
+*/
+						$zk->enableDevice();
+						sleep(1);
+						$zk->disconnect();
+						
+						$em->flush();
+					} else {
+						$messages[]='Reader not connected';
+error_log('Reader not connected at '.$fpr->getIpAddress().':'.$fpr->getPort());
+					}
+					if ($functions->updateFPReaderAdmin($fpr->getDomainId(), $readerid)) {
+						$messages[]='New admin password created';
+					}
+				}
+				$readerUpdates[$fpr->getId()]=$updates;
+				
+			}
+			
+			
+			
+			$data['content'].=$this->renderView('TimesheetHrBundle:Ajax:updatereader.html.twig', array(
+				'fpreaders'	=> $fpreaders,
+				'messages'	=> $messages,
+				'updates'	=> $readerUpdates,
+				'companies'	=> $functions->getCompanies()
+			));
+				
+       		return new JsonResponse($data);
+    	} else {
+    		error_log('not ajax request...');
+    		 
+    		return $this->redirect($this->generateUrl('timesheet_hr_homepage'), 302);
+    	}
+    }
+    
+    public function positionAction() {
+error_log('positionAction');
+    	$request=$this->getRequest();
+    	if ($request->isXmlHttpRequest()) {
+    		$data=array(
+    			'error'=>'',
+    			'location'=>'unknown',
+    			'distance'=>'unknown'
+    		);
+    		$params=$request->request->all();
+    		
+    		if (isset($params['action']) && $params['action']=='position' && isset($params['domainid']) && isset($params['ref'])) {
+				$domainId=$params['domainid'];
+				$latitude=$params['ref']['latitude'];
+				$longitude=$params['ref']['longitude'];
+				$distance=null;
+				$location=null;
+				$loc_name=null;
+				$em=$this->getDoctrine()->getManager();
+				$functions = $this->get('timesheet.hr.functions');
+				
+				$qb=$em->createQueryBuilder()
+					->select('l.name')
+					->addSelect('l.latitude')
+					->addSelect('l.longitude')
+					->addSelect('l.radius')
+					->from('TimesheetHrBundle:Location', 'l')
+					->where('l.domainId=:dId')
+					->andWhere('l.latitude<>0')
+					->andWhere('l.longitude<>0')
+					->orderBy('l.id', 'ASC')
+					->setParameter('dId', $domainId);
+				
+				$results=$qb->getQuery()->useResultCache(true)->getArrayResult();
+				if ($results && count($results)) {
+					foreach ($results as $result) {
+						if ($result['latitude'] && $result['longitude'] && $result['radius']) {
+							$tmp=(round($functions->distance($latitude, $longitude, $result['latitude'], $result['longitude'], 'K')*10000)/10);
+							if ($distance==null || $tmp <= $distance) {
+								$distance=$tmp;
+								$loc_name=$result['name'];
+								if ($tmp <= $result['radius']) {
+									$location=$result['name'];
+								} else {
+error_log('Not in the range of '.$result['name']);
+								}
+							}
+// error_log('distance to '.$result['name'].' is '.$tmp.', radius:'.$result['radius']);
+						}
+					}
+					if ($distance && $location==null) {
+error_log('Nearest location is '.$distance.' m to '.$loc_name);
+					}
+					if ($location != null) {
+						$data['location']=$location;
+						$data['distance']=$distance;
+					}
+				}
+    		}
+    		return new JsonResponse($data);
+    	} else {
+    		error_log('not ajax request...');
+    	
     		return $this->redirect($this->generateUrl('timesheet_hr_homepage'), 302);
     	}
     }

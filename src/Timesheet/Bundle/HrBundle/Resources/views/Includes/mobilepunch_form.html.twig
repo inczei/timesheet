@@ -1,0 +1,9 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+{% if form is defined and form|length %}
+	{% for f in form %}
+	{{ form_row(f) }}<br/>
+	{% endfor %}
+{% endif %}
+{{ form_widget(form._token) }}
+{{ form_end(form) }}

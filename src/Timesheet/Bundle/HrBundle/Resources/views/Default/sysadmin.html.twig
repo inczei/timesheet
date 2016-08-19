@@ -14,20 +14,36 @@
 <div class="registrationList">
 {{ include('TimesheetHrBundle:Includes:company_form.html.twig', { 'form': companyForm }) }}
 </div>
+{% elseif fpreaderForm is defined and fpreaderForm|length %}
+<div class="registrationList">
+<h2>Fingerprint Reader</h2>
+{{ include('TimesheetHrBundle:Includes:fpreader_form.html.twig', { 'form': fpreaderForm }) }}
+</div>
 {% elseif qualificationForm is defined and qualificationForm|length %}
 <div class="registrationList">
 <h2>Qualification</h2>
 {{ include('TimesheetHrBundle:Includes:qualification_form.html.twig', { 'form': qualificationForm }) }}
+</div>
+{% elseif jobTitleForm is defined and jobTitleForm|length %}
+<div class="registrationList">
+<h2>Job Title</h2>
+{{ include('TimesheetHrBundle:Includes:jobtitle_form.html.twig', { 'form': jobTitleForm }) }}
 </div>
 {% elseif statusForm is defined and statusForm|length %}
 <div class="registrationList">
 <h2>Status</h2>
 {{ include('TimesheetHrBundle:Includes:status_form.html.twig', { 'form': statusForm }) }}
 </div>
+{% elseif moduleForm is defined and moduleForm|length %}
+<div class="registrationList">
+<h2>Module</h2>
+{{ include('TimesheetHrBundle:Includes:module_form.html.twig', { 'form': moduleForm }) }}
+</div>
 {% else %}
+<div class="statusList">
+<h2>Companies</h2>
 <a href="{{ path(base, {'action': 'New', 'param1': ''}) }}">Add new company</a>
 {% if sites is defined and sites|length %}
-<br>
 <table>
 	<tr>
 		<th>Company name</th>
@@ -38,6 +54,9 @@
 		<th title="Annual Holiday Entitlement (weeks)">AHEW</th>
 		<th title="Holiday Calculation Type">HCT</th>
 		<th title="Paid / Unpaid (minutes)">Lunchtime</th>
+		<th title="Auto logout (minutes)">Auto logout</th>
+		<th title="Rounding (minutes)">Rounding</th>
+		<th title="Grace period (minutes)">Grace period</th>
 	</tr>
 	{% for s in sites %}
 	<tr>
@@ -49,12 +68,34 @@
 		<td align="center">{{ s.ahew|number_format(1) }}</td>
 		<td align="center">{% if hct[s.hct] is defined and s.hct > 0 %}{{ hct[s.hct] }}{% else %}Default{% endif %}</td>
 		<td align="center">{% if s.lunchtime != '' %}{{ s.lunchtime }}{% else %}Default{% endif %} / {% if s.lunchtimeUnpaid != '' %}{{ s.lunchtimeUnpaid }}{% else %}Default{% endif %}</td>
+		<td align="center">{{ s.autologout }}</td>
+		<td align="center">{{ s.rounding }}</td>
+		<td align="center">{{ s.grace }}</td>
 	</tr>	
 	{% endfor %}
 </table>
 {% endif %}
+</div>
+<hr>
+<div class="statusList">
+{{ render(controller('TimesheetHrBundle:Default:fpreadermenu', { 'domainId': domainId, 'base': base })) }}
+</div>
+<div class="statusList">
+{{ render(controller('TimesheetHrBundle:Default:groupmenu', { 'domainId': domainId, 'base': base })) }}
+</div>
+<div class="statusList">
+{{ render(controller('TimesheetHrBundle:Default:statusmenu', { 'domainId': domainId, 'base': base })) }}
+</div>
+<div class="statusList">
+{{ render(controller('TimesheetHrBundle:Default:qualificationmenu', { 'domainId': domainId, 'base': base })) }}
+</div>
+<div class="statusList">
+{{ render(controller('TimesheetHrBundle:Default:jobtitlemenu', { 'domainId': domainId, 'base': base })) }}
+</div>
+<div class="statusList">
+{{ render(controller('TimesheetHrBundle:Default:modulesmenu', { 'domainId': domainId, 'base': base })) }}
+</div>
 {% if config is defined and config|length %}
-<br>
 <div class="admin_config">
 <table>
 	<tr>
@@ -77,14 +118,5 @@
 {% endif %}
 <hr>
 {% endif %}
-<div class="statusList">
-{{ render(controller('TimesheetHrBundle:Default:groupmenu', { 'domainId': domainId, 'base': base })) }}
-</div>
-<div class="statusList">
-{{ render(controller('TimesheetHrBundle:Default:statusmenu', { 'domainId': domainId, 'base': base })) }}
-</div>
-<div class="statusList">
-{{ render(controller('TimesheetHrBundle:Default:qualificationmenu', { 'domainId': domainId, 'base': base })) }}
-</div>
 {% endif %}
 {% endblock %}

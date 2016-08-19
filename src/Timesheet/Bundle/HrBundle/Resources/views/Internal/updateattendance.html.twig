@@ -1,0 +1,46 @@
+{% if data is defined and data|length %}
+<div class="usersummary">
+<table>
+	<tr>
+		<th>Reader ID</th>
+		<th>Name</th>
+		<th>Company Name</th>
+		<th>IP Address and Port</th>
+		<th>Comment</th>
+		<th>Total Records</th>
+		<th>Updated</th>
+	</tr>
+	{% for d in data %}
+	<tr>
+		<td align="right">{{ d.id }}</td>
+		<td>{{ d.deviceName }}</td>
+		<td>{{ d.companyname }}</td>
+		<td>{{ d.ipAddress }}:{{ d.port }}</td>
+		<td>{{ d.comment }}</td>
+		<td align="right">{{ d.total }}</td>
+		<td align="right">{{ d.updated }}</td>
+	</tr>
+	{% if d.attendance is defined and d.attendance|length %}
+	<tr>
+		<td colspan="7">
+			<table>
+				<tr>
+					<th>User ID</th>
+					<th>Status</th>
+					<th>Timestamp</th>
+				</tr>
+			{% for a in d.attendance %}
+				<tr>
+					<td align="right">{{ a.userId }}</td>
+					<td align="right">{{ a.status }}</td>
+					<td align="center">{{ a.timestamp }}</td>
+				</tr>
+			{% endfor %}
+			</table>
+		</td>
+	</tr>
+	{% endif %}
+	{% endfor %}
+</table>
+</div>
+{% endif %}

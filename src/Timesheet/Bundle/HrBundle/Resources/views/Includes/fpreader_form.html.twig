@@ -1,0 +1,48 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+<table>
+	<tr>
+		<td>{{ form_label(form.ipAddress) }}{{ form_errors(form.ipAddress) }}</td>
+		<td>{{ form_widget(form.ipAddress) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.port) }}{{ form_errors(form.port) }}</td>
+		<td>{{ form_widget(form.port) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.deviceId) }}{{ form_errors(form.deviceId) }}</td>
+		<td>{{ form_widget(form.deviceId) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.password) }}{{ form_errors(form.password) }}</td>
+		<td>{{ form_widget(form.password) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.deviceName) }}{{ form_errors(form.deviceName) }}</td>
+		<td>{{ form_widget(form.deviceName) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.status) }}{{ form_errors(form.status) }}</td>
+		<td>{{ form_widget(form.status) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.locationId) }}{{ form_errors(form.locationId) }}</td>
+		<td>{{ form_widget(form.locationId) }}</td>
+		<td> </td>
+		<td>{{ form_label(form.comment) }}{{ form_errors(form.comment) }}</td>
+		<td>{{ form_widget(form.comment) }}</td>
+	</tr>
+	{% if form.domainId is defined %}
+	<tr>
+		<td>{{ form_label(form.domainId) }}{{ form_errors(form.domainId) }}</td>
+		<td>{{ form_widget(form.domainId) }}</td>
+		<td> </td>
+		<td> </td>
+	</tr>
+	{% endif %}
+	<tr>
+		<td colspan="2">{{ form_widget(form.cancel) }}</td>
+		<td> </td>
+		<td colspan="2">{{ form_widget(form.submit) }}</td>
+	</tr>
+</table>
+{{ form_widget(form.id) }}
+{{ form_widget(form._token) }}
+{{ form_end(form) }}

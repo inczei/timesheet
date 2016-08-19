@@ -113,6 +113,19 @@ class Contract
      */
     private $initHolidays = 0;
    
+    /**
+     * @var integer
+     *
+     * @ORM\Column(name="jobTitleId", type="integer", nullable=true)
+     */
+    private $jobTitleId = null;
+
+    /**
+     * @var string
+     *
+     * @ORM\Column(name="jobDescription", type="string", length=50, nullable=true)
+     */
+    private $jobDescription = null;
     
     
     /**
@@ -422,5 +435,51 @@ class Contract
     public function getLunchtimeUnpaid()
     {
         return $this->lunchtimeUnpaid;
+    }
+    
+    /**
+     * Set jobTitleId
+     *
+     * @param integer $jobTitleId
+     * @return Contract
+     */
+    public function setJobTitleId($jobTitleId)
+    {
+        $this->jobTitleId = $jobTitleId;
+
+        return $this;
+    }
+
+    /**
+     * Get jobTitleId
+     *
+     * @return integer
+     */
+    public function getJobTitleId()
+    {
+        return $this->jobTitleId;
+    }
+    
+    /**
+     * Set jobDescription
+     *
+     * @param string $jobDescription
+     * @return Contract
+     */
+    public function setJobDescription($jobDescription)
+    {
+        $this->jobDescription = $jobDescription;
+
+        return $this;
+    }
+
+    /**
+     * Get jobDescription
+     *
+     * @return string
+     */
+    public function getJobDescription()
+    {
+        return $this->jobDescription;
     }
 }

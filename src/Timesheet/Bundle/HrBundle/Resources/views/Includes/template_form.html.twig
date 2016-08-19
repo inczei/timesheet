@@ -1,0 +1,36 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+<table>
+	<tr>
+		<td>{{ form_label(form.pageId) }}{{ form_errors(form.pageId) }}</td>
+		<td>{{ form_widget(form.pageId) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.name) }}{{ form_errors(form.name) }}</td>
+		<td>{{ form_widget(form.name) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.format) }}{{ form_errors(form.format) }}</td>
+		<td>{{ form_widget(form.format) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.heading) }}{{ form_errors(form.heading) }}</td>
+		<td>{{ form_widget(form.heading) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.available) }}{{ form_errors(form.available) }}</td>
+		<td>{{ form_widget(form.available) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_label(form.comment) }}{{ form_errors(form.comment) }}</td>
+		<td>{{ form_widget(form.comment) }}</td>
+	</tr>
+	<tr>
+		<td>{{ form_widget(form.cancel) }}</td>
+		<td>{{ form_widget(form.submit) }}</td>
+	</tr>
+</table>
+{{ form_widget(form.id) }}
+{{ form_widget(form.domainId) }}
+{{ form_widget(form._token) }}
+{{ form_end(form) }}

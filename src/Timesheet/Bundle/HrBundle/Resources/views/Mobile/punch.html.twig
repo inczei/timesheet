@@ -1,0 +1,34 @@
+{% extends 'TimesheetHrBundle:Mobile:base.html.twig' %}
+{% block title %}{{ title }}{% endblock %}
+{% block extraheader %}
+	<link rel="manifest" href="{{ path('timesheet_mobile_manifest') }}">
+	<meta name="application-name" content="Timesheet">
+{% endblock %}
+{% block header %}<h2><img src="{{ asset('favicon.png') }}" alt="" width="25" height="25"> {{ title }}</h2>{% endblock %}
+{% block content %}
+{% if message is defined and message|length %}<p>{{ message }}</p>{% endif %}
+{% if identifyForm is defined and identifyForm|length %}
+{{ include('TimesheetHrBundle:Includes:identify_form.html.twig', { 'form': identifyForm }) }}
+{% endif %}
+{% if punchForm is defined and punchForm|length %}
+<div id="punchFormDiv" style="display: none">
+{{ include('TimesheetHrBundle:Includes:mobilepunch_form.html.twig', { 'form': punchForm }) }}
+</div>
+<span id="coordinates"></span>
+<script>
+var times=20;
+var t=0;
+var myInterval=setInterval(function() {
+	if (typeof(getLocation) == 'function' && $('#coordinates') != 'undefined') {
+		if (t == 0) {
+			var formatText='<span>Your current position</span><br/><span id="latitude">%lat</span>, <span id="longitude">%lon</span> (<a href="http://maps.google.com?q=%lat,%lon" target="_blank">map</a>)';
+			getLocation('coordinates', formatText, {{ domainId }}, '{{ path('timesheet_ajax_position') }}', 'mobilepunch_latitude', 'mobilepunch_longitude', 'punchFormDiv');
+		}
+		if (++t > times) t=0;
+	}	
+}, 500);
+</script>
+{% endif %}
+{% if result is defined and result|length %}<p><b>{{ result|raw }}</b></p>{% endif %}
+{% endblock %}
+

@@ -5,8 +5,11 @@
 	<tr>
 		<th rowspan="2">Title</th>
 		<th rowspan="2">Location</th>
-		<th rowspan="2">Start</th>
-		<th rowspan="2">Finish</th>
+		<th rowspan="2">In</th>
+		<th rowspan="2">Break</th>
+		<th rowspan="2">Resume</th>
+		<th rowspan="2">Out</th>
+		<th rowspan="2" title="Minimum Working Time in minutes">MWT</th>
 		<th colspan="7">Days</th>
 		<th colspan="2">Requirements</th>
 	</tr>
@@ -25,8 +28,11 @@
 	<tr>
 		<td><a href="{{ path(base, {'action': 'editshift', 'param1': s.id }) }}" title="Click here to edit">{% if s.title|length %}{{ s.title }}{% else %}????{% endif %}</a></td>
 		<td>{% if locations[s.locationId] is defined %}{{ locations[s.locationId] }}{% else %}???{% endif %}</td>
-		<td>{% if s.startTime is not empty %}{{ s.startTime|date('H:i') }}{% endif %}</td>
-		<td>{% if s.finishTime is not empty %}{{ s.finishTime|date('H:i') }}{% endif %}</td>
+		<td{% if s.fpStartTime is not empty and s.fpStartBreak is not empty %} title="FP Start: {{ s.fpStartTime|date('H:i') }}-{{ s.fpStartBreak|date('H:i') }}"{% endif %}>{% if s.startTime is not empty %}{{ s.startTime|date('H:i') }}{% endif %}</td>
+		<td>{% if s.startBreak is not empty %}{% if s.strictBreak is defined and s.strictBreak!=0 %}* {% endif %}{{ s.startBreak|date('H:i') }}{% endif %}</td>
+		<td>{% if s.finishBreak is not empty %}{% if s.strictBreak is defined and s.strictBreak!=0 %}* {% endif %}{{ s.finishBreak|date('H:i') }}{% endif %}</td>
+		<td{% if s.fpFinishTime is not empty and s.fpFinishBreak is not empty %} title="FP Finish: {{ s.fpFinishBreak|date('H:i') }}-{{ s.fpFinishTime|date('H:i') }}"{% endif %}>{% if s.finishTime is not empty %}{{ s.finishTime|date('H:i') }}{% endif %}</td>
+		<td>{% if s.minWorkTime is not empty %}{{ s.minWorkTime }}{% endif %}</td>
 		<td>{% if s.days[1] is defined and s.days[1] %}X{% endif %}</td>
 		<td>{% if s.days[2] is defined and s.days[2] %}X{% endif %}</td>
 		<td>{% if s.days[3] is defined and s.days[3] %}X{% endif %}</td>
@@ -39,5 +45,6 @@
 	</tr>
 	{% endfor %}
 </table>
+<br>* strict break time
 <hr>
 {% endif %}

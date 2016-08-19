@@ -31,14 +31,14 @@ class Info
     /**
      * @var integer
      *
-     * @ORM\Column(name="StatusId", type="integer")
+     * @ORM\Column(name="statusId", type="integer")
      */
     private $statusId;
 
     /**
      * @var integer
      *
-     * @ORM\Column(name="UserId", type="integer")
+     * @ORM\Column(name="userId", type="integer")
      */
     private $userId;
 
@@ -69,6 +69,20 @@ class Info
      * @ORM\Column(name="CreatedOn", type="datetime")
      */
     private $createdOn;
+
+    /**
+     * @var float
+     *
+     * @ORM\Column(name="latitude", type="float")
+     */
+    private $latitude = 0.0;
+    
+    /**
+     * @var float
+     *
+     * @ORM\Column(name="longitude", type="float")
+     */
+    private $longitude = 0.0;
     
     
     /**
@@ -272,6 +286,52 @@ class Info
     public function getCreatedOn()
     {
         return $this->createdOn;
+    }
+
+    /**
+     * Set latitude
+     *
+     * @param float $latitude
+     * @return Info
+     */
+    public function setLatitude($latitude)
+    {
+        $this->latitude = $latitude;
+
+        return $this;
+    }
+
+    /**
+     * Get latitude
+     *
+     * @return float
+     */
+    public function getLatitude()
+    {
+        return $this->latitude;
+    }
+
+    /**
+     * Set longitude
+     *
+     * @param float $longitude
+     * @return Info
+     */
+    public function setLongitude($longitude)
+    {
+        $this->longitude = $longitude;
+
+        return $this;
+    }
+
+    /**
+     * Get longitude
+     *
+     * @return float
+     */
+    public function getLongitude()
+    {
+        return $this->longitude;
     }
 
 }

@@ -18,6 +18,9 @@ class Constants {
 	
 	const MENU_ITEMS = 12;
 	
+	const LEVEL_USER = 0;
+	const LEVEL_ADMIN = 14;
+	
 	const userActions=array(
 		'edituser',
 		'editlocation',
@@ -27,6 +30,7 @@ class Constants {
 		'editqualification',
 		'edituserqualification',
 		'editvisa',
+		'editdbs',
 		'editstatus',
 		'editshift',
 		'editsreq',
@@ -42,11 +46,31 @@ class Constants {
 		'editgroup',
 		'editqualification',
 		'edituserqualification',
+		'editjobtitle',
 		'editvisa',
 		'editstatus',
 		'editshift',
 		'editsreq',
-		'editqreq'
+		'editqreq',
+		'editmodule',
+		'newfpreader',
+		'editfpreader'
 	);
 
+	const fpReaderVerfyMethods=array(
+		'0'=>'Fingerprint',
+		'1'=>'Password',
+		'2'=>'Card',
+		'3'=>'PIN'
+	);
+	
+	const maritalStatuses=array(
+		'N'=>'Not disclosed',
+		'S'=>'Single',
+		'M'=>'Married/Civil Partner',
+		'D'=>'Divorced/Person whose Civil Partnership has been dissolved',
+		'W'=>'Widowed/Surviving Civil Partner',
+		'P'=>'Separated'		
+	);
+	
 }

@@ -7,7 +7,8 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * Location
  *
- * @ORM\Table()
+ * @ORM\Table(uniqueConstraints={
+ *     @ORM\UniqueConstraint(name="locations_idx", columns={"name", "domainId"})})
  * @ORM\Entity
  */
 class Location
@@ -111,6 +112,27 @@ class Location
      * @ORM\Column(name="domainId", type="integer")
      */
     private $domainId;
+
+    /**
+     * @var float
+     *
+     * @ORM\Column(name="latitude", type="float")
+     */
+    private $latitude = 0.0;
+    
+    /**
+     * @var float
+     *
+     * @ORM\Column(name="longitude", type="float")
+     */
+    private $longitude = 0.0;
+
+    /**
+     * @var integer
+     *
+     * @ORM\Column(name="radius", type="integer")
+     */
+    private $radius = 300;
     
     
     
@@ -422,4 +444,74 @@ class Location
     {
         return $this->domainId;
     }
+
+    /**
+     * Set latitude
+     *
+     * @param float $latitude
+     * @return Location
+     */
+    public function setLatitude($latitude)
+    {
+    	$this->latitude = $latitude;
+    
+    	return $this;
+    }
+    
+    /**
+     * Get latitude
+     *
+     * @return float
+     */
+    public function getLatitude()
+    {
+    	return $this->latitude;
+    }
+    
+    /**
+     * Set longitude
+     *
+     * @param float $longitude
+     * @return Location
+     */
+    public function setLongitude($longitude)
+    {
+    	$this->longitude = $longitude;
+    
+    	return $this;
+    }
+    
+    /**
+     * Get longitude
+     *
+     * @return float
+     */
+    public function getLongitude()
+    {
+    	return $this->longitude;
+    }
+
+    /**
+     * Set radius
+     *
+     * @param integer $radius
+     * @return Location
+     */
+    public function setRadius($radius)
+    {
+    	$this->radius = $radius;
+    
+    	return $this;
+    }
+    
+    /**
+     * Get radius
+     *
+     * @return integer
+     */
+    public function getRadius()
+    {
+    	return $this->radius;
+    }
+    
 }

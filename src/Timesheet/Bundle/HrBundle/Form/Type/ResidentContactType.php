@@ -167,12 +167,10 @@ class ResidentContactType extends AbstractType
     				'class'=>'submitButton'
     			)
     		))
-   			->add('cancel', 'submit', array(
+   			->add('cancel', 'button', array(
    				'label'=>'Cancel',
-   				'attr'=>array(
-   					'formnovalidate'=>true
-   				),
-    			'validation_groups'=>false
+   				'attr'=>array('formnovalidate'=>true),
+//    			'validation_groups'=>false
     		));
     }
 

@@ -18,6 +18,11 @@
 		<td>Nationality</td><td>{% if countries[user.nationality] is defined %}{{ countries[user.nationality] }}{% else %}{{ user.nationality }}{% endif %}</td>
 	</tr>
 	<tr>
+		<td>Marital Status</td><td>{% if maritalStatuses[user.maritalStatus] is defined %}{{ maritalStatuses[user.maritalStatus] }}{% else %}Not disclosed{% endif %}</td>
+		<td> </td>
+		<td>Ethnic</td><td>{% if ethnics[user.ethnic] is defined %}{{ ethnics[user.ethnic] }}{% else %}Not disclosed{% endif %}</td>
+	</tr>
+	<tr>
 		<td>E-mail</td><td>{{ user.email }}</td>
 		<td> </td>
 		<td>Send messages to e-mail</td><td>{% if user.exEmail %}Yes{% else %}No{% endif %}</td>
@@ -77,7 +82,56 @@
 	<tr>
 		<td>Notes</td><td colspan="4">{{ user.notes }}</td>
 	</tr>
+{% if fpuser is defined and fpuser|length %}
+	<tr>
+		<th colspan="5">Allocated FP Reader Users</th>
+	</tr>
+	<tr>
+		<td colspan="5">
+			<table>
+				<tr>
+					<th>Reader IP address</th>
+					<th>Device Name</th>
+					<th>Comment</th>
+					<th>Reader User ID</th>
+					<th>User Name</th>
+					<th>Role</th>
+				</tr>
+	{% for f in fpuser %}
+				<tr>
+					<td>{{ f.ipAddress }}:{{ f.port }}</td>
+					<td>{{ f.deviceName }}</td>
+					<td>{{ f.comment }}</td>
+					<td>{{ f.readerUserId }}</td>
+					<td>{{ f.name }}</td>
+					<td>{% if f.role==14 %}ADMIN{% else %}USER{% endif %}</td>
+				</tr>
+	{% endfor %}
+			</table>
+		</td>
+	</tr>
+{% endif %}
 </table>
+{% if fprForm is defined and fprForm|length %}
+{{ form_start(fprForm) }}
+{{ form_errors(fprForm) }}
+<table>
+	<tr>
+		<th colspan="5">FP Reader User Allocation</th>
+	</tr>
+	{% for fpr in fpreaders %}
+	<tr>
+		<td colspan="2">{{ form_label(fprForm['user'~fpr]) }}</td>
+		<td colspan="3">{{ form_widget(fprForm['user'~fpr]) }}</td>
+	</tr>
+	{% endfor %}
+	<tr>
+		<td colspan="5">{{ form_widget(fprForm.submit) }}</td>
+	</tr>
+</table>
+{{ form_widget(fprForm.localId) }}
+{{ form_end(fprForm) }}
+{% endif %}
 </div>
 {% else %}
 No information

@@ -24,7 +24,7 @@ class Status
     /**
      * @var string
      *
-     * @ORM\Column(name="Name", type="string", length=20)
+     * @ORM\Column(name="Name", type="string", length=20, unique=true)
      */
     private $name;
 

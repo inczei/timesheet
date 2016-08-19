@@ -24,7 +24,7 @@ table {
 }
 
 table tr {
-	vertical-align: top;
+	vertical-align: middle;
 }
 
 table tr th {
@@ -82,12 +82,14 @@ a:hover {
 .cell {
 	width: 120px;
 	text-align: center;
+	vertical-align: top;
 }
 
 .locationCell {
 	width: 150px;
 	overflow: hidden;
 	text-align: center;
+	vertical-align: top;
 }
 
 .listType {
@@ -315,7 +317,20 @@ a:hover {
 .registrationList table tr td select#shift_startTime_hour,
 .registrationList table tr td select#shift_startTime_minute,
 .registrationList table tr td select#shift_finishTime_hour,
-.registrationList table tr td select#shift_finishTime_minute {
+.registrationList table tr td select#shift_finishTime_minute,
+.registrationList table tr td select#shift_startBreak_hour,
+.registrationList table tr td select#shift_startBreak_minute,
+.registrationList table tr td select#shift_finishBreak_hour,
+.registrationList table tr td select#shift_finishBreak_minute,
+.registrationList table tr td select#shift_fpStartTime_hour,
+.registrationList table tr td select#shift_fpStartTime_minute,
+.registrationList table tr td select#shift_fpFinishTime_hour,
+.registrationList table tr td select#shift_fpFinishTime_minute,
+.registrationList table tr td select#shift_fpStartBreak_hour,
+.registrationList table tr td select#shift_fpStartBreak_minute,
+.registrationList table tr td select#shift_fpFinishBreak_hour,
+.registrationList table tr td select#shift_fpFinishBreak_minute
+ {
 	border: #888888 dotted 1px;
 	width: 49%;
 }
@@ -577,6 +592,10 @@ th.secondHeader {
 	height: 30px;
 }
 
+th.thirdHeader {
+	vertical-align: top;
+}
+
 .calendar table {
 	background-color: #ffffff;
 	border-collapse: separate;
@@ -760,6 +779,7 @@ span.switchMonth:hover {
 
 .timesheet {
 	font-size: x-small;
+	vertical-align: top;
 }
 
 .holidayClass {
@@ -831,7 +851,28 @@ span.switchMonth:hover {
 }
 
 .userSearch {
-	width: 80px;
+	width: 160px;
+}
+
+.default {
+	font-size: large;
+	vertical-align: top;	
+}
+
+.default table {
+	border: none;
+	border-collapse: collapse;
+}
+
+.default table tr td {
+	background: #cccccc;
+	color: #000000;
+	border: none;
+	text-align: left;
+}
+
+.default table tr td:first-child {
+	text-align: right;
 }
 
 .freezePaneOn {
@@ -1063,4 +1104,153 @@ select.swapUser1, select.swapUser2, select.swapShift1, select.swapShift2 {
 }
 .tsDownload:after {
 	content: '\2913';
+}
+.tssDownload {
+	font-size: large;
+	cursor: pointer;
+	font-weight: bold;
+	text-decoration: none;
+	color: red;
+}
+.tssDownload:after {
+	content: '\2913';
+}
+.tssUpload {
+	font-size: large;
+	cursor: pointer;
+	font-weight: bold;
+	text-decoration: none;
+	color: red;
+}
+.tssUpload:after {
+	content: '\2912';
+}
+.refreshButton {
+	cursor: pointer;
+	width: 25px;
+}
+.refreshButton:hover {
+	color: blue;
+	font-weight: bold;
+}
+.refreshButton:after {
+	content: '\27f3';
+}
+.syncButton {
+	cursor: pointer;
+	width: 25px;
+}
+.syncButton:hover {
+	color: green;
+	font-weight: bold;
+}
+.syncButton:after {
+	content: '\21c5';
+}
+.resetButton {
+	cursor: pointer;
+	width: 25px;
+}
+.resetButton:hover {
+	color: red;
+	font-weight: bold;
+}
+.resetButton:after {
+	content: '\21af';
+}
+.readeradminpwdButton {
+	cursor: pointer;
+	width: 25px;
+}
+.readeradminpwdButton:hover {
+	color: orange;
+	font-weight: bold;
+}
+.readeradminpwdButton:after {
+	content: '\2117';
+}
+.downloadattnButton {
+	cursor: pointer;
+	width: 25px;
+}
+.downloadattnButton:hover {
+	color: grey;
+	font-weight: bold;
+}
+.downloadattnButton:after {
+	content: '\231a';
+}
+.showallattnButton {
+	cursor: pointer;
+	width: 25px;
+}
+.showallattnButton:hover {
+	color: black;
+	font-weight: bold;
+}
+.showallattnButton:after {
+	content: '\2753';
+}
+
+.addPunch:hover {
+	border: brown solid 2px;
+}
+
+.addPunch:hover:before {
+	white-space: nowrap;
+	content: 'Click here to add';
+}
+
+.editPunch:hover {
+	border: orange solid 2px;
+}
+
+.editPunch:hover:before {
+	white-space: nowrap;
+	content: 'Click here to edit';
+}
+.fixWidth {
+	width: 90px;
+	overflow: hidden;
+}
+tr.simple {
+	height: 40px;
+	min-height: 40px;
+}
+.max500 {
+	max-height: 500px;
+}
+span.scrollTo {
+	cursor: pointer;
+	font-size: x-small;
+	color: #ff0000;
+	text-decoration: none;
+}
+span.scrollTo:hover {
+	text-decoration: underline;
+}
+span.scrollTop {
+	display: none;
+	position: fixed;
+	right: 30px;
+	bottom: 30px;
+	cursor: pointer;
+	font-size: large;
+	white-space: nowrap;
+	width: 25px;
+	height: 25px;
+	align: center;
+	vertical-align: middle;
+	padding: 8px;
+	overflow: hidden;
+	border: #ff0000 solid 3px;
+	background-color: #cccccc;
+	-moz-border-radius: 10px;
+	-webkit-border-radius: 10px;
+	border-radius: 10px;
+	-khtml-border-radius: 10px;
+}
+span.copyPosition {
+	cursor: pointer;
+	color: red;
 }

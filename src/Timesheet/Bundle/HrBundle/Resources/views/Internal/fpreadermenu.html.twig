@@ -1,0 +1,40 @@
+<h2>Fingerprint Readers</h2>
+<a href="{{ path(base, {'action': 'newfpreader', 'param1': '0'}) }}">Add new Fingerprint Reader</a>
+{% if fpreaders is defined and fpreaders|length %}
+<br>
+<table>
+	<tr>
+		<th>Device ID/Name</th>
+		<th colspan="7">IP Address:Port</th>
+		<th>Platform</th>
+		<th>Version</th>
+		<th>Serial Number</th>
+		<th>Status</th>
+		<th>Last Access</th>
+		<th>Comment</th>
+		<th>Location</th>
+		{% if domainId is defined and domainId > 0 %}{% else %}<th>Company name</th>{% endif %}
+	</tr>
+	{% for fp in fpreaders %}
+	<tr>
+		<td align="center"><a href="{{ path(base, {'action': 'editfpreader', 'param1': fp.id}) }}">{{ fp.deviceId }} / {{ fp.deviceName }}</a></td>
+		<td>{{ fp.ipAddress }}:{{ fp.port }}</td>
+		<td{% if fp.status!=0 %} title="Click here to update reader details" align="center" class="refreshButton" name="updatereader" data-url="{{ path('timesheet_ajax_updatereader', {'readerid': fp.id}) }}"{% endif %}> </td>
+		<td{% if fp.status!=0 %} title="Click here to reset reader" align="center" class="resetButton" name="resetreader" data-url="{{ path('timesheet_ajax_resetreader', {'readerid': fp.id}) }}"{% endif %}> </td>
+		<td{% if fp.status!=0 %} title="Click here to sync users" align="center" class="syncButton" name="syncreaderusers" data-url="{{ path('timesheet_ajax_syncreaderusers', {'readerid': fp.id}) }}"{% endif %}> </td>
+		<td{% if fp.status!=0 %} title="Click here to get admin password" align="center" class="readeradminpwdButton" name="readeradminpwd" data-url="{{ path('timesheet_ajax_readeradminpwd', {'readerid': fp.id}) }}"{% endif %}> </td>
+		<td{% if fp.status!=0 %} title="Click here to download attendance records" align="center" class="downloadattnButton" name="downloadattn" data-url="{{ path('timesheet_ajax_downloadattn', {'readerid': fp.id}) }}"{% endif %}> </td>
+		<td{% if fp.status!=0 %} title="Click here to see all attendance records" align="center" class="showallattnButton" name="showallattn" data-url="{{ path('timesheet_ajax_showallattn', {'readerid': fp.id}) }}"{% endif %}> </td>
+		<td align="center">{{ fp.platform }}</td>
+		<td align="center">{{ fp.version }}</td>
+		<td align="center">{{ fp.serialnumber }}</td>
+		<td align="center">{% if fp.status!=0 %}Active{% else %}Inactive{% endif %}</td>
+		<td align="center">{{ fp.lastAccess|date('d/m/Y H:i:s') }}</td>
+		<td align="center">{{ fp.comment }}</td>
+		<td align="center">{% if locations is defined and locations[fp.locationId] is defined %}{{ locations[fp.locationId] }}{% else %}Not specified{% endif %}</td>
+		{% if domainId is defined and domainId > 0 %}{% else %}<td align="center">{{ fp.companyname }}</td>{% endif %}
+	</tr>	
+	{% endfor %}
+</table>
+{% endif %}
+<hr>

@@ -7,7 +7,7 @@
 		<br/>
 		<br/>
 		{% if report is defined and report|length %}
-<table font-size="7" text-align="center">
+<table font-size="7" text-align="center" width="800">
 {% for userName,t1 in report %}
 {% set userId=0 %}
 {% set tah=0 %}
@@ -46,8 +46,8 @@
 		<td> </td>
 		<td><i>(Agreed)</i></td>
 		<td> </td>
-		<td>Employee</td>
-		<td>Manager</td>
+		<td>In</td>
+		<td>Out</td>
 	</tr>
 	{% for date,t2 in t1 %}
 	{% set userId=t2[0]['userId'] %}

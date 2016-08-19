@@ -27,6 +27,16 @@
 <h2>Qualification</h2>
 {{ include('TimesheetHrBundle:Includes:qualification_form.html.twig', { 'form': qualificationForm }) }}
 </div>
+{% elseif jobTitleForm is defined and jobTitleForm|length %}
+<div class="registrationList">
+<h2>Job Title</h2>
+{{ include('TimesheetHrBundle:Includes:jobtitle_form.html.twig', { 'form': jobTitleForm }) }}
+</div>
+{% elseif fpreaderForm is defined and fpreaderForm|length %}
+<div class="registrationList">
+<h2>Fingerprint Reader</h2>
+{{ include('TimesheetHrBundle:Includes:fpreader_form.html.twig', { 'form': fpreaderForm }) }}
+</div>
 {% else %}
 {% if problems is defined and problems|length %}
 <div class="statusList">
@@ -42,6 +52,12 @@
 </div>
 <div class="statusList">
 {{ render(controller('TimesheetHrBundle:Default:qualificationmenu', { 'domainId': domainId, 'base': base })) }}
+</div>
+<div class="statusList">
+{{ render(controller('TimesheetHrBundle:Default:jobtitlemenu', { 'domainId': domainId, 'base': base })) }}
+</div>
+<div class="statusList">
+{{ render(controller('TimesheetHrBundle:Default:fpreadermenu', { 'domainId': domainId, 'base': base })) }}
 </div>
 {% endif %}
 {% endblock %}

@@ -12,6 +12,7 @@ use Symfony\Component\Validator\Constraints\NotBlank;
 use Symfony\Component\Validator\Constraints\Email;
 use Doctrine\ORM\EntityRepository;
 use Timesheet\Bundle\HrBundle\Entity\Status;
+use Doctrine\ORM\Mapping\Entity;
 
 class RegisterType extends AbstractType
 {
@@ -19,20 +20,23 @@ class RegisterType extends AbstractType
 	private $grouplist;
 	private $locationlist;
 	private $user;
-	private $requirePassword;
+	private $new;
 	private $roles;
 	private $titles;
 	private $domains;
+	private $ethnics;
 	
-	public function __construct($grouplist, $locationlist, $roles, $titles, $user = null, $requirePassword = true, $domains = null)
+	public function __construct($grouplist, $locationlist, $roles, $titles, $ethnics, $maritalStatuses, $user = null, $new = true, $fpReader = false, $domains = null)
 	{
 		$this->grouplist = $grouplist;
 		$this->locationlist = $locationlist;
 		$this->user = $user;
-		$this->requirePassword = $requirePassword;
+		$this->new = $new; // if new, password is required and can enrol user in fp reader automatically
 		$this->roles = $roles;
 		$this->titles = $titles;
 		$this->domains = $domains;
+		$this->ethnics = $ethnics;
+		$this->maritalStatuses = $maritalStatuses;
 	}
 	
     public function buildForm(FormBuilderInterface $builder, array $options)
@@ -121,6 +125,20 @@ class RegisterType extends AbstractType
     			'data'=>((isset($this->user))?($this->user->getNationality()):('')),
 //    			'empty_value'=>' - Please select - ',
     		))
+    		->add('ethnic', 'choice', array(
+    			'choices'=>$this->ethnics,
+    			'label'=>'Ethnic:',
+    			'required'=>false,
+    			'data'=>((isset($this->user))?($this->user->getEthnic()):('')),
+    			'empty_value'=>'Not disclosed',
+    		))
+    		->add('maritalStatus', 'choice', array(
+    			'choices'=>$this->maritalStatuses,
+    			'label'=>'Marital Status:',
+    			'required'=>true,
+    			'data'=>((isset($this->user))?($this->user->getMaritalStatus()):('')),
+//    			'empty_value'=>' - Please select - ',
+    		))
     		->add('addressLine1', 'text', array(
     			'label'=>'Address:',
     			'constraints'=>array(
@@ -152,7 +170,6 @@ class RegisterType extends AbstractType
 				'preferred_choices'=>array('GB'),
   				'required'=>true,
     			'data'=>((isset($this->user))?($this->user->getAddressCountry()):('')),
-//    			'empty_value'=>' - Please select - ',
     		))
     		->add('loginRequired', 'choice', array(
     			'choices'=>array(0=>'No', 1=>'Yes'),
@@ -228,31 +245,25 @@ class RegisterType extends AbstractType
     				'class'=>'submitButton'
     			)
     		))
-   			->add('cancel', 'submit', array(
+   			->add('cancel', 'button', array(
    				'label'=>'Cancel',
-   				'attr'=>array(
-   					'formnovalidate'=>true
-   				),
-    			'validation_groups'=>false
+   				'attr'=>array('formnovalidate'=>true),
+//    			'validation_groups'=>false
     		))
    			->addEventListener(
    				FormEvents::SUBMIT,
    				array($this, 'onSubmit')
    			)
    			->addEventListener(
-   				FormEvents::PRE_SUBMIT,
-   				array($this, 'onPreSubmit')
-   			)
-   			->addEventListener(
    				FormEvents::POST_SUBMIT,
    				function (FormEvent $event) {
         			$event->stopPropagation();
    			}, 900);
-error_log('user:'.print_r($this->user, true));
-$roles=$this->user->getRoles();
-error_log('roles:'.print_r($roles, true));
-$role=$this->user->getRoles($roles);
-error_log('role:'.print_r($role, true));
+// error_log('user:'.print_r($this->user, true));
+// $roles=$this->user->getRoles();
+// error_log('roles:'.print_r($roles, true));
+// $role=$this->user->getRoles($roles);
+// error_log('role:'.print_r($role, true));
    		if ($this->domains) {
    			$builder
    				->add('domainId', 'choice', array(
@@ -263,8 +274,12 @@ error_log('role:'.print_r($role, true));
    				));	
    		}
    		
-    	if ($this->requirePassword) {
+    	if ($this->new) {
     		$builder
+    			->add('fpEnrol', 'checkbox', array(
+    				'label'=>'Enrol in FP Reader?',
+    				'required'=>false
+    			))
     		  	->add('upass', 'repeated', array(
 		    		'type'=>'password',
 	    			'constraints'=>array(
@@ -320,9 +335,9 @@ error_log('role:'.print_r($role, true));
     public function onSubmit(FormEvent $event) {
 //    	$form=$event->getForm();
     	$data=$event->getData();
-error_log('onSubmit');
-//error_log('form:'.print_r($form, true));
-error_log('form data:'.print_r($data, true));
+// error_log('onSubmit');
+// error_log('form:'.print_r($form, true));
+// error_log('form data:'.print_r($data, true));
 		switch ($data['role']) {
 			case 'ROLE_ADMIN': {
 				$data['groupAdmin']=1;
@@ -339,17 +354,6 @@ error_log('form data:'.print_r($data, true));
 		}
     }
 
-    public function onPreSubmit(FormEvent $event) {
-//    	$form=$event->getForm();
-    	$data=$event->getData();
-error_log('onPreSubmit');
-error_log('form data:'.print_r($data, true));
-    	if ($data['role']=='ROLE_MANAGER') {
-    		error_log('manager');
-    	}
-    	//    	$form->get('groupAdmin');
-    }
-    
     public function getName()
     {
         return 'register';

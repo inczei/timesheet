@@ -24,25 +24,34 @@
 </table>
 <table>
 	<tr>
-		<th rowspan="{{ (4+locations|length) }}">
-			User search : <input type="text" class="userSearch" name="userSearch" size="10" data-url="{{ path('timesheet_ajax_userlist') }}" base-url="{{ base }}" data-type="2" value="{{ usersearch }}"><input type="hidden" id="lastSearch" value="">
-			<br>
-			Select group : <select name="groupSearch" class="userSearch" data-url="{{ path('timesheet_ajax_userlist') }}" base-url="{{ base }}" data-type="2" value="{{ groupsearch }}">
+		<th class="thirdHeader" rowspan="{{ (4+locations|length) }}">
+			<div class="default">
+			<table>
+				<tr>
+					<td>User search :</td><td><input type="text" class="userSearch" name="userSearch" size="10" data-url="{{ path('timesheet_ajax_userlist') }}" base-url="{{ base }}" data-type="2" value="{{ usersearch }}"><input type="hidden" id="lastSearch" value=""></td>
+				</tr>
+				<tr>
+					<td>Select group :</td><td><select name="groupSearch" class="userSearch" data-url="{{ path('timesheet_ajax_userlist') }}" base-url="{{ base }}" data-type="2" value="{{ groupsearch }}">
 				<option value=""> - All - </option>
 			{% for gk,gv in groups %}
 				<option value="{{ gk }}"{% if groupsearch == gk %} selected{% endif %}>{{ gv }}</option>
 			{% endfor %}
-			</select>
-			<br>
-			Qualification : <select name="qualificationSearch" class="userSearch" data-url="{{ path('timesheet_ajax_userlist') }}" base-url="{{ base }}" data-type="2" value="{{ qualificationsearch }}">
+			</select></td>
+				</tr>
+				<tr>
+					<td>Qualification :</td><td><select name="qualificationSearch" class="userSearch" data-url="{{ path('timesheet_ajax_userlist') }}" base-url="{{ base }}" data-type="2" value="{{ qualificationsearch }}">
 				<option value=""> - All - </option>
 			{% for qk,qv in qualifications %}
 				<option value="{{ qk }}"{% if qualificationsearch == qk %} selected{% endif %}>{{ qv }}</option>
 			{% endfor %}
-			</select>
+			</select></td>
+				</tr>
+			</table>
+			</div>
 			<div id="usersList">
 			{% include 'TimesheetHrBundle:Internal:usersListSchedule.html.twig' with {'users': users, 'base': base, 'found': found} %}
 			</div>
+			
 		</th>
 		<th class="secondHeader">Location</th>
 		{% for v in week %}

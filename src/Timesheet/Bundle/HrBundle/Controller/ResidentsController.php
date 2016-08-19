@@ -198,7 +198,7 @@ error_log('residentlistAction');
 						$resident->setLastName(''.$data['lastName']);
 						$resident->setNickName(''.$data['nickName']);
 						$resident->setMaidenName(''.$data['maidenName']);
-						$resident->setEmail($data['email']);
+						$resident->setEmail(''.$data['email']);
 						$resident->setPhoneLandline(''.$data['phoneLandline']);
 						$resident->setPhoneMobile(''.$data['phoneMobile']);
 						$resident->setBirthday($data['birthday']);
@@ -233,9 +233,10 @@ error_log('residentlistAction');
 							if (strpos($e->getMessage(), '1062') === false) {
 								error_log('Database error:'.$e->getMessage());
 							} else {
-								$message='Duplicate details, please try another username';
+								$session->getFlashBag()->set('notice', 'Sorry, this person already exists in the system');
 							}
 						}
+						
 						if ($resident->getId()) {
 							
 							$message='Resident ('.trim($resident->getTitle().' '.$resident->getFirstName().' '.$resident->getLastName()).') details '.(($new)?('saved'):('updated'));
@@ -659,16 +660,26 @@ error_log('not allowed...redirect to homepage');
     					$room->setActive($data['active']);
     					$room->setNotes(''.$data['notes']);
     
-    					if ($new) {
-    						$em->persist($room);
-    					}
-    					$em->flush($room);
-    
-   						$msg='Room ('.$room->getRoomNumber().') saved';
-   						$session->remove('admin');
-   						$session->getFlashBag()->set('notice', $msg);
-    
-   						return $this->redirect($this->generateUrl($base));
+    					try {
+	    					if ($new) {
+	    						$em->persist($room);
+	    					}
+	    					$em->flush($room);
+	    				} catch (\Exception $e) {
+	    					if (strpos($e->getMessage(), '1062') === false) {
+	    						error_log('Database error:'.$e->getMessage());
+	    					} else {
+	    						$session->getFlashBag()->set('notice', 'Sorry, this room already exists');
+	    					}
+	    				}
+	    				
+	    				if ($room->getId()) {
+	   						$msg='Room ('.$room->getRoomNumber().') saved';
+	   						$session->remove('admin');
+	   						$session->getFlashBag()->set('notice', $msg);
+	    
+	   						return $this->redirect($this->generateUrl($base));
+	    				}
     				}
     				break;
     			}

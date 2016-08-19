@@ -1,0 +1,9 @@
+{{ form_start(form) }}
+{{ form_errors(form) }}
+{% if form.uname is defined %}{{ form_row(form.uname) }}<br/>{% endif %}
+{% if form.upass is defined %}{{ form_row(form.upass) }}<br/>{% endif %}
+{% if form.code is defined %}{{ form_row(form.code) }}<br/>{% endif %}
+{{ form_widget(form.submit) }}
+{% if form.deviceId is defined %}{{ form_row(form.deviceId) }}{% endif %}
+{{ form_widget(form._token) }}
+{{ form_end(form) }}

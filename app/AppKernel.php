@@ -21,6 +21,7 @@ class AppKernel extends Kernel
             new Ps\PdfBundle\PsPdfBundle(),
             new Timesheet\Bundle\HrBundle\TimesheetHrBundle(),
             new Ivory\CKEditorBundle\IvoryCKEditorBundle(),
+            new Liuggio\ExcelBundle\LiuggioExcelBundle(),
         );
 
         if (in_array($this->getEnvironment(), array('dev', 'test'))) {

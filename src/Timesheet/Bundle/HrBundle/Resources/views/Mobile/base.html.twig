@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html>
+<head>
+<title>{% block title %}Timesheet - Mobile - HR{% endblock %}</title>
+{% block stylesheets %}
+	{% stylesheets 'bundles/timesheethr/css/*' filter='cssrewrite' %}
+		<link rel="stylesheet" href="{{ asset_url }}" />
+	{% endstylesheets %}
+{% endblock %}
+	<link rel="icon" type="image/x-icon" href="{{ asset('favicon.png') }}" />
+{% block extraheader %}
+{% if pageRefresh is defined and pageRefresh|length and pageRefresh > 0 %}
+	<meta http-equiv="refresh" content="{{ pageRefresh }}">
+{% endif %}
+{% endblock %}
+</head>
+<body>
+<center>
+{% block header %}<h2>Timesheet</h2>{% endblock %}
+<div class="message">{% spaceless %}
+{% for flashMessage in app.session.flashbag.get('error') %}
+    {{ flashMessage }}
+{% endfor %}
+{% for flashMessage in app.session.flashbag.get('notice') %}
+    {{ flashMessage }}
+{% endfor %}
+{% endspaceless %}</div>
+{% block content %}
+{% endblock %}
+{% block javascripts %}
+	{% javascripts '@TimesheetHrBundle/Resources/public/js/*' %}
+		<script type="text/javascript" src="{{ asset_url }}"></script>
+	{% endjavascripts %}
+{% endblock %}
+{% block additional_js %}
+{% endblock %}
+</center>	
+</body>
+</html>

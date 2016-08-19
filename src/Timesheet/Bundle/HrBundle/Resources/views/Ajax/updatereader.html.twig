@@ -1,0 +1,100 @@
+{% if messages is defined and messages|length %}
+{% for m in messages %}
+<div class="warning">{{ m }}</div>
+{% endfor %}
+{% endif %}
+{% if (fpreaders is defined and fpreaders|length) or (records is defined and records|length) %}
+<div class="listType max500">
+{% if fpreaders is defined %}
+	{% if fpreaders|length %}
+<br>
+<table>
+	<tr>
+		<th>Device ID</th>
+		<th>Device Name</th>
+		<th>IP Address:Port</th>
+		<th>Platform</th>
+		<th>Version</th>
+		<th>Serial Number</th>
+		<th>Status</th>
+		<th>Last Access</th>
+		<th>Comment</th>
+		<th>Company name</th>
+	</tr>
+	{% for fp in fpreaders %}
+	<tr>
+		<td align="center">{{ fp.deviceId }}</a></td>
+		<td align="center">{{ fp.deviceName }}</td>
+		<td align="center">{{ fp.ipAddress }}:{{ fp.port }}</td>
+		<td align="center">{{ fp.platform }}</td>
+		<td align="center">{{ fp.version }}</td>
+		<td align="center">{{ fp.serialnumber }}</td>
+		<td align="center">{% if fp.status!=0 %}Active{% else %}Inactive{% endif %}</td>
+		<td align="center">{{ fp.lastAccess|date('d/m/Y H:i:s') }}</td>
+		<td align="center">{{ fp.comment }}</a></td>
+		<td align="center">{% if companies[fp.domainId] is defined %}{{ companies[fp.domainId] }}{% else %}{{ fp.companyId }}{% endif %}</td>
+	</tr>
+	{% if updates[fp.id] is defined and updates[fp.id]|length %}
+	<tr>
+		<td colspan="10">{% for k,u in updates[fp.id] %}<div>{{ k }} = {{ u }}</div>{% endfor %}</td>
+	</tr>
+	{% endif %}
+	{% endfor %}
+</table>
+	{% else %}
+No information
+	{% endif %}
+{% elseif records is defined and records|length %}
+<br>
+{% if shiftStatus is defined and shiftStatus|length %}
+<table>
+	{% for uId,ss in shiftStatus %}
+	<tr>
+		<th colspan="7">{% if usernames[uId] is defined %}{{ usernames[uId] }}{% else %}{{ uId }}{% endif %}</th>
+	</tr>
+	<tr>
+		<th>Location</th>
+		<th>Shift</th>
+		<th>Date</th>
+		<th>Check In</th>
+		<th>Break Start</th>
+		<th>Break Finish</th>
+		<th>Check Out</th>
+	</tr>
+	{% for sDate, u in ss %}
+		{% for sId, s in u %}
+	<tr>
+		<td>{{ s['location'] }}</td>
+		<td>{{ s['shift'] }}</td>
+		<td>{{ s['Check In']|date('d/m/Y') }}</td>
+		<td align="center">{% if s['Check In'] is defined and s['Check In']|length %}{{ s['Check In']|date('H:i:s') }}{% endif %}</td>
+		<td align="center">{% if s['Break Start'] is defined and s['Break Start']|length %}{{ s['Break Start']|date('H:i:s') }}{% endif %}</td>
+		<td align="center">{% if s['Break Finish'] is defined and s['Break Finish']|length %}{{ s['Break Finish']|date('H:i:s') }}{% endif %}</td>
+		<td align="center">{% if s['Check Out'] is defined and s['Check Out']|length %}{{ s['Check Out']|date('H:i:s') }}{% endif %}</td>
+	</tr>
+		{% endfor %}
+		{% endfor %}
+	{% endfor %}
+</table>
+<hr>
+{% endif %}
+Number of new records: {{ records|length }}
+<table>
+	<tr>
+		<th>User</th>
+		<th>Status</th>
+		<th>Timestamp</th>
+		<th>Shift</th>
+	</tr>
+	{% for r in records %}
+	<tr>
+		<td align="right"{% if usernames[r.UserId] is defined and usernames[r.UserId]|length %} title="User ID:{{ r.UserId }}"{% endif %}>{% if usernames[r.UserId] is defined and usernames[r.UserId]|length %}{{ usernames[r.UserId] }}{% else %}{{ r.UserId }}{% endif %}</td>
+		<td align="center">{{ r.Status }}</td>
+		<td align="center">{{ r.Timestamp|date('d/m/Y H:i:s') }}</td>
+		<td align="center">{% if r.Shift is defined and r.Shift!=null %}{{ r.Shift.title }}{% endif %}</td>
+	</tr>
+	{% endfor %}
+</table>
+{% endif %}
+{% endif %}
+</div>

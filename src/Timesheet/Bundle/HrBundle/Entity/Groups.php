@@ -7,7 +7,8 @@ use Doctrine\ORM\Mapping as ORM;
 /**
  * Groups
  *
- * @ORM\Table()
+ * @ORM\Table(uniqueConstraints={
+ *     @ORM\UniqueConstraint(name="groups_idx", columns={"name", "domainId"})})
  * @ORM\Entity
  */
 class Groups

@@ -8,11 +8,22 @@
 	{% endstylesheets %}
 {% endblock %}
 	<link rel="icon" type="image/x-icon" href="{{ asset('favicon.png') }}" />
+{% set alo=0 %}
+{% if app.request.cookies.has('ts_alo') %}
+	{% set alo=app.request.cookies.get('ts_alo') %}
+	{% if alo is defined and alo>0 %}
+	<meta http-equiv="refresh" content="{{ alo*60 }}; {{ path('fos_user_security_logout') }}">
+	{% endif %}
+{% else %}
 {% if pageRefresh is defined and pageRefresh|length and pageRefresh > 0 %}
 	<meta http-equiv="refresh" content="{{ pageRefresh }}">
 {% else %}
 	<meta http-equiv="refresh" content="86400; {{ path('timesheet_hr_homepage') }}">
 {% endif %}
+{% endif %}
+	<script>
+    var assetsBaseDir = "{{ asset('/bundles/timesheethr/') }}";
+	</script>
 </head>
 <body>
 <div id="popupDiv" class="popupDiv"></div>
