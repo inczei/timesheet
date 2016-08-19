@@ -1,7 +1,6 @@
 timesheet_hr:
     resource: "@TimesheetHrBundle/Resources/config/routing.yml"
     prefix:   /
-    schemes: [http]
 #login:
 #    pattern: /login
 #    defaults: { _controller: InvestShareBundle:Security:login }

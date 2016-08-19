@@ -31,3 +31,5 @@ security:
 #      - { path: ^/registration$, roles: ROLE_ADMIN }
 #      - { path: ^/resetting$, roles: IS_AUTHENTICATED_ANONYMOUSLY }
       - { path: ^/admin/, roles: ROLE_ADMIN }
+      - { path: ^/, roles: IS_AUTHENTICATED_ANONYMOUSLY, requires_channel: https, host: skillfill\.co\.uk$ }
+      - { path: ^/, roles: IS_AUTHENTICATED_ANONYMOUSLY, requires_channel: http, host: localhost$ }

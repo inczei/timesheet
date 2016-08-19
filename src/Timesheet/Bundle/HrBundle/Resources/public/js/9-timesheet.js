@@ -1373,6 +1373,12 @@ function getLocation(divId, formatText, domainid, ajaxurl, lat, long, enableDiv)
         	}
         	return ref;
         });
+    } else {
+    	if (typeof(divId) != 'undefined') {
+    		$('#'+divId).html('<p style="color:red">Oops! This browser does not support HTML5 Geolocation</p>');
+    	} else {
+    		alert('Oops! This browser does not support HTML5 Geolocation')
+    	}
     }
     return null;
 }

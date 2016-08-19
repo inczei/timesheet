@@ -2,15 +2,15 @@
   "lang": "en",
   "dir": "ltr",
   "name": "{{ title }}",
-  "description": "Punch in/out onto Timesheet",
-  "short_name": "Timesheet",
+  "description": "{{ description }}",
+  "short_name": "{{ title }}",
   "icons": [{
-    "src": "favicon.png",
+    "src": "{{ asset('favicon.png') }}",
     "sizes": "64x64"
   }],
-  "scope": "/racer/",
+  "scope": "/mobile/",
   "start_url": "{{ path('timesheet_mobile_punch') }}",
-  "display": "fullscreen",
+  "display": "standalone",
   "orientation": "portrait",
   "background_color": "white"
 }

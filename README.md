@@ -9,7 +9,7 @@ and correct salary.
 1) Requirements
 ---------------
 
-Apache 2.0 or newer
+Apache web server, preferably with SSL certificate
 MySql 5.5 or newer
 PHP 5.6 or newer
 
@@ -17,11 +17,11 @@ PHP 5.6 or newer
 -----------
 
 User types:
-"superadmin" can manage all the sites, all the users
-"admin" per site can manage user details on the specific site, create rota, approve holiday requests and generate reports
-"user" can punch in/out, request holiday, check own timesheet and rota
+- "superadmin" can manage all the sites, all the users
+- "admin" per site can manage user details on the specific site, create rota, approve holiday requests and generate reports
+- "user" can punch in/out, request holiday, check own timesheet and rota
 
 Users can punch in/out via
 - internet browser located on the site, provided by the company
 - fingerprint reader located on the site, provided by the company
-- mobile phone application using it's GPS to locate the device position
+- mobile phone application using it's GPS to locate the device position, should use https host to access location data

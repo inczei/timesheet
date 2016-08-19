@@ -23,7 +23,10 @@ class IdentifyType extends AbstractType
     {
         $builder
 			->add('uname', 'text', array(
-				'label'=>'Username:',
+				'label'=>'Username : ',
+    			'attr'=>array(
+    				'style'=>'font-size: x-large; width: 40%;'
+    			),
 				'constraints'=>array(
 					new NotBlank(),
 					new Length(array('min'=>4))
@@ -31,13 +34,20 @@ class IdentifyType extends AbstractType
 					
 			))
     		->add('upass', 'password', array(
-    			'label'=>'Password:',
+    			'label'=>'Password : ',
+    			'attr'=>array(
+    				'style'=>'font-size: x-large; width: 40%;'
+    			),
     			'constraints'=>array(
     				new NotBlank(),
     				new Length(array('min'=>4))
     			)
     		))
-    		->add('submit', 'submit');
+    		->add('submit', 'submit', array(
+    			'attr'=>array(
+    				'style'=>'font-size: x-large; width: 50%;'
+    			)    				
+    		));
     }
 
 

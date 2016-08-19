@@ -1,0 +1,9 @@
+@CHARSET "UTF-8";
+@media all
+body {
+	background-color: #ffffff;
+	font-family: Arial, helvetica, sans-serif;
+	font-size: large;
+	width: 90%;
+	margin: 0 auto;
+}

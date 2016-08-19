@@ -34,14 +34,20 @@ class MobilePunchType extends AbstractType
     			'required'=>false
     		))
     		->add('comment', 'text', array(
-    		'label'=>'Comment : ',
-    		'required'=>false
+    			'label'=>'Comment : ',
+    			'required'=>false,
+    			'attr'=>array(
+    				'style'=>'font-size: x-large; width: 40%;'
+    			)
     	));
     	if (isset($this->available) && is_array($this->available) && count($this->available)) {
     		foreach ($this->available as $k=>$v) {
     	    	$builder
    					->add('status_'.$k, 'submit', array(
-   						'label'=>$v
+   						'label'=>$v['name'],
+   						'attr'=>array(
+   							'style'=>'font-size: x-large; color: #'.$v['color'].'; width: 50%;'
+   						)
    					));
     		}
     	}

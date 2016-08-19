@@ -104,19 +104,59 @@ class MobileController extends Controller
 	public function indexAction() {
 error_log('mobileAction');
 		$functions=$this->get('timesheet.hr.functions');
-//		$domainId=$functions->getDomainId($this->getRequest()->getHttpHost());
 		return $this->render('TimesheetHrBundle:Mobile:index.html.twig', array(
 			'title'		=> $functions->getPageTitle('Mobile Home')
 		));
 	}
 
-	public function manifestAction($param) {
+	public function manifestAction() {
 error_log('manifestAction');
 		$functions=$this->get('timesheet.hr.functions');
-//		$domainId=$functions->getDomainId($this->getRequest()->getHttpHost());
 		return $this->render('TimesheetHrBundle:Mobile:manifest.json.twig', array(
-			'title'		=> $functions->getPageTitle('Mobile')
+			'title'			=> $functions->getPageTitle('Mobile'),
+			'description'	=> 'Punch in/out onto Timesheet'
 		));
+	}
+	
+	public function unauthAction() {
+error_log('unauthAction');
+ 		$functions=$this->get('timesheet.hr.functions');
+ 		$domainId=$functions->getDomainId($this->getRequest()->getHttpHost());
+ 		
+ 		if (isset($_COOKIE['thr'.$domainId])) {
+ 			$tmp=$_COOKIE['thr'.$domainId];
+error_log('decrypted cookie:'.$tmp.', pos:'.((strpos($tmp, '|')==false)?'false':strpos($tmp, '|')));
+ 			if (strpos($tmp, '|') != false) {
+	 			$uId=base64_decode(substr($tmp, 0, strpos($tmp, '|')));
+	 			$deviceId=substr($tmp, strpos($tmp, '|')+1);
+error_log('userId:'.$uId.', deviceId:'.$deviceId);					
+				unset($_COOKIE['thr'.$domainId]);
+				setcookie('thr'.$domainId, '', 1, '/');
+					
+				$results=$this->getDoctrine()
+					->getRepository('TimesheetHrBundle:MobileAuth')
+					->findBy(array('userId'=>$uId));
+//					->findBy(array('deviceId'=>$deviceId, 'userId'=>$uId));
+					
+				if ($results && count($results)) {
+					$em=$this->getDoctrine()->getManager();
+						
+					foreach ($results as $result) {
+error_log('remove:'.print_r($result, true));
+						$em->remove($result);
+						$em->flush();
+					}
+				}
+ 			} else {
+error_log('wrong cookie format');
+				unset($_COOKIE['thr'.$domainId]);
+				setcookie('thr'.$domainId, '', 1, '/');
+ 			}
+ 		} else {
+error_log('no cookie defined');
+ 		}
+		
+		return $this->redirect($this->generateUrl('timesheet_mobile_punch'));
 	}
 	
 	public function punchAction($auth) {
@@ -159,15 +199,14 @@ error_log('userId:'.$userId);
 				$query=$qb->getQuery();
 				$results=$query->useResultCache(true)->getArrayResult();
 				
-//				$allStatuses=$functions->getStatuses();
-// error_log('allStatuses:'.print_r($allStatuses, true));
+				$tmp=array(1);
+				$available=array();
 				
 				if ($results && count($results)) {
 					$status=reset($results);
 					$currentStatus=$status['id'];
  					$message='Your current status is '.$status['name'];
- 					$available=array();
- 					$tmp=array();
+ 					
  					switch ($currentStatus) {
  						case 1 : {
  							// Signed in
@@ -200,60 +239,57 @@ error_log('userId:'.$userId);
  							break;
  						}
  					}
- 					if ($tmp && count($tmp)) {
-error_log('tmp:'.print_r($tmp, true));
-						$qb=$em
-							->createQueryBuilder()
-							->select('s.name, s.id')
-							->from('TimesheetHrBundle:Status', 's')
-							->where('s.id IN (:ids)')
-							->setParameter('ids', $tmp);
-						
-						$query=$qb->getQuery();
-						$results=$query->useResultCache(true)->getArrayResult();
-// error_log('results:'.print_r($results, true));
-						if ($results && count($results)) {
-							foreach ($results as $result) {
-								$available[$result['id']]=$result['name'];
-							}
-						}
- 					}
-error_log('available statuses:'.print_r($available, true));
-					$result=''; // 'Available statuses:'.print_r($available, true);
+				}
+ 				if ($tmp && count($tmp)) {
+					$qb=$em
+						->createQueryBuilder()
+						->select('s.name, s.id, s.color')
+						->from('TimesheetHrBundle:Status', 's')
+						->where('s.id IN (:ids)')
+						->setParameter('ids', $tmp);
 					
-					$mobilePunchForm=$this->createForm(new MobilePunchType($available));
-					$mobilePunchForm->handleRequest($request);
-					if ($mobilePunchForm->isSubmitted() && $mobilePunchForm->isValid()) {
-error_log('mobilePunch form submitted');
-						$selectedStatus=null;
-						$data=$mobilePunchForm->getData();
-						$comment=''.$data['comment'];
-						$ref=array('latitude'=>$data['latitude'], 'longitude'=>$data['longitude']);
-						foreach (array_keys($available) as $k) {
-							if ($mobilePunchForm->get('status_'.$k)->isClicked()) {
-								$selectedStatus=$k;
-							}
-						}
-error_log('selected:'.$available[$selectedStatus]);
-						if ($selectedStatus != null) {
-							$ret=$functions->savePunchStatus($userId, $selectedStatus, $comment, $ref);
-							if ($ret == '') {
-								$message='Your status has changed to '.$available[$selectedStatus];
-								$available=null;
-								$result='<a href="'.$this->generateUrl('timesheet_mobile_punch').'">Refresh</a>';
-								unset($mobilePunchForm);
-							} else {
-								$message='Coulnd not change status';
-							}
+					$query=$qb->getQuery();
+					$results=$query->useResultCache(true)->getArrayResult();
+					if ($results && count($results)) {
+						foreach ($results as $result) {
+							$available[$result['id']]=array('name'=>$result['name'], 'color'=>$result['color']);
 						}
 					}
-							
+ 				}
+
+				$result=''; // 'Available statuses:'.print_r($available, true);
+					
+				$mobilePunchForm=$this->createForm(new MobilePunchType($available));
+				$mobilePunchForm->handleRequest($request);
+				if ($mobilePunchForm->isSubmitted() && $mobilePunchForm->isValid()) {
+error_log('mobilePunch form submitted');
+					$selectedStatus=null;
+					$data=$mobilePunchForm->getData();
+					$comment=''.$data['comment'];
+					$ref=array('latitude'=>$data['latitude'], 'longitude'=>$data['longitude']);
+					foreach (array_keys($available) as $k) {
+						if ($mobilePunchForm->get('status_'.$k)->isClicked()) {
+							$selectedStatus=$k;
+						}
+					}
+error_log('selected:'.print_r($available[$selectedStatus], true));
+					if ($selectedStatus != null) {
+						$ret=$functions->savePunchStatus($userId, $selectedStatus, $comment, $ref);
+						if ($ret == '') {
+							$message='Your status has changed to '.$available[$selectedStatus]['name'];
+							$available=null;
+							$result='<a href="'.$this->generateUrl('timesheet_mobile_punch').'">Refresh</a>';
+							unset($mobilePunchForm);
+						} else {
+							$message='Could not change status';
+						}
+					}
 				}
  			} elseif (isset($_COOKIE['thr'.$domainId]) && $_COOKIE['thr'.$domainId] != $deviceId) {
 error_log('no cookie or different device id, need to de-authorise');
 				if (isset($_COOKIE['thr'.$domainId])) {
 					unset($_COOKIE['thr'.$domainId]);
-					setcookie('thr'.$domainId, '', 1);
+					setcookie('thr'.$domainId, '', 1, '/');
 				}
 				return $this->redirect($this->generateUrl('timesheet_mobile_punch', array('auth'=>$auth)));
 
@@ -266,7 +302,6 @@ error_log('auth code received');
  						->findOneBy(array('id'=>base64_decode($auth)));
  					
  					if ($ma) {
-// error_log('data:'.print_r($ma, true));
 	 					$identifyConfirmForm=$this->createForm(new IdentifyConfirmType($ma));
 	 					$identifyConfirmForm->handleRequest($request);
 						if ($identifyConfirmForm->isSubmitted() && $identifyConfirmForm->isValid()) {
@@ -282,8 +317,7 @@ error_log('code entered');
 			 						if ($ma->getCode() == $data['code']) {
 error_log('AUTHENTICATED');
 			 							$message='Your device is now authenticated.';
-//			 							$_COOKIE['thr'.$domainId]=$deviceId;
-			 							setcookie('thr'.$domainId, base64_encode($ma->getUserId()).'|'.$deviceId, 0, '/', '', false);
+			 							setcookie('thr'.$domainId, base64_encode($ma->getUserId()).'|'.$deviceId, 0, '/');
 			 							
 			 							return $this->redirect($this->generateUrl('timesheet_mobile_punch'));
 			 						} else {
@@ -438,8 +472,8 @@ error_log('wrong password');
 		$ros[] = array('(win)([0-9]{2})', 'Windows');
 		$ros[] = array('(windows)([0-9x]{2})', 'Windows');
 		// Doesn't seem like these are necessary...not totally sure though..
-		//$ros[] = array('(winnt)([0-9]{1,2}\.[0-9]{1,2}){0,1}', 'Windows NT');
-		//$ros[] = array('(windows nt)(([0-9]{1,2}\.[0-9]{1,2}){0,1})', 'Windows NT'); // fix by bg
+		// $ros[] = array('(winnt)([0-9]{1,2}\.[0-9]{1,2}){0,1}', 'Windows NT');
+		// $ros[] = array('(windows nt)(([0-9]{1,2}\.[0-9]{1,2}){0,1})', 'Windows NT'); // fix by bg
 		$ros[] = array('Windows ME', 'Windows ME');
 		$ros[] = array('Win 9x 4.90', 'Windows ME');
 		$ros[] = array('Windows 98|Win98', 'Windows 98');
@@ -477,15 +511,15 @@ error_log('wrong password');
 		$ros[] = array('(Red Hat)', 'Linux - Red Hat');
 		// Loads of Linux machines will be detected as unix.
 		// Actually, all of the linux machines I've checked have the 'X11' in the User Agent.
-		//$ros[] = array('X11', 'Unix');
+		// $ros[] = array('X11', 'Unix');
 		$ros[] = array('(linux)', 'Linux');
 		$ros[] = array('(amigaos)([0-9]{1,2}\.[0-9]{1,2})', 'AmigaOS');
 		$ros[] = array('amiga-aweb', 'AmigaOS');
 		$ros[] = array('amiga', 'Amiga');
 		$ros[] = array('AvantGo', 'PalmOS');
-		//$ros[] = array('(Linux)([0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,3}(rel\.[0-9]{1,2}){0,1}-([0-9]{1,2}) i([0-9]{1})86){1}', 'Linux');
-		//$ros[] = array('(Linux)([0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,3}(rel\.[0-9]{1,2}){0,1} i([0-9]{1}86)){1}', 'Linux');
-		//$ros[] = array('(Linux)([0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,3}(rel\.[0-9]{1,2}){0,1})', 'Linux');
+		// $ros[] = array('(Linux)([0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,3}(rel\.[0-9]{1,2}){0,1}-([0-9]{1,2}) i([0-9]{1})86){1}', 'Linux');
+		// $ros[] = array('(Linux)([0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,3}(rel\.[0-9]{1,2}){0,1} i([0-9]{1}86)){1}', 'Linux');
+		// $ros[] = array('(Linux)([0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,3}(rel\.[0-9]{1,2}){0,1})', 'Linux');
 		$ros[] = array('[0-9]{1,2}\.[0-9]{1,2}\.[0-9]{1,3})', 'Linux');
 		$ros[] = array('(webtv)/([0-9]{1,2}\.[0-9]{1,2})', 'WebTV');
 		$ros[] = array('Dreamcast', 'Dreamcast OS');
@@ -509,7 +543,7 @@ error_log('wrong password');
 		$ros[] = array('Java', 'Unknown');
 		$ros[] = array('flashget', 'Windows');
 		// delete next line if the script show not the right OS
-		//$ros[] = array('(PHP)/([0-9]{1,2}.[0-9]{1,2})', 'PHP');
+		// $ros[] = array('(PHP)/([0-9]{1,2}.[0-9]{1,2})', 'PHP');
 		$ros[] = array('MS FrontPage', 'Windows');
 		$ros[] = array('(msproxy)/([0-9]{1,2}.[0-9]{1,2})', 'Windows');
 		$ros[] = array('(msie)([0-9]{1,2}.[0-9]{1,2})', 'Windows');

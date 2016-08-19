@@ -29,9 +29,17 @@ class IdentifyConfirmType extends AbstractType
         		'data'=>$this->ma->getDeviceId()
         	))
    			->add('code', 'text', array(
-   				'label'=>'Activation code'
+   				'label'=>'Activation code : ',
+   				'attr'=>array(
+   					'style'=>'font-size: x-large; width: 40%;'
+   				)
+   					
    			))
-   			->add('submit', 'submit');
+   			->add('submit', 'submit', array(
+   				'attr'=>array(
+   					'style'=>'font-size: x-large; width: 50%;'
+   				)   					
+   			));
     }
 
 

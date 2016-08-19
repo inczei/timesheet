@@ -1,8 +1,6 @@
 timesheet_hr_homepage:
     path:     /
     defaults: { _controller: TimesheetHrBundle:Default:index }
-    requirements:
-        _scheme: http
 timesheet_hr_reset:
     path:     /reset
     defaults: { _controller: TimesheetHrBundle:Default:reset }
@@ -23,25 +21,21 @@ timesheet_hr_dashboard:
     defaults: { _controller: TimesheetHrBundle:Default:dashboard, _format: html }
     requirements:
         _format: html
-        _scheme: http
 timesheet_hr_timesheet:
     path:     /timesheet/{userId}/{timestamp}/{usersearch}
     defaults: { _controller: TimesheetHrBundle:Default:timesheet, userId: '0', timestamp: '0', usersearch: '' }
     requirements:
         _format: html
-        _scheme: http
 timesheet_hr_autopunch:
     path:     /autopunch/{userId}/{date}
     defaults: { _controller: TimesheetHrBundle:Default:autopunch, userId: '0', date: '' }
     requirements:
         _format: html
-        _scheme: http
 timesheet_hr_autologout:
     path:     /autologout/{minutes}
     defaults: { _controller: TimesheetHrBundle:Default:autologout, minutes: '' }
     requirements:
         _format: html
-        _scheme: http
 timesheet_hr_schedule:
     path:     /schedule/{locationId}/{timestamp}
     defaults: { _controller: TimesheetHrBundle:Default:schedule, locationId: '', timestamp: '' }
@@ -106,6 +100,9 @@ timesheet_hr_sageimport:
 timesheet_mobile_index:
     path:     /mobile
     defaults: { _controller: TimesheetHrBundle:Mobile:index }
+timesheet_mobile_unauth:
+    path:     /mobile/unauth
+    defaults: { _controller: TimesheetHrBundle:Mobile:unauth }
 timesheet_mobile_manifest:
     path:     /mobile/manifest
     defaults: { _controller: TimesheetHrBundle:Mobile:manifest }
